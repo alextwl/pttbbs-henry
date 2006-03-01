@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+# $Id: filtermail.pl 2725 2005-05-16 18:36:27Z kcwu $
+use lib qw(/home/bbs/bin/);
+use FILTERMAIL;
+$bbsuid = $ARGV[0];
+
+undef @ARGV;
+undef $header;
+undef $body;
+
+while( <> ){
+    $header .= $_;
+    last if( $_ =~ /^\n/ );
+}
+while( <> ){
+    $body .= $_;
+}
+
+if( FILTERMAIL::checkheader($header) && FILTERMAIL::checkbody($body) ){
+    open FH, "|/home/bbs/bin/realbbsmail $bbsuid";
+    print FH $header;
+    print FH $body;
+    close FH;
+}
+=xxx
+else {
+    $fn = `/usr/bin/mktemp -q /tmp/norelay.XXXXXXXX`;
+    open FH, ">$fn";
+    print FH $msg;
+    close FH;
+}
+=cut
