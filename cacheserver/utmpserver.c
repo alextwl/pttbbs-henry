@@ -1,4 +1,4 @@
-/* $Id: utmpserver.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: utmpserver.c 3285 2006-03-12 16:07:39Z kcwu $ */
 #include "bbs.h"
 #include <err.h>
 
@@ -213,6 +213,8 @@ int main(int argc, char **argv)
 
 	    /* cfd will be closed in processlogin() */
 	    processlogin(cfd, uid, index);
+	} else {
+	    close(cfd);
 	}
     }
     return 0;
