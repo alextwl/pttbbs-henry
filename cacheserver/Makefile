@@ -1,7 +1,8 @@
-# $Id: Makefile 3281 2006-03-12 16:07:06Z kcwu $
+# $Id: Makefile 3282 2006-03-12 16:07:14Z kcwu $
 .include "../pttbbs.mk"
 
 PROGRAMS=	utmpserver utmpsync
+UTILOBJ=	../util/util_stuff.o ../util/util_var.o ../util/util_file.o ../util/util_cache.o ../util/util_passwd.o ../util/util_record.o
 
 all:	${PROGRAMS}
 
@@ -9,10 +10,10 @@ all:	${PROGRAMS}
 .c.o:	
 	$(CCACHE) $(CC) $(CFLAGS) -c $*.c
 
-.for fn in ${PROGRAMS}
-${fn}: ${fn}.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o ${fn} ${fn}.o ../util/util_*.o
-.endfor
+utmpserver: utmpserver.o $(UTILOBJ)
+	${CC} ${CFLAGS} ${LDFLAGS} -o $* $*.o $(UTILOBJ)
+utmpsync: utmpsync.o $(UTILOBJ)
+	${CC} ${CFLAGS} ${LDFLAGS} -o $* $*.o $(UTILOBJ)
 
 clean:
 	rm -f *~ ${PROGRAMS}
