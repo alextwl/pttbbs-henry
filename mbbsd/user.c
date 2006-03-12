@@ -1,4 +1,4 @@
-/* $Id: user.c 3275 2006-03-01 03:54:25Z scw $ */
+/* $Id: user.c 3276 2006-03-12 11:25:53Z scw $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -6,12 +6,12 @@ static char    * const sex[8] = {
 };
 
 #ifdef CHESSCOUNTRY
-static const char * const chess_photo_name[2] = {
-    "photo_fivechess", "photo_cchess"
+static const char * const chess_photo_name[3] = {
+    "photo_fivechess", "photo_cchess", "photo_go",
 };
 
-static const char * const chess_type[2] = {
-    "五子棋", "象棋"
+static const char * const chess_type[3] = {
+    "五子棋", "象棋", "圍棋",
 };
 #endif
 
