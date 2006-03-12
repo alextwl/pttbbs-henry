@@ -1,13 +1,17 @@
-# $Id: Makefile 1689 2004-04-04 09:59:40Z in2 $
+# $Id: Makefile 3281 2006-03-12 16:07:06Z kcwu $
 .include "../pttbbs.mk"
 
 PROGRAMS=	utmpserver utmpsync
 
 all:	${PROGRAMS}
 
+.SUFFIXES: .c .o
+.c.o:	
+	$(CCACHE) $(CC) $(CFLAGS) -c $*.c
+
 .for fn in ${PROGRAMS}
-${fn}: ${fn}.c
-	${CC} ${CFLAGS} ${LDFLAGS} -DPTTBBS_UTIL -o ${fn} ${fn}.c ../util/util_*.o
+${fn}: ${fn}.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o ${fn} ${fn}.o ../util/util_*.o
 .endfor
 
 clean:
