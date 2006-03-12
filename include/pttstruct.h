@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3279 2006-03-12 16:05:11Z kcwu $ */
+/* $Id: pttstruct.h 3283 2006-03-12 16:07:22Z kcwu $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
