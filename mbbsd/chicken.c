@@ -104,7 +104,7 @@ new_chicken(void)
 
     clear();
     move(2, 0);
-    outs("歡迎光臨 " ANSI_COLOR(33) "◎" ANSI_COLOR(37;44) " Ptt寵物市場 " ANSI_COLOR(33;40) "◎" ANSI_RESET ".. "
+    outs("歡迎光臨 " ANSI_COLOR(33) "◎" ANSI_COLOR(37;44) " 山城寵物市場 " ANSI_COLOR(33;40) "◎" ANSI_RESET ".. "
 	 "目前蛋價：\n"
 	 "(a)小雞 $5   (b)美少女 $25  (c)勇士    $30  (d)蜘蛛  $40  "
 	 "(e)恐龍 $80\n"
@@ -831,7 +831,7 @@ recover_chicken(chicken_t * thechicken)
 	vice(money, "靈界守衛");
 	snprintf(buf, sizeof(buf),
 		 ANSI_COLOR(33;44) "★靈界守衛" ANSI_COLOR(37;45) " OK了 記得餵他點東西 "
-		 "不然可能失效 念在我也有玩Ptt 拿你%d就好 " ANSI_RESET, money);
+		 "不然可能失效 念在我也有玩BBS 拿你%d就好 " ANSI_RESET, money);
 	outmsg(buf);
 	bell();
 	igetch();

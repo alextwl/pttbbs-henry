@@ -38,7 +38,7 @@ show_ticket_data(char betname[MAX_ITEM][MAX_ITEM_LEN],const char *direct, int *p
 	} else
 	    showtitle(genbuf, BBSNAME);
     } else
-	showtitle("Ptt½ä½L", BBSNAME);
+	showtitle("Áø½«½ä½L", BBSNAME);
     move(2, 0);
     snprintf(genbuf, sizeof(genbuf), "%s/" FN_TICKET_ITEMS, direct);
     if (!(fp = fopen(genbuf, "r"))) {

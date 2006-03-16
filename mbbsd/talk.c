@@ -1020,7 +1020,7 @@ t_display(void)
     if (more(genbuf, YEA) != -1) {
 	move(b_lines - 4, 0);
 	clrtobot();
-	outs(ANSI_COLOR(1;33;45) "★現在 Ptt提供創新的水球整理程式★" ANSI_RESET "\n"
+	outs(ANSI_COLOR(1;33;45) "★現在山城提供創新的水球整理程式★" ANSI_RESET "\n"
 	     "您將水球存至信箱後, 在【郵件選單】該信件前按 u,\n"
 	     "系統即會將您的水球紀錄重新整理後寄送給您唷! \n");
 	getdata(b_lines - 1, 0, "清除(C) 移至備忘錄(M) 保留(R) (C/M/R)?[R]",
@@ -2769,7 +2769,7 @@ userlist(void)
 			    redrawall = redraw = 1;
 			    break;
 			}
-			if (getans("確定要給 %s %d Ptt 幣嗎? [N/y]",
+			if (getans("確定要給 %s %d 新山城幣嗎? [N/y]",
                              uentp->userid, ch) != 'y'){
 			    redrawall = redraw = 1;
 			    break;

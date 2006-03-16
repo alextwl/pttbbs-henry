@@ -231,7 +231,7 @@ mail_violatelaw(const char *crime, const char *police, const char *reason, const
     stampfile(genbuf, &fhdr);
     if (!(fp = fopen(genbuf, "w")))
 	return;
-    fprintf(fp, "作者: [Ptt警察局]\n"
+    fprintf(fp, "作者: [山城警察局]\n"
 	    "標題: [報告] 違法報告\n"
 	    "時間: %s\n"
 	    ANSI_COLOR(1;32) "%s" ANSI_RESET "判決：\n     " ANSI_COLOR(1;32) "%s" ANSI_RESET

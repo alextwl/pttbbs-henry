@@ -1412,8 +1412,8 @@ give_id_money(const char *user_id, int money, const char *mail_title)
 	prints("id:%s money:%d 不對吧!!", user_id, money);
 	pressanykey();
     } else {
-	snprintf(tt, sizeof(tt), "%s : %d ptt 幣", mail_title, money);
-	mail_id(user_id, tt, "etc/givemoney.why", "[PTT 銀行]");
+	snprintf(tt, sizeof(tt), "%s : %d 新山城幣", mail_title, money);
+	mail_id(user_id, tt, "etc/givemoney.why", "[山城銀行]");
     }
 }
 

@@ -69,11 +69,11 @@ anticrosspost(void)
              ANSI_COLOR(37) " %s" ANSI_RESET "\n", 
              cuser.userid, ctime4(&now));
     kick_all(cuser.userid);
-    post_violatelaw(cuser.userid, "Ptt系統警察", "Cross-post", "罰單處份");
+    post_violatelaw(cuser.userid, "山城系統警察", "Cross-post", "罰單處份");
     cuser.userlevel |= PERM_VIOLATELAW;
     cuser.vl_count++;
     mail_id(cuser.userid, "Cross-Post罰單",
-	    "etc/crosspost.txt", "Ptt警察部隊");
+	    "etc/crosspost.txt", "山城警察部隊");
     u_exit("Cross Post");
     exit(0);
 }
@@ -97,7 +97,7 @@ save_violatelaw(void)
     if (cuser.money < (int)cuser.vl_count * 1000) {
 	snprintf(buf, sizeof(buf),
 		 ANSI_COLOR(1;31) "這是你第 %d 次違反本站法規"
-		 "必須繳出 %d $Ptt ,你只有 %d 元, 錢不夠啦!!" ANSI_RESET,
+		 "必須繳出 %d $NHD ,你只有 %d 元, 錢不夠啦!!" ANSI_RESET,
            (int)cuser.vl_count, (int)cuser.vl_count * 1000, cuser.money);
 	mouts(22, 0, buf);
 	pressanykey();
@@ -115,7 +115,7 @@ save_violatelaw(void)
 	pressanykey();
 	return 0;
     }
-    snprintf(buf, sizeof(buf), "這是你第 %d 次違法 必須繳出 %d $Ptt",
+    snprintf(buf, sizeof(buf), "這是你第 %d 次違法 必須繳出 %d $NHD",
 	     cuser.vl_count, cuser.vl_count * 1000);
     mouts(11, 0, buf);
 
@@ -617,7 +617,7 @@ setupbidinfo(bid_t *bidinfo)
     bidinfo->buyitnow = atoi(buf);
 	
     getdata_str(22,0,
-		"付款方式: 1.Ptt幣 2.郵局或銀行轉帳 3.支票或電匯 4.郵局貨到付款 [1]:",
+		"付款方式: 1.新山城幣 2.郵局或銀行轉帳 3.支票或電匯 4.郵局貨到付款 [1]:",
 		buf, 3, LCECHO,"1");
     bidinfo->payby = (buf[0] - '1');
     if( bidinfo->payby < 0 || bidinfo->payby > 3)
@@ -630,7 +630,7 @@ setupbidinfo(bid_t *bidinfo)
 static void
 print_bidinfo(FILE *io, bid_t bidinfo)
 {
-    char *payby[4]={"Ptt幣", "郵局或銀行轉帳", "支票或電匯", "郵局貨到付款"};
+    char *payby[4]={"新山城幣", "郵局或銀行轉帳", "支票或電匯", "郵局貨到付款"};
     if(io){
 	if( !bidinfo.userid[0] )
 	    fprintf(io, "起標價:    %-20d\n", bidinfo.high);
@@ -1754,7 +1754,7 @@ hold_gamble(void)
     move(6, 0);
     snprintf(genbuf, sizeof(genbuf),
 	     "\n請到 %s 板 按'f'參與賭博!\n\n"
-	     "一張 %d Ptt幣, 這是%s的賭博\n%s%s\n",
+	     "一張 %d 新山城幣, 這是%s的賭博\n%s%s\n",
 	     currboard,
 	     i, i < 100 ? "小賭式" : i < 500 ? "平民級" :
 	     i < 1000 ? "貴族級" : i < 5000 ? "富豪級" : "傾家蕩產",
@@ -1934,7 +1934,7 @@ do_bid(int ent, fileheader_t * fhdr, const boardheader_t  *bp,
     clrtobot();
     prints("競標主題: %s\n", fhdr->title);
     print_bidinfo(0, bidinfo);
-    money = bidinfo.payby ? " NT$ " : "Ptt$ ";
+    money = bidinfo.payby ? " NT$ " : "NH$ ";
     if( now > bidinfo.enddate || bidinfo.high == bidinfo.buyitnow ){
 	outs("此競標已經結束,");
 	if( bidinfo.userid[0] ) {
@@ -2473,8 +2473,8 @@ del_post(int ent, fileheader_t * fhdr, char *direct)
 
 		      if (!(inc_badpost(userid, 1) % 5)){
                         userec_t xuser;
-			post_violatelaw(userid, "Ptt 系統警察", "劣文累計 5 篇", "罰單一張");
-			mail_violatelaw(userid, "Ptt 系統警察", "劣文累計 5 篇", "罰單一張");
+			post_violatelaw(userid, "山城系統警察", "劣文累計 5 篇", "罰單一張");
+			mail_violatelaw(userid, "山城系統警察", "劣文累計 5 篇", "罰單一張");
                         kick_all(userid);
                         passwd_query(tusernum, &xuser);
                         xuser.money = moneyof(tusernum);
@@ -2493,7 +2493,7 @@ del_post(int ent, fileheader_t * fhdr, char *direct)
 			  setbpath(report_path, BAD_POST_RECORD);
 			  stampfile(report_path, &report_fh);
 
-			  strcpy(report_fh.owner, "[Ptt警察局]");
+			  strcpy(report_fh.owner, "[山城警察局]");
 			  snprintf(report_fh.title, sizeof(report_fh.title),
 				  "%s 板 %s 板主給予 %s 一篇劣文",
 				  currboard, cuser.userid, userid);
