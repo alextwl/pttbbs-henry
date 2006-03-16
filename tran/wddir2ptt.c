@@ -30,6 +30,7 @@ int main (int argc, char *argv[])
 		memcpy (ptt.owner, wd.owner, sizeof (ptt.owner));
 		memcpy (ptt.date, wd.date, sizeof (ptt.date));
 		memcpy (ptt.title, wd.title, sizeof (ptt.title));
+		ptt.recommend = wd.score;
 		ptt.filemode = wd.filemode;
 
 		write (pttfd, &ptt, sizeof (pttfileheader_t));
