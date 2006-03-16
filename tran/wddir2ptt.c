@@ -31,7 +31,12 @@ int main (int argc, char *argv[])
 		memcpy (ptt.date, wd.date, sizeof (ptt.date));
 		memcpy (ptt.title, wd.title, sizeof (ptt.title));
 		ptt.recommend = wd.score;
-		ptt.filemode = wd.filemode;
+		ptt.filemode = wd.filemode & (FILE_LOCAL|FILE_READ|FILE_MARKED
+						|FILE_DIGEST);
+		if (wd.filemode & 0x90) /* bottom */
+			ptt.filemode |= FILE_BOTTOM;
+		if (wd.filemode & 0x10) /* reply */
+			ptt.filemode |= FILE_REPLIED;
 
 		write (pttfd, &ptt, sizeof (pttfileheader_t));
 		count++;
