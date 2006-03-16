@@ -64,6 +64,7 @@ int main (int argc, char *argv[])
 	}
 
 	printf ("Translate %d records\n", count);
+	close (pttfd);
 	close (wdfd);
 	
 	return 0;
