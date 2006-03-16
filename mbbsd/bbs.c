@@ -97,7 +97,7 @@ save_violatelaw(void)
     if (cuser.money < (int)cuser.vl_count * 1000) {
 	snprintf(buf, sizeof(buf),
 		 ANSI_COLOR(1;31) "這是你第 %d 次違反本站法規"
-		 "必須繳出 %d $NHD ,你只有 %d 元, 錢不夠啦!!" ANSI_RESET,
+		 "必須繳出 %d NH$ ,你只有 %d 元, 錢不夠啦!!" ANSI_RESET,
            (int)cuser.vl_count, (int)cuser.vl_count * 1000, cuser.money);
 	mouts(22, 0, buf);
 	pressanykey();
@@ -115,7 +115,7 @@ save_violatelaw(void)
 	pressanykey();
 	return 0;
     }
-    snprintf(buf, sizeof(buf), "這是你第 %d 次違法 必須繳出 %d $NHD",
+    snprintf(buf, sizeof(buf), "這是你第 %d 次違法 必須繳出 %d NH$",
 	     cuser.vl_count, cuser.vl_count * 1000);
     mouts(11, 0, buf);
 
