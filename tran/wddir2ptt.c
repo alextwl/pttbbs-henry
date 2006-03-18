@@ -25,11 +25,13 @@ int main (int argc, char *argv[])
 	while (read (wdfd, &wd, sizeof (wdfileheader_t)) == sizeof (wdfileheader_t)) {
 		memset (&ptt, 0, sizeof (pttfileheader_t));
 
-		memcpy (ptt.filename, wd.filename, sizeof (wd.filename)); /* wd.filename is short then ptt's */
+		memcpy (ptt.filename, wd.filename, sizeof (ptt.filename));
+		ptt.filename[FNLEN-1]='\0';
 		/* duno textlen */
 		memcpy (ptt.owner, wd.owner, sizeof (ptt.owner));
 		memcpy (ptt.date, wd.date, sizeof (ptt.date));
 		memcpy (ptt.title, wd.title, sizeof (ptt.title));
+		ptt.title[TTLEN]='\0';
 		ptt.recommend = wd.score;
 		ptt.filemode = wd.filemode & (FILE_LOCAL|FILE_READ|FILE_MARKED
 						|FILE_DIGEST);
