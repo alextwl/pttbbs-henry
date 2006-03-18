@@ -561,6 +561,10 @@ m_mod_board(char *bname)
 
 	newbh.title[4] = ' ';
 
+	if (getdata(12, 0, "新 GID：", genbuf, 5, DOECHO)) {
+		newbh.gid = atoi(genbuf);
+	}
+
 	getdata_str(14, 0, "看板主題：", genbuf, BTLEN + 1, DOECHO,
 		    bh.title + 7);
 	if (genbuf[0])
@@ -645,8 +649,9 @@ m_mod_board(char *bname)
 	    snprintf(buf, sizeof(buf), "[看板變更] %s (by %s)", bh.brdname, cuser.userid);
 	    snprintf(genbuf, sizeof(genbuf),
 		    "板名: %s => %s\n"
-		    "板主: %s => %s\n",
-		    bh.brdname, newbh.brdname, bh.BM, newbh.BM);
+		    "板主: %s => %s\n"
+		    "GID: %d => %d\n",
+		    bh.brdname, newbh.brdname, bh.BM, newbh.BM, bh.gid, newbh.gid);
 	    post_msg("Security", buf, genbuf, "[系統安全局]");
 	}
     }

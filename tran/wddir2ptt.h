@@ -55,12 +55,12 @@ typedef struct fileheader_t {
 
 struct wdfileheader
 {
-  char filename[FNLEN-1];         /* M.9876543210.A     32 bytes*/
+  char filename[33-1];         /* M.9876543210.A     32 bytes*/
   char score;                   /* score                1 bytes*/
   char savemode;                /* file save mode        1 bytes*/
   char owner[IDLEN + 2];        /* uid[.]               14 bytes*/
   char date[6];                 /* [02/02] or space(5)   6 bytes*/
-  char title[TTLEN + 1];        /* title                73 bytes*/
+  char title[72 + 1];        /* title                73 bytes*/
 //  time_t chrono;                /* timestamp */
 //  char dummy;
   unsigned char filemode;              /* must be last field @ boards.c 1 bytes*/
