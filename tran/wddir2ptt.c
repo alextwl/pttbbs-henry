@@ -35,8 +35,10 @@ int main (int argc, char *argv[])
 		ptt.recommend = wd.score;
 		ptt.filemode = wd.filemode & (FILE_LOCAL|FILE_READ|FILE_MARKED
 						|FILE_DIGEST);
+#if 0
 		if (wd.filemode & 0x90) /* bottom */
 			ptt.filemode |= FILE_BOTTOM;
+#endif
 		if (wd.filemode & 0x10) /* reply */
 			ptt.filemode |= FILE_REPLIED;
 
