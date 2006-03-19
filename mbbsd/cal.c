@@ -186,8 +186,15 @@ osong(void)
     strlcpy(mail.owner, "點歌機", sizeof(mail.owner));
     snprintf(mail.title, sizeof(mail.title), "◇ %s 點給 %s ", sender, receiver);
 
+    int autoaddsrc = 0;
+    int lines = 0;
     while (fgets(buf, sizeof(buf), fp)) {
 	char           *po;
+	lines++;
+	if(lines == 11 && !autoaddsrc)   //把這行直接加進歌曲的最後一行 :)
+		strcpy(buf,
+		    "  "ANSI_COLOR(1;36)"<~Src~> "ANSI_COLOR(1;37)"要對"ANSI_COLOR(1;33)" <~Des~> "ANSI_COLOR(1;37)
+		    "說： "ANSI_COLOR(1;32)"<~Say~>\n"ANSI_COLOR(0));
 	if (!strncmp(buf, "標題: ", 6)) {
 	    clear();
 	    move(10, 10);
@@ -205,16 +212,19 @@ osong(void)
 	    po[0] = 0;
 	    snprintf(genbuf, sizeof(genbuf), "%s%s%s%s", buf, sender, dot, po + 7);
 	    strlcpy(buf, genbuf, sizeof(buf));
+	    autoaddsrc++;
 	}
 	while ((po = strstr(buf, "<~Des~>"))) {
 	    po[0] = 0;
 	    snprintf(genbuf, sizeof(genbuf), "%s%s%s", buf, receiver, po + 7);
 	    strlcpy(buf, genbuf, sizeof(buf));
+	    autoaddsrc++;
 	}
 	while ((po = strstr(buf, "<~Say~>"))) {
 	    po[0] = 0;
 	    snprintf(genbuf, sizeof(genbuf), "%s%s%s", buf, say, po + 7);
 	    strlcpy(buf, genbuf, sizeof(buf));
+	    autoaddsrc++;
 	}
 	fputs(buf, fp1);
     }
