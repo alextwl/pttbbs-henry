@@ -689,11 +689,11 @@ x_file(void)
 #endif
 	 "\n");
     outs("     (H)看板期限 (I)故鄉 (J)出站畫面 (K)生日卡 (L)節日 (M)外籍使用者認證通知\n");
-    outs("     (N)外籍使用者過期警告通知 (O)看板列表 help (P)文章列表 help\n");
+    outs("     (N)外籍使用者過期警告通知 (O)看板列表 help (P)文章列表 help (R)分組討論畫面\n");
 #ifdef PLAY_ANGEL
     outs(" (Y)小天使認證通知\n");
 #endif
-    getdata(b_lines - 1, 0, "[Q]取消[1-9 A-P]？", ans, sizeof(ans), LCECHO);
+    getdata(b_lines - 1, 0, "[Q]取消[1-9 A-R]？", ans, sizeof(ans), LCECHO);
 
     switch (ans[0]) {
     case '1':
@@ -800,7 +800,9 @@ x_file(void)
     case 'p':
 	fpath = "etc/board.help";
 	break;
-
+    case 'r':
+	fpath = "etc/ClassNews";
+	break;
 #ifdef PLAY_ANGEL
     case 'y':
 	fpath = "etc/angel_notify";

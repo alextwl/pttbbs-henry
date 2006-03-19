@@ -497,6 +497,8 @@ show_brdlist(int head, int clsflag, int newflag)
 	showtitle("分類看板", BBSName);
 	movie(0);
 	move(1, 0);
+	show_file("etc/ClassNews", 0, 6, NO_RELOAD);
+	/*
 	outs(
 	    "                                                              "
 	    "◣  ╭—" ANSI_COLOR(33) "●\n"
@@ -510,6 +512,7 @@ show_brdlist(int head, int clsflag, int newflag)
 	    "│" ANSI_RESET "   ◥████◤ ║\n"
 	    "                                                      " ANSI_COLOR(33) "╫"
 	    "——" ANSI_RESET "  ◤      —＋" ANSI_RESET);
+	*/
     } else if (clsflag) {
 	showtitle("看板列表", BBSName);
 	// [m]加入或移出我的最愛 
