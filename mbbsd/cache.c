@@ -1,4 +1,4 @@
-/* $Id: cache.c 3276 2006-03-12 11:25:53Z scw $ */
+/* $Id: cache.c 3294 2006-03-22 17:57:57Z kcwu $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -192,9 +192,11 @@ remove_from_uhash(int n)
 #warning "searchuser() average chaining MAX_USERS/(1<<HASH_BITS) times."
 #endif
 int
-searchuser(const char *userid, char *rightid)
+dosearchuser(const char *userid, char *rightid)
 {
     int             h, p, times;
+    if(userid[0]=='\0')
+	return 0;
     STATINC(STAT_SEARCHUSER);
     h = StringHash(userid)%(1<<HASH_BITS);
     p = SHM->hash_head[h];
@@ -208,6 +210,14 @@ searchuser(const char *userid, char *rightid)
     }
 
     return 0;
+}
+
+int
+searchuser(const char *userid, char *rightid)
+{
+    if(userid[0]=='\0')
+	return 0;
+    return dosearchuser(userid, rightid);
 }
 
 int

@@ -1,4 +1,4 @@
-/* $Id: proto.h 3279 2006-03-12 16:05:11Z kcwu $ */
+/* $Id: proto.h 3294 2006-03-22 17:57:57Z kcwu $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -118,6 +118,7 @@ void brc_addlist(const char* fname);
 void sort_bcache(void);
 int getuser(const char *userid, userec_t *xuser);
 void setuserid(int num, const char *userid);
+int dosearchuser(const char *userid, char *rightid);
 int searchuser(const char *userid, char *rightid);
 int getbnum(const char *bname);
 void touchbpostnum(int bid, int delta);
