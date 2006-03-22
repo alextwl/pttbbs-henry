@@ -1,4 +1,4 @@
-/* $Id: fav.c 3259 2006-01-03 15:39:37Z victor $ */
+/* $Id: fav.c 3297 2006-03-22 17:58:41Z kcwu $ */
 #include "bbs.h"
 
 /**
@@ -254,7 +254,9 @@ static int get_type_size(int type)
 }
 
 inline static void* fav_malloc(int size){
-    void *p = (void *)malloc(size);
+    void *p;
+    assert(size>0);
+    p = (void *)malloc(size);
     assert(p);
     memset(p, 0, size);
     return p;
