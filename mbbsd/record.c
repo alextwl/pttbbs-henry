@@ -1,4 +1,4 @@
-/* $Id: record.c 3271 2006-02-08 21:51:36Z kcwu $ */
+/* $Id: record.c 3292 2006-03-22 17:57:26Z kcwu $ */
 
 #include "bbs.h"
 
@@ -574,7 +574,7 @@ append_record_forward(char *fpath, fileheader_t * record, int size, const char *
 	int             n;
 
 	for (n = strlen(fpath) - 1; fpath[n] != '/' && n > 0; n--);
-	strlcpy(buf, fpath, n + 1);
+	strncpy(buf, fpath, n + 1);
 	if (n + sizeof(".forward") > sizeof(buf))
 	    return -1;
 	strcpy(buf + n + 1, ".forward");
