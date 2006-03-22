@@ -1,4 +1,4 @@
-/* $Id: utmpserver.c 3285 2006-03-12 16:07:39Z kcwu $ */
+/* $Id: utmpserver.c 3295 2006-03-22 17:58:24Z kcwu $ */
 #include "bbs.h"
 #include <err.h>
 
@@ -151,6 +151,7 @@ int main(int argc, char **argv)
     int     ch, port = 5120, sfd, cfd, len, index, uid;
     char   *iface_ip = NULL;
 
+    Signal(SIGPIPE, SIG_IGN);
     while( (ch = getopt(argc, argv, "p:i:h")) != -1 )
 	switch( ch ){
 	case 'p':
