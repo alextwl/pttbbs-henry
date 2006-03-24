@@ -1,4 +1,4 @@
-/* $Id: cache.c 3294 2006-03-22 17:57:57Z kcwu $ */
+/* $Id: cache.c 3301 2006-03-24 00:22:46Z kcwu $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -195,8 +195,6 @@ int
 dosearchuser(const char *userid, char *rightid)
 {
     int             h, p, times;
-    if(userid[0]=='\0')
-	return 0;
     STATINC(STAT_SEARCHUSER);
     h = StringHash(userid)%(1<<HASH_BITS);
     p = SHM->hash_head[h];
