@@ -200,7 +200,7 @@ show_chicken_data(chicken_t * thechicken, chicken_t * pkchicken)
     /* Ptt:debug */
     thechicken->type %= NUM_KINDS;
     clear();
-    showtitle(pkchicken ? "Ｐtt鬥雞場" : "Ｐtt養雞場", BBSName);
+    showtitle(pkchicken ? "霞蔚鬥雞場" : "霞蔚養雞場", BBSName);
     move(1, 0);
 
     show_chicken_stat(thechicken, age);
