@@ -220,6 +220,13 @@ setupmailusage(void)
 	mailmaxkeep = max_keepmail + cuser.exmailbox;
         mailkeep=get_num_records(currmaildir,sizeof(fileheader_t));
         mailsum =get_sum_records(currmaildir, sizeof(fileheader_t));
+#if 0
+	sethomeman(currmaildir, cuser.userid);
+        mailsum +=get_sum_records(currmaildir, sizeof(fileheader_t));
+	sethomefile(currmaildir, cuser.userid, "gem");
+        mailsum +=get_sum_records(currmaildir, sizeof(fileheader_t));
+	sethomedir(currmaildir, cuser.userid);
+#endif
 }
 
 #define MAILBOX_LIM_OK   0
@@ -1361,6 +1368,21 @@ mail_man(void)
     return FULLUPDATE;
 }
 
+int
+mail_gem(void)
+{
+    char            buf[PATHLEN], buf1[64];
+    int             mode0 = currutmp->mode;
+    int             stat0 = currstat;
+
+    sethomefile(buf, cuser.userid, "gem");
+    snprintf(buf1, sizeof(buf1), "%s 的精華區", cuser.userid);
+    a_menu(buf1, buf, HasUserPerm(PERM_MAILLIMIT), NULL);
+    currutmp->mode = mode0;
+    currstat = stat0;
+    return FULLUPDATE;
+}
+
 static int
 mail_cite(int ent, fileheader_t * fhdr, const char *direct)
 {
@@ -1559,7 +1581,7 @@ static const onekey_t mail_comms[] = {
     { 0, NULL }, // 'Z' 90
     { 0, NULL }, { 0, NULL }, { 0, NULL }, { 0, NULL }, { 0, NULL }, { 0, NULL },
     { 0, NULL }, // 'a' 97
-    { 0, NULL }, // 'b'
+    { 0, mail_gem }, // 'b'
     { 1, mail_cite }, // 'c'
     { 1, mail_del }, // 'd'
     { 0, NULL }, // 'e'
