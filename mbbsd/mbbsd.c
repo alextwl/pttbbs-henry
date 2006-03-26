@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3300 2006-03-22 18:00:02Z kcwu $ */
+/* $Id: mbbsd.c 3308 2006-03-26 16:57:05Z kcwu $ */
 #define TELOPTS
 #define TELCMDS
 #include "bbs.h"
@@ -678,7 +678,7 @@ login_query(void)
 	    outs("本系統目前無法以 new 註冊, 請用 guest 進入\n");
 	    continue;
 #endif
-	} else if (uid[0] == '\0') {
+	} else if (!is_validuserid(uid)) {
 
 	    outs(err_uid);
 
@@ -706,7 +706,8 @@ login_query(void)
 	    if( initcuser(uid) < 1 || !cuser.userid[0] ||
 		!checkpasswd(cuser.passwd, passbuf) ){
 
-		logattempt(cuser.userid , '-');
+		if(is_validuserid(cuser.userid))
+		    logattempt(cuser.userid , '-');
 		outs(ERR_PASSWD);
 
 	    } else {
