@@ -1,4 +1,4 @@
-/* $Id: chess.c 3193 2005-09-20 04:08:49Z scw $ */
+/* $Id: chess.c 3304 2006-03-26 16:14:01Z kcwu $ */
 #include "bbs.h"
 #include "chess.h"
 
@@ -859,6 +859,7 @@ ChessWatchRequest(int sig)
     if (sock < 0)
 	return;
     
+    assert(CurrentPlayingGameInfo);
     node = ChessBroadcastListInsert(&CurrentPlayingGameInfo->broadcast_list);
     node->sock = sock;
 
