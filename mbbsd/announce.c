@@ -1,4 +1,4 @@
-/* $Id: announce.c 3304 2006-03-26 16:14:01Z kcwu $ */
+/* $Id: announce.c 3305 2006-03-26 16:14:11Z kcwu $ */
 #include "bbs.h"
 
 /* copy temp queue operation -------------------------------------- */
@@ -1015,8 +1015,10 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 	    break;
 	case '?':
 	case '/':
-	    me.now = a_searchtitle(&me, ch == '?');
-	    me.page = 9999;
+	    if(me.num) {
+		me.now = a_searchtitle(&me, ch == '?');
+		me.page = 9999;
+	    }
 	    break;
 	case '$':
 	    me.now = me.num - 1;
