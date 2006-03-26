@@ -1,4 +1,4 @@
-/* $Id: userlist.c 3000 2005-08-06 09:02:50Z piaip $ */
+/* $Id: userlist.c 3302 2006-03-26 16:13:47Z kcwu $ */
 #include "bbs.h"
 
 SHM_t   *SHM;
@@ -34,11 +34,6 @@ int main(int argc, char **argv) {
 		    "id=%s money=%d\n",
 		    f->userid, SHM->money[f->uid - 1]);
 	}
-    } 
-    else if(argc > 1) 
-    {
-	for(i = 1; i < argc; i++)
-	    SHM->uinfo[atoi(argv[i])].pid = 0;
     } 
     else 
     {
