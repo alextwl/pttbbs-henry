@@ -45,7 +45,8 @@ int main (int argc, char *argv[])
 		ptt.firstlogin = wd.firstlogin;
 		ptt.lastlogin = wd.lastlogin;
 		memcpy (ptt.lasthost, wd.lasthost, sizeof(ptt.lasthost));
-		ptt.money = wd.goldmoney / 100;
+		ptt.money = wd.goldmoney > 0 ? wd.goldmoney / 100 : 0;
+		ptt.money += wd.silvermoney > 0 ? wd.silvermoney / 105000 : 0;
 		memcpy (ptt.email, wd.email, sizeof(wd.email));
 		memcpy (ptt.address, wd.address, sizeof(ptt.address));
 		memcpy (ptt.justify, wd.justify, sizeof(ptt.justify));
