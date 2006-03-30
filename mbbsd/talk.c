@@ -1,4 +1,4 @@
-/* $Id: talk.c 3312 2006-03-29 17:14:01Z kcwu $ */
+/* $Id: talk.c 3314 2006-03-30 01:32:25Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3235,7 +3235,7 @@ t_changeangel(){
     char buf[4];
 
     /* cuser.myangel == "-" means banned for calling angel */
-    if (cuser.myangel[0] == 0 || cuser.myangel[0] == '-') return 0;
+    if (cuser.myangel[0] == '-' || cuser.myangel[1] == 0) return 0;
 
     getdata(b_lines - 1, 0,
 	    "更換小天使後就無法換回了喔！ 是否要更換小天使？ [y/N]",
