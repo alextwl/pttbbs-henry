@@ -1,4 +1,4 @@
-/* $Id: talk.c 3272 2006-02-18 05:36:57Z kcwu $ */
+/* $Id: talk.c 3314 2006-03-30 01:32:25Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -13,7 +13,7 @@ static char    * const withme_str[] = {
   "談天", "下五子棋", "鬥寵物", "下象棋", "下暗棋", "下圍棋", NULL
 };
 
-#define MAX_SHOW_MODE 5
+#define MAX_SHOW_MODE 6
 #define M_INT 15		/* monitor mode update interval */
 #define P_INT 20		/* interval to check for page req. in
 				 * talk/chat */
@@ -31,7 +31,7 @@ typedef struct pickup_t {
 
 /* 記錄 friend 的 user number */
 //
-#define PICKUP_WAYS     7
+#define PICKUP_WAYS     8
 
 static char    * const fcolor[11] = {
     "", ANSI_COLOR(36), ANSI_COLOR(32), ANSI_COLOR(1;32),
@@ -167,11 +167,11 @@ set_friend_bit(const userinfo_t * me, const userinfo_t * ui)
     const int *myfriends;
 
     /* 判斷對方是否為我的朋友 ? */
-    if( intbsearch(ui->uid, me->friend, me->nFriends) )
+    if( intbsearch(ui->uid, me->myfriend, me->nFriends) )
 	hit = IFH;
 
     /* 判斷我是否為對方的朋友 ? */
-    if( intbsearch(me->uid, ui->friend, ui->nFriends) )
+    if( intbsearch(me->uid, ui->myfriend, ui->nFriends) )
 	hit |= HFM;
 
     /* 判斷對方是否為我的仇人 ? */
@@ -237,6 +237,70 @@ void verbose_progress(int em, int *i, int *dir, int max)
 	*dir *= -1;
 }
 
+#ifdef OUTTACACHE
+int sync_outta_server(int sfd)
+{
+    int i;
+    int offset = (int)(currutmp - &SHM->uinfo[0]);
+
+    int cmd, res;
+    int nfs;
+    ocfs_t  fs[MAX_FRIEND*2];
+
+    int iBar = 0, barMax = t_columns/2, dir = 1;
+
+    verbose_progress(0, &iBar, &dir, barMax);
+    cmd = -2;
+    if(towrite(sfd, &cmd, sizeof(cmd))<0 ||
+	    towrite(sfd, &offset, sizeof(offset))<0 ||
+	    towrite(sfd, &currutmp->uid, sizeof(currutmp->uid)) < 0 ||
+	    towrite(sfd, currutmp->myfriend, sizeof(currutmp->myfriend))<0 ||
+	    towrite(sfd, currutmp->reject, sizeof(currutmp->reject))<0)
+	return -1;
+
+    verbose_progress(0, &iBar, &dir, barMax);
+    if(toread(sfd, &res, sizeof(res))<0)
+	return -1;
+
+    if(res<0)
+	return -1;
+    if(res==2) {
+	outs("登入太頻繁, 為避免系統負荷過重, 請稍後再試\n");
+	refresh();
+	sleep(10);
+	abort_bbs(0);
+    }
+
+    verbose_progress(0, &iBar, &dir, barMax);
+    if(toread(sfd, &nfs, sizeof(nfs))<0)
+	return -1;
+    if(nfs<0 || nfs>=MAX_FRIEND) {
+	fprintf(stderr, "invalid nfs=%d\n",nfs);
+	return -1;
+    }
+
+    if(toread(sfd, fs, sizeof(fs[0])*nfs)<0)
+	return -1;
+
+    verbose_progress(0, &iBar, &dir, barMax);
+    for(i=0; i<nfs; i++) {
+	if( SHM->uinfo[fs[i].index].uid != fs[i].uid )
+	    continue; // double check, server may not know user have logout
+	currutmp->friend_online[currutmp->friendtotal++]
+	    = fs[i].friendstat;
+	/* XXX: race here */
+	if( SHM->uinfo[fs[i].index].friendtotal < MAX_FRIEND )
+	    SHM->uinfo[fs[i].index].friend_online[ SHM->uinfo[fs[i].index].friendtotal++ ] = fs[i].rfriendstat;
+    }
+    verbose_progress(1, &iBar, &dir, barMax);
+
+    if(res==1) {
+	vmsg("請勿頻繁登入以免造成系統過度負荷");
+    }
+    return 0;
+}
+#endif
+
 void login_friend_online(void)
 {
     userinfo_t     *uentp;
@@ -244,48 +308,18 @@ void login_friend_online(void)
     int             offset = (int)(currutmp - &SHM->uinfo[0]);
 
 #ifdef OUTTACACHE
-    int             sfd;
-
-    int iBar = 0, barMax = t_columns/2, dir = 1;
-
+    int sfd;
     /* OUTTACACHE is TOO slow, let's prompt user here. */
     move(b_lines-2, 0); clrtobot();
     outs("\n正在更新與同步線上使用者及好友名單，系統負荷量大時會需時較久...\n");
     refresh();
 
-    verbose_progress(0, &iBar, &dir, barMax);
-    if( (sfd = toconnect(OUTTACACHEHOST, OUTTACACHEPORT)) > 0 ){
-
-	verbose_progress(0, &iBar, &dir, barMax);
-	if( towrite(sfd, &offset, sizeof(offset)) > 0                    &&
-	    towrite(sfd, &currutmp->uid, sizeof(currutmp->uid)) > 0      &&
-	    towrite(sfd, currutmp->friend, sizeof(currutmp->friend)) > 0 &&
-	    towrite(sfd, currutmp->reject, sizeof(currutmp->reject)) > 0 ){
-
-	    ocfs_t  fs;
-	    while( currutmp->friendtotal < MAX_FRIEND &&
-		   toread(sfd, &fs, sizeof(fs)) > 0 )
-	    {
-		verbose_progress(0, &iBar, &dir, barMax);
-		if( SHM->uinfo[fs.index].uid == fs.uid )
-		{
-		    currutmp->friend_online[currutmp->friendtotal++]
-			= fs.friendstat;
-		    /* XXX: race here */
-		    if( SHM->uinfo[fs.index].friendtotal < MAX_FRIEND )
-			SHM->uinfo[fs.index].friend_online[ SHM->uinfo[fs.index].friendtotal++ ] = fs.rfriendstat;
-		}
-	    }
-	    verbose_progress(1, &iBar, &dir, barMax);
-
-	    /* 要把剩下的收完, 要不然會卡死 utmpserver */
-	    if( currutmp->friendtotal == MAX_FRIEND )
-		while( toread(sfd, &fs, sizeof(fs)) > 0 )
-		    verbose_progress(1, &iBar, &dir, barMax);
-	    close(sfd);
-	    return;
-	}
+    sfd = toconnect(OUTTACACHEHOST, OUTTACACHEPORT);
+    if(sfd>=0) {
+	int res=sync_outta_server(sfd);
 	close(sfd);
+	if(res==0)
+	    return;
     }
 #endif
 
@@ -1842,6 +1876,12 @@ descript(int show_mode, const userinfo_t * uentp, int diff)
 		 "%4d %s", uentp->chess_elo_rating, 
 		 (uentp->withme&WITHME_CHESS)?"找我下棋":(uentp->withme&WITHME_NOCHESS)?"別找我":"");
 	return description;
+    case 5:
+	snprintf(description, sizeof(description),
+		 "%4d/%4d/%2d %c", uentp->go_win,
+		 uentp->go_lose, uentp->go_tie,
+		 (uentp->withme&WITHME_GO)?'o':(uentp->withme&WITHME_NOGO)?'x':' ');
+	return description;
     default:
 	syslog(LOG_WARNING, "damn!!! what's wrong?? show_mode = %d",
 	       show_mode);
@@ -2069,10 +2109,10 @@ draw_pickup(int drawall, pickup_t * pickup, int pickup_way,
 	    int show_pid, int myfriend, int friendme, int bfriend, int badfriend)
 {
     char           *msg_pickup_way[PICKUP_WAYS] = {
-	"嗨! 朋友", "網友代號", "網友動態", "發呆時間", "來自何方", " 五子棋 ", "  象棋  "
+	"嗨! 朋友", "網友代號", "網友動態", "發呆時間", "來自何方", " 五子棋 ", "  象棋  ", "  圍棋  ",
     };
     char           *MODE_STRING[MAX_SHOW_MODE] = {
-	"故鄉", "好友描述", "五子棋戰績", "象棋戰績", "象棋等級分",
+	"故鄉", "好友描述", "五子棋戰績", "象棋戰績", "象棋等級分", "圍棋戰績",
     };
     char            pagerchar[5] = "* -Wf";
 
@@ -2656,6 +2696,8 @@ userlist(void)
 		    user_query_mode = 1;
 		else if (show_mode == 3 || show_mode == 4)
 		    user_query_mode = 2;
+		else if (show_mode == 5)
+		    user_query_mode = 3;
 		else
 		    user_query_mode = 0;
 #endif /* defined(CHESSCOUNTRY) */
@@ -3193,7 +3235,7 @@ t_changeangel(){
     char buf[4];
 
     /* cuser.myangel == "-" means banned for calling angel */
-    if (cuser.myangel[0] == 0 || cuser.myangel[0] == '-') return 0;
+    if (cuser.myangel[0] == '-' || cuser.myangel[1] == 0) return 0;
 
     getdata(b_lines - 1, 0,
 	    "更換小天使後就無法換回了喔！ 是否要更換小天使？ [y/N]",

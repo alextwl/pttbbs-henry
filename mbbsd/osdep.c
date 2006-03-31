@@ -1,4 +1,4 @@
-/* $Id: osdep.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: osdep.c 3292 2006-03-22 17:57:26Z kcwu $ */
 #include "bbs.h"
 
 #ifdef NEED_STRLCAT
@@ -613,7 +613,7 @@ cpuload(char *str)
     }
     if (str) {
 	if (l[0] != -1)
-	    snprintf(str, sizeof(str), " %.2f %.2f %.2f", l[0], l[1], l[2]);
+	    sprintf(str, " %.2f %.2f %.2f", l[0], l[1], l[2]);
 	else
 	    strcpy(str, " (unknown) ");
     }

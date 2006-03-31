@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3273 2006-02-18 05:37:03Z kcwu $ */
+/* $Id: mbbsd.c 3313 2006-03-29 18:10:46Z kcwu $ */
 #define TELOPTS
 #define TELCMDS
 #include "bbs.h"
@@ -33,6 +33,9 @@ static char     remoteusername[40] = "?";
 
 static unsigned char enter_uflag;
 static int      use_shell_login_mode = 0;
+#ifdef DETECT_CLIENT
+Fnv32_t client_code=FNV1_32_INIT;
+#endif
 
 #ifdef USE_RFORK
 #define fork() rfork(RFFDG | RFPROC | RFNOWAIT)
@@ -78,8 +81,7 @@ start_daemon(void)
     while (n)
 	close(--n);
 
-    /* in2: open /dev/null to fd:2 */
-    if( ((fd = open("/dev/null", O_WRONLY)) >= 0) && fd != 2 ){
+    if( ((fd = open("log/stderr", O_WRONLY | O_CREAT | O_APPEND, 0644)) >= 0) && fd != 2 ){
 	dup2(fd, 2);
 	close(fd);
     }
@@ -242,7 +244,11 @@ abort_bbs_debug(int sig)
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
 #define CRASH_MSG ANSI_COLOR(0) "\r\n程式異常, 立刻斷線. 請洽 PttBug 板詳述你發生的問題.\r\n"
-    write(1, CRASH_MSG, sizeof(CRASH_MSG));
+#define XCPU_MSG ANSI_COLOR(0) "\r\n程式耗用過多計算資源, 立刻斷線. 可能是 (a)執行太多耗用資源的動作 或 (b)程式掉入無窮迴圈. 請洽 PttBug 板詳述你發生的問題.\r\n"
+    if(sig==SIGXCPU)
+	write(1, XCPU_MSG, sizeof(XCPU_MSG));
+    else
+	write(1, CRASH_MSG, sizeof(CRASH_MSG));
 
     /* close all file descriptors (including the network connection) */
     for (i = 0; i < 256; ++i)
@@ -515,44 +521,62 @@ write_request(int sig)
 #endif
 }
 
+static userinfo_t*
+getotherlogin(int num)
+{
+    userinfo_t *ui;
+    do {
+	if (!(ui = (userinfo_t *) search_ulistn(usernum, num)))
+	    return NULL;		/* user isn't logged in */
+
+	/* skip sleeping process, this is slow if lots */
+	if(ui->mode == DEBUGSLEEPING)
+	    num++;
+    } while (ui->mode == DEBUGSLEEPING);
+
+    return ui;
+}
+
 static void
 multi_user_check(void)
 {
     register userinfo_t *ui;
-    register pid_t  pid;
     char            genbuf[3];
 
     if (HasUserPerm(PERM_SYSOP))
 	return;			/* don't check sysops */
 
     if (cuser.userlevel) {
-	if (!(ui = (userinfo_t *) search_ulist(usernum)))
-	    return;		/* user isn't logged in */
-
-#ifdef DEBUGSLEEP
-	/* skip sleeping process */
-	while (ui->pid &&
-		(ui->uid == usernum && ui->mode == DEBUGSLEEPING))
-	    ui++;
-
-	if(ui->uid != usernum)
+	ui = getotherlogin(1);
+	if(ui == NULL)
 	    return;
-#endif
-
-	pid = ui->pid;
-	if (!pid /* || (kill(pid, 0) == -1) */ )
+	if (!ui->pid /* || (kill(pid, 0) == -1) */ )
 	    return;		/* stale entry in utmp file */
 
 	getdata(b_lines - 1, 0, "您想刪除其他重複的 login (Y/N)嗎？[Y] ",
 		genbuf, 3, LCECHO);
 
 	if (genbuf[0] != 'n') {
-	    if (pid > 0)
-		kill(pid, SIGHUP);
-	    log_usies("KICK ", cuser.nickname);
+	    // race condition here, sleep may help..?
+	    srandom(getpid());
+	    usleep(random()%1000000+100000); // 0.1~1.1s
+	    do {
+		// scan again, old ui may be invalid
+		ui = getotherlogin(1);
+		if(ui==NULL)
+		    return;
+		if (ui->pid > 0) {
+		    if(kill(ui->pid, SIGHUP)<0)
+			break;
+		    log_usies("KICK ", cuser.nickname);
+		}  else {
+		    fprintf(stderr, "id=%s ui->pid=0\n", cuser.userid);
+		}
+		sleep(1);
+	    } while(getotherlogin(3) != NULL);
 	} else {
-	    /* what are we doing here? magic number 3? */
-	    if (search_ulistn(usernum, 3) != NULL)
+	    /* deny login if still have 3 */
+	    if (getotherlogin(3) != NULL)
 		abort_bbs(0);	/* Goodbye(); */
 	}
     } else {
@@ -663,7 +687,7 @@ login_query(void)
 	    outs("本系統目前無法以 new 註冊, 請用 guest 進入\n");
 	    continue;
 #endif
-	} else if (uid[0] == '\0') {
+	} else if (!is_validuserid(uid)) {
 
 	    outs(err_uid);
 
@@ -691,7 +715,8 @@ login_query(void)
 	    if( initcuser(uid) < 1 || !cuser.userid[0] ||
 		!checkpasswd(cuser.passwd, passbuf) ){
 
-		logattempt(cuser.userid , '-');
+		if(is_validuserid(cuser.userid))
+		    logattempt(cuser.userid , '-');
 		outs(ERR_PASSWD);
 
 	    } else {
@@ -718,6 +743,15 @@ login_query(void)
 	}
     }
     multi_user_check();
+#ifdef DETECT_CLIENT
+    {
+	int fd = open("log/client_code",O_WRONLY | O_CREAT | O_APPEND, 0644);
+	if(fd>=0) {
+	    write(fd, &client_code, sizeof(client_code));
+	    close(fd);
+	}
+    }
+#endif
 }
 
 void
@@ -866,6 +900,9 @@ setup_utmp(int mode)
     uinfo.chc_lose = cuser.chc_lose;
     uinfo.chc_tie = cuser.chc_tie;
     uinfo.chess_elo_rating = cuser.chess_elo_rating;
+    uinfo.go_win = cuser.go_win;
+    uinfo.go_lose = cuser.go_lose;
+    uinfo.go_tie = cuser.go_tie;
     uinfo.invisible = cuser.invisible % 2;
     uinfo.pager = cuser.pager % PAGER_MODES;
     /*
@@ -1464,6 +1501,7 @@ main(int argc, char *argv[], char *envp[])
 static int
 shell_login(int argc, char *argv[], char *envp[])
 {
+    int fd;
 
     STATINC(STAT_SHELLLOGIN);
     /* Give up root privileges: no way back from here */
@@ -1490,6 +1528,10 @@ shell_login(int argc, char *argv[], char *envp[])
     }
     close(2);
     /* don't close fd 1, at least init_tty need it */
+    if( ((fd = open("log/stderr", O_WRONLY | O_CREAT | O_APPEND, 0644)) >= 0) && fd != 2 ){
+	dup2(fd, 2);
+	close(fd);
+    }
 
     init_tty();
     if (check_ban_and_load(0)) {
@@ -1498,6 +1540,9 @@ shell_login(int argc, char *argv[], char *envp[])
 #endif
 	return 0;
     }
+#ifdef DETECT_CLIENT
+    FNV1A_CHAR(123, client_code);
+#endif
     return 1;
 }
 
@@ -1810,6 +1855,19 @@ telnet_handler(unsigned char c)
 	return NOP;
     }
 
+#ifdef DETECT_CLIENT
+    /* hash client telnet sequences */
+    if(cuser.userid[0]==0) {
+	if(iac_state == IAC_WAIT_SE) {
+	    // skip suboption
+	} else {
+	    if(iac_quote)
+		FNV1A_CHAR(IAC, client_code);
+	    FNV1A_CHAR(c, client_code);
+	}
+    }
+#endif
+
     /* a special case is the top level iac. otherwise, iac is just a quote. */
     if (iac_quote) {
 	if(iac_state == IAC_NONE)
@@ -1966,11 +2024,35 @@ telnet_handler(unsigned char c)
 		    {
 			int w = (iac_buf[1] << 8) + (iac_buf[2]);
 			int h = (iac_buf[3] << 8) + (iac_buf[4]);
-			    term_resize(w, h);
+			term_resize(w, h);
+#ifdef DETECT_CLIENT
+			if(cuser.userid[0]==0) {
+			    FNV1A_CHAR(iac_buf[0], client_code);
+			    if(w==80 && h==24)
+				FNV1A_CHAR(1, client_code);
+			    else if(w==80)
+				FNV1A_CHAR(2, client_code);
+			    else if(h==24)
+				FNV1A_CHAR(3, client_code);
+			    else
+				FNV1A_CHAR(4, client_code);
+			    FNV1A_CHAR(IAC, client_code);
+			    FNV1A_CHAR(SE, client_code);
+			}
+#endif
 		    }
 		    break;
 
 		default:
+#ifdef DETECT_CLIENT
+		    if(cuser.userid[0]==0) {
+			int i;
+			for(i=0;i<iac_buflen;i++)
+			    FNV1A_CHAR(iac_buf[i], client_code);
+			FNV1A_CHAR(IAC, client_code);
+			FNV1A_CHAR(SE, client_code);
+		    }
+#endif
 		    break;
 	    }
 	    return 1;

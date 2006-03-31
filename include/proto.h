@@ -1,4 +1,4 @@
-/* $Id: proto.h 3260 2006-01-03 17:36:57Z ptt $ */
+/* $Id: proto.h 3308 2006-03-26 16:57:05Z kcwu $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -118,6 +118,7 @@ void brc_addlist(const char* fname);
 void sort_bcache(void);
 int getuser(const char *userid, userec_t *xuser);
 void setuserid(int num, const char *userid);
+int dosearchuser(const char *userid, char *rightid);
 int searchuser(const char *userid, char *rightid);
 int getbnum(const char *bname);
 void touchbpostnum(int bid, int delta);
@@ -230,7 +231,7 @@ fav_t *get_current_fav(void);
 int get_item_type(fav_type_t *ft);
 char *get_item_title(fav_type_t *ft);
 char *get_folder_title(int fid);
-void set_attr(fav_type_t *ft, int bit, char bool);
+void set_attr(fav_type_t *ft, int bit, char boolean);
 void fav_sort_by_name(void);
 void fav_sort_by_class(void);
 int fav_load(void);
@@ -243,7 +244,7 @@ char getbrdattr(short bid);
 time4_t getbrdtime(short bid);
 void setbrdtime(short bid, time4_t t);
 int fav_getid(fav_type_t *ft);
-void fav_tag(short id, char type, char bool);
+void fav_tag(short id, char type, char boolean);
 void move_in_current_folder(int from, int to);
 void fav_move(int from, int to);
 fav_type_t *fav_add_line(void);
@@ -614,7 +615,7 @@ void cursor_clear(int row, int column);
 void cursor_show(int row, int column);
 void printdash(const char *mesg, int msglen);
 char *Cdatelite(const time4_t *clock);
-int valid_ident(const char *ident);
+int is_validuserid(const char *ident);
 int userid_is_BM(const char *userid, const char *list);
 int is_uBM(const char *list, const char *id);
 inline int *intbsearch(int key, const int *base0, int nmemb);

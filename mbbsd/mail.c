@@ -1,4 +1,4 @@
-/* $Id: mail.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: mail.c 3307 2006-03-26 16:14:28Z kcwu $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -771,6 +771,8 @@ m_forward(int ent, fileheader_t * fhdr, const char *direct)
 	break;
     }
     pressanykey();
+    quote_user[0]='\0';
+    quote_file[0]='\0';
     if (strcasecmp(uid, cuser.userid) == 0)
 	return DIRCHANGED;
     return FULLUPDATE;
@@ -1140,6 +1142,8 @@ mail_reply(int ent, fileheader_t * fhdr, const char *direct)
 	    strlcpy(uid, strtok(NULL, str_space), sizeof(uid)); // XXX if strtok return NULL
 	else {
 	    vmsg("錯誤: 找不到作者。");
+	    quote_user[0]='\0';
+	    quote_file[0]='\0';
 	    return FULLUPDATE;
 	}
     } else
@@ -1175,6 +1179,8 @@ mail_reply(int ent, fileheader_t * fhdr, const char *direct)
     }
     curredit = ent;
     pressanykey();
+    quote_user[0]='\0';
+    quote_file[0]='\0';
     if (strcasecmp(uid, cuser.userid) == 0)
 	return DIRCHANGED;
     return FULLUPDATE;

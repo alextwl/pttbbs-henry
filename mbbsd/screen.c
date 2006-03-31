@@ -1,4 +1,4 @@
-/* $Id: screen.c 3051 2005-08-17 05:28:53Z scw $ */
+/* $Id: screen.c 3306 2006-03-26 16:14:20Z kcwu $ */
 #include "bbs.h"
 
 #define o_clear()     output(clearbuf,clearbuflen)
@@ -27,6 +27,8 @@ initscr(void)
 void
 move(int y, int x)
 {
+    assert(y>=0);
+    assert(x>=0);
     cur_col = x;
     cur_ln = y;
 }
@@ -42,7 +44,7 @@ static inline
 screenline_t* GetCurrentLine(){
     register int i = cur_ln + roll;
     if(i >= scr_lns)
-	i -= scr_lns;
+	i %= scr_lns;
     return &big_picture[i];
 }
 

@@ -1,4 +1,4 @@
-/* $Id: cache.c 3085 2005-08-26 12:52:10Z in2 $ */
+/* $Id: cache.c 3301 2006-03-24 00:22:46Z kcwu $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -192,7 +192,7 @@ remove_from_uhash(int n)
 #warning "searchuser() average chaining MAX_USERS/(1<<HASH_BITS) times."
 #endif
 int
-searchuser(const char *userid, char *rightid)
+dosearchuser(const char *userid, char *rightid)
 {
     int             h, p, times;
     STATINC(STAT_SEARCHUSER);
@@ -208,6 +208,14 @@ searchuser(const char *userid, char *rightid)
     }
 
     return 0;
+}
+
+int
+searchuser(const char *userid, char *rightid)
+{
+    if(userid[0]=='\0')
+	return 0;
+    return dosearchuser(userid, rightid);
 }
 
 int
@@ -319,7 +327,7 @@ search_ulist_pid(int pid)
     register userinfo_t *u;
     if (end == -1)
 	return NULL;
-    ulist = SHM->sorted[SHM->currsorted][7];
+    ulist = SHM->sorted[SHM->currsorted][8];
     for (i = ((start + end) / 2);; i = (start + end) / 2) {
 	u = &SHM->uinfo[ulist[i]];
 	j = pid - u->pid;
@@ -347,7 +355,7 @@ search_ulistn(int uid, int unum)
     register userinfo_t *u;
     if (end == -1)
 	return NULL;
-    ulist = SHM->sorted[SHM->currsorted][6];
+    ulist = SHM->sorted[SHM->currsorted][7];
     for (i = ((start + end) / 2);; i = (start + end) / 2) {
 	u = &SHM->uinfo[ulist[i]];
 	j = uid - u->uid;
@@ -410,7 +418,7 @@ count_logins(int uid, int show)
     userinfo_t *u; 
     if (end == -1)
 	return 0;
-    ulist = SHM->sorted[SHM->currsorted][6];
+    ulist = SHM->sorted[SHM->currsorted][7];
     for (i = ((start + end) / 2);; i = (start + end) / 2) {
 	u = &SHM->uinfo[ulist[i]];
 	j = uid - u->uid;

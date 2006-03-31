@@ -1,4 +1,4 @@
-/* $Id: utmpsync.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: utmpsync.c 3280 2006-03-12 16:05:50Z kcwu $ */
 #include "bbs.h"
 #include <err.h>
 
@@ -15,8 +15,8 @@ int main(int argc, char **argv)
     towrite(sfd, &index, sizeof(index));
     for( i = 0 ; i < USHM_SIZE ; ++i )
 	if( towrite(sfd, &SHM->uinfo[i].uid, sizeof(SHM->uinfo[i].uid)) < 0 ||
-	    towrite(sfd, SHM->uinfo[i].friend,
-		    sizeof(SHM->uinfo[i].friend)) < 0                       ||
+	    towrite(sfd, SHM->uinfo[i].myfriend,
+		    sizeof(SHM->uinfo[i].myfriend)) < 0                       ||
 	    towrite(sfd, SHM->uinfo[i].reject,
 		    sizeof(SHM->uinfo[i].reject)) < 0                       ){
 	    fprintf(stderr, "sync error %d\n", i);

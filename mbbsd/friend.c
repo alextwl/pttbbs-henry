@@ -1,4 +1,4 @@
-/* $Id: friend.c 3133 2005-09-06 18:34:37Z piaip $ */
+/* $Id: friend.c 3293 2006-03-22 17:57:35Z kcwu $ */
 #include "bbs.h"
 
 /* ------------------------------------- */
@@ -188,14 +188,14 @@ friend_delete(const char *uident, int type)
 }
 
 static void
-delete_user_friend(const char *uident, const char *friend, int type)
+delete_user_friend(const char *uident, const char *thefriend, int type)
 {
     char fn[80];
 #if 0
     if (type == FRIEND_ALOHA) {
 #endif
 	sethomefile(fn, uident, "aloha");
-	file_delete_line(fn, friend, 0);
+	file_delete_line(fn, thefriend, 0);
 #if 0
     }
     else {
@@ -256,6 +256,7 @@ inline void friend_load_real(int tosort, int maxf,
     FILE    *fp;
     short   nFriends = 0;
     int     uid, *tarray;
+    char *p;
 
     setuserfile(genbuf, fn);
     if( (fp = fopen(genbuf, "r")) == NULL ){
@@ -267,8 +268,8 @@ inline void friend_load_real(int tosort, int maxf,
 	tarray = (int *)malloc(sizeof(int) * maxf);
 	--maxf; /* 因為最後一個要填 0, 所以先扣一個回來 */
 	while( fgets(genbuf, STRLEN, fp) && nFriends < maxf )
-	    if( strtok(genbuf, str_space) &&
-		(uid = searchuser(genbuf, NULL)) )
+	    if( (p = strtok(genbuf, str_space)) &&
+		(uid = searchuser(p, NULL)) )
 		tarray[nFriends++] = uid;
 	fclose(fp);
 
@@ -287,7 +288,7 @@ void friend_load(int type)
 {
     if (!type || type & FRIEND_OVERRIDE)
 	friend_load_real(1, MAX_FRIEND, &currutmp->nFriends,
-			 currutmp->friend, fn_overrides);
+			 currutmp->myfriend, fn_overrides);
 
     if (!type || type & FRIEND_REJECT)
 	friend_load_real(0, MAX_REJECT, NULL, currutmp->reject, fn_reject);

@@ -1,4 +1,4 @@
-/* $Id: cal.c 3227 2005-10-20 02:03:22Z wens $ */
+/* $Id: cal.c 3298 2006-03-22 17:58:52Z kcwu $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -26,14 +26,14 @@ lockutmpmode(int unmode, int state)
     int             errorno = 0;
 
     if (currutmp->lockmode)
-	errorno = 1;
-    else if (is_playing(unmode))
-	errorno = 2;
+	errorno = LOCK_THIS;
+    else if (state == LOCK_MULTI && is_playing(unmode))
+	errorno = LOCK_MULTI;
 
-    if (errorno && !(state == LOCK_THIS && errorno == LOCK_MULTI)) {
+    if (errorno) {
 	clear();
 	move(10, 20);
-	if (errorno == 1)
+	if (errorno == LOCK_THIS)
 	    prints("請先離開 %s 才能再 %s ",
 		   ModeTypeTable[currutmp->lockmode],
 		   ModeTypeTable[unmode]);
@@ -450,6 +450,9 @@ p_sysinfo(void)
     char            *cpuloadstr;
     int             load;
     extern char    *compile_time;
+#ifdef DETECT_CLIENT
+    extern Fnv32_t  client_code;
+#endif
 
     load = cpuload(NULL);
     cpuloadstr = (load < 5 ? "良好" : (load < 20 ? "尚可" : "過重"));
@@ -460,6 +463,9 @@ p_sysinfo(void)
     prints("您現在位於 " TITLE_COLOR BBSNAME ANSI_RESET " (" MYIP ")\n"
 	   "系統負載情況: %s\n"
 	   "線上服務人數: %d/%d\n"
+#ifdef DETECT_CLIENT
+	   "client code:  %8.8X\n"
+#endif
 	   "編譯時間:     %s\n"
 	   "起始時間:     %s\n",
 	   cpuloadstr, SHM->UTMPnumber,
@@ -467,6 +473,9 @@ p_sysinfo(void)
 	   SHM->GV2.e.dymaxactive > 2000 ? SHM->GV2.e.dymaxactive : MAX_ACTIVE,
 #else
 	   MAX_ACTIVE,
+#endif
+#ifdef DETECT_CLIENT
+	   client_code,
 #endif
 	   compile_time, ctime4(&start_time));
     if (HasUserPerm(PERM_SYSOP)) {

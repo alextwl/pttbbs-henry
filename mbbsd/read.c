@@ -1,4 +1,4 @@
-/* $Id: read.c 3271 2006-02-08 21:51:36Z kcwu $ */
+/* $Id: read.c 3284 2006-03-12 16:07:31Z kcwu $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -412,6 +412,7 @@ dbcs_strcasestr(const char* pool, const char *ptr)
 
     while(*pool)
     {
+	// FIXME 用 strncasecmp 還是會錯
 	if(strncasecmp(pool, ptr, len) == 0)
 	    return 1;
 	/* else */

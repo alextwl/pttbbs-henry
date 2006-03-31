@@ -1,4 +1,4 @@
-/* $Id: announce.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: announce.c 3305 2006-03-26 16:14:11Z kcwu $ */
 #include "bbs.h"
 
 /* copy temp queue operation -------------------------------------- */
@@ -174,6 +174,7 @@ a_loadname(menu_t * pm)
 
     setadir(buf, pm->path);
     len = get_records(buf, pm->header, FHSZ, pm->page + 1, pm->header_size); // XXX if get_records() return -1
+    assert(len!=-1);
     if (len < pm->header_size)
 	bzero(&pm->header[len], FHSZ * (pm->header_size - len));
 }
@@ -1014,8 +1015,10 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 	    break;
 	case '?':
 	case '/':
-	    me.now = a_searchtitle(&me, ch == '?');
-	    me.page = 9999;
+	    if(me.num) {
+		me.now = a_searchtitle(&me, ch == '?');
+		me.page = 9999;
+	    }
 	    break;
 	case '$':
 	    me.now = me.num - 1;
