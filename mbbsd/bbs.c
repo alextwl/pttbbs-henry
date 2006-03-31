@@ -379,7 +379,7 @@ readdoent(int num, fileheader_t * ent)
     else // LISTMODE_DATE
     {
 #ifdef COLORDATE
-	prints(ANSI_COLOR(%d) "%-6s" ANSI_RESET,
+	prints(ANSI_COLOR(1;%d) "%-6s" ANSI_RESET,
 		(ent->date[3] + ent->date[4]) % 7 + 31, ent->date);
 #else
 	prints("%-6s", ent->date);

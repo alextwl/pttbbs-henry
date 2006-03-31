@@ -486,6 +486,7 @@ make_class_color(char *name)
 }
 
 #define HILIGHT_COLOR	ANSI_COLOR(1;36)
+#define BRD_COLOR	ANSI_COLOR(36)
 
 static void
 show_brdlist(int head, int clsflag, int newflag)
@@ -596,7 +597,8 @@ show_brdlist(int head, int clsflag, int newflag)
 		    prints("%s%-13s" ANSI_RESET "%s%5.5s" ANSI_COLOR(0;37) "%2.2s" ANSI_RESET
 			    "%-34.34s",
 			    ((!(cuser.uflag2 & FAVNOHILIGHT) &&
-			      getboard(ptr->bid) != NULL))? HILIGHT_COLOR : "",
+			      getboard(ptr->bid) != NULL))? HILIGHT_COLOR : 
+			    B_BH(ptr)->brdattr & BRD_GROUPBOARD ? BRD_COLOR : "",
 			    B_BH(ptr)->brdname,
 			    make_class_color(B_BH(ptr)->title),
 			    B_BH(ptr)->title, B_BH(ptr)->title + 5, B_BH(ptr)->title + 7);

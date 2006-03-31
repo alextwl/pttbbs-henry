@@ -7,6 +7,7 @@
 #include "externs.h"
 #include "nocem.h"
 #define	PGP5
+#undef  PGP5
 #undef  PGP2
 
 int ncmdebug = 0;
