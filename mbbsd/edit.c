@@ -1,4 +1,4 @@
-/* $Id: edit.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: edit.c 3318 2006-04-01 14:27:55Z kcwu $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -2521,6 +2521,8 @@ block_color(void)
 
     p = begin;
     while (1) {
+	// FIXME CRASH p will be NULL here.
+	assert(p);
 	transform_to_color(p->data);
 	if (p == end)
 	    break;
