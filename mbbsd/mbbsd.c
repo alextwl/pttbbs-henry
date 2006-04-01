@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3319 2006-04-01 14:28:03Z kcwu $ */
+/* $Id: mbbsd.c 3321 2006-04-01 14:33:45Z kcwu $ */
 #define TELOPTS
 #define TELCMDS
 #include "bbs.h"
@@ -118,7 +118,7 @@ reapchild(int sig)
 void
 log_usies(const char *mode, const char *mesg)
 {
-
+    now = time(NULL);
     if (!mesg)
         log_file(FN_USIES, LOG_CREAT | LOG_VF, 
                  "%s %s %-12s Stay:%d (%s)\n",
