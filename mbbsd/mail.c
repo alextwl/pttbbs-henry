@@ -1,4 +1,4 @@
-/* $Id: mail.c 3307 2006-03-26 16:14:28Z kcwu $ */
+/* $Id: mail.c 3317 2006-04-01 14:27:50Z kcwu $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1631,7 +1631,7 @@ send_inner_mail(const char *fpath, const char *title, const char *receiver)
     sethomedir(fname, rightid);
     if (strcmp(rightid, cuser.userid) == 0) {
 	if (chk_mailbox_limit())
-	    return -2;
+	    return -4;
     }
 
     sethomepath(fname, rightid);
