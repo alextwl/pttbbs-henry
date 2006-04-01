@@ -1,4 +1,4 @@
-/* $Id: userlist.c 3302 2006-03-26 16:13:47Z kcwu $ */
+/* $Id: userlist.c 3316 2006-04-01 14:27:40Z kcwu $ */
 #include "bbs.h"
 
 SHM_t   *SHM;
@@ -48,10 +48,6 @@ int main(int argc, char **argv) {
 		    f->nickname, f->from, f->mode, f->lastact);
 	    }
 	printf("\nTotal: %d(%d)\n", counter, SHM->number);
-	if(counter != SHM->number) {
-	    SHM->number = counter;
-	    printf("adjust user number!\n");
-	}
     }
     return 0;
 }
