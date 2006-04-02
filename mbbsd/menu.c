@@ -446,6 +446,9 @@ static const commands_t namelist[] = {
     {t_post,PERM_LOGINOK,     "NNewPost       新文章通知名單"},
 #endif
     {t_special,PERM_LOGINOK,  "SSpecial       其他特別名單"},
+#ifdef IMPORTWD
+    {t_import_old_pal, PERM_LOGINOK, "IImport        匯入舊名單"},
+#endif
     {NULL, 0, NULL}
 };
 

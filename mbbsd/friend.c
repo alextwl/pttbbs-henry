@@ -476,3 +476,85 @@ t_reject(void)
     friend_edit(FRIEND_REJECT);
     return 0;
 }
+
+/* import old wd pal file */
+
+struct WDPAL
+{
+  char userid[33];           /* list name/userid */
+  char savemode;                
+  char owner[12 + 2];        /* /bbcall */
+  char date[6];                 /* /birthday */
+  char desc[72 + 1];         /* list/user desc */
+  unsigned char ftype;                 /* mode:  PAL, BAD */
+};
+typedef struct WDPAL WDPAL;
+
+#define WDM_PAL		0x01
+#define WDM_BAD		0x02
+#define WDM_ALOHA	0x04
+
+void
+friend_add_batch(const char *uident, int type, const char* des)
+{
+    char            fpath[80];
+
+    setfriendfile(fpath, type);
+    if (friend_count(fpath) > friend_max[type])
+	return;
+
+    if ((uident[0] > ' ') && !belong(fpath, uident)) {
+	char            buf2[256];
+	char            t_uident[IDLEN + 1];
+
+	/* Thor: avoid uident run away when get data */
+	strlcpy(t_uident, uident, sizeof(t_uident));
+    	sprintf(buf2, "%-13s%s\n", t_uident, des);
+     	file_append_line(fpath, buf2);
+    }
+}
+
+int
+t_import_old_pal(void)
+{
+	WDPAL pal;
+	int fp;
+	char fpath[80];
+	char alpath[80];
+	char genbuf[200];
+
+	getdata(2, 0, "匯入會覆蓋\所有資料，確定？(y/N) ", genbuf, 3, LCECHO);
+	if (genbuf[0] != 'y')
+		return 0;
+	setuserfile(alpath, "alohaed");
+	if (dashf(alpath)) {
+            sprintf(genbuf,"%s.old",alpath);
+	    Copy(alpath, genbuf);
+	}
+	setuserfile(alpath, FN_REJECT);
+	if (dashf(alpath)) {
+            sprintf(genbuf,"%s.old",alpath);
+	    Copy(alpath, genbuf);
+	}
+	setuserfile(alpath, FN_OVERRIDES);
+	if (dashf(alpath)) {
+            sprintf(genbuf,"%s.old",alpath);
+	    Copy(alpath, genbuf);
+	}
+	setuserfile(fpath, "pal");
+	setuserfile(alpath, "aloha");
+
+	if(fp = open(fpath, O_RDONLY))
+		while (read(fp, &pal, sizeof (WDPAL)) == sizeof (WDPAL))
+		{
+			if (pal.ftype & WDM_PAL)
+				friend_add_batch(pal.userid, FRIEND_OVERRIDE, pal.desc);
+			if (pal.ftype & WDM_BAD)
+				friend_add_batch(pal.userid, FRIEND_REJECT, pal.desc);
+			if (pal.ftype & WDM_ALOHA)
+				friend_add_batch(pal.userid, FRIEND_ALOHA, pal.desc);
+		}
+
+	close(fp);
+	return 0;
+}
