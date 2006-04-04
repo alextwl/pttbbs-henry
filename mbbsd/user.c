@@ -240,7 +240,7 @@ mail_violatelaw(const char *crime, const char *police, const char *reason, const
 	    ctime4(&now), police, crime, reason, result);
     fclose(fp);
     strcpy(fhdr.title, "[報告] 違法判決報告");
-    strcpy(fhdr.owner, "[Ptt警察局]");
+    strcpy(fhdr.owner, "[山城警察局]");
     sethomedir(genbuf, crime);
     append_record(genbuf, &fhdr, sizeof(fhdr));
 }

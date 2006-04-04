@@ -113,7 +113,7 @@ post_violatelaw(const char *crime, const char *police, const char *reason, const
 	    "違反本站站規，處以" ANSI_COLOR(1;35) "%s" ANSI_RESET "，特此公告\n",
 	    police, crime, reason, result);
 
-    post_msg("ViolateLaw",title,msg,"[山城法院]");
+    post_msg("Violation",title,msg,"[山城法院]");
 }
 
 void
