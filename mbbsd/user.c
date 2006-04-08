@@ -1,4 +1,4 @@
-/* $Id: user.c 3276 2006-03-12 11:25:53Z scw $ */
+/* $Id: user.c 3333 2006-04-08 14:21:28Z kcwu $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -578,6 +578,7 @@ static void email_justify(const userec_t *muser)
 		 " " BBSENAME " - [ %s ]", getregcode(genbuf));
 
 	strlcpy(tmp, cuser.userid, sizeof(tmp));
+	// XXX dirty, set userid=SYSOP
 	strlcpy(cuser.userid, str_sysop, sizeof(cuser.userid));
 #ifdef HAVEMOBILE
 	if (strcmp(muser->email, "m") == 0 || strcmp(muser->email, "M") == 0)
