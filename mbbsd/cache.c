@@ -1,4 +1,4 @@
-/* $Id: cache.c 3301 2006-03-24 00:22:46Z kcwu $ */
+/* $Id: cache.c 3331 2006-04-08 14:21:12Z kcwu $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -736,6 +736,8 @@ getbnum(const char *bname)
 {
     register int    i = 0, j, start = 0, end = SHM->Bnumber - 1;
     int *blist = SHM->bsorted[0];
+    if(SHM->Bbusystate)
+	sleep(1);
     for (i = ((start + end) / 2);; i = (start + end) / 2) {
 	if (!(j = strcasecmp(bname, bcache[blist[i]].brdname)))
 	    return (int)(blist[i] + 1);
