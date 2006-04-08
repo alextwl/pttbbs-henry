@@ -1,4 +1,4 @@
-/* $Id: friend.c 3293 2006-03-22 17:57:35Z kcwu $ */
+/* $Id: friend.c 3341 2006-04-08 14:58:06Z kcwu $ */
 #include "bbs.h"
 
 /* ------------------------------------- */
@@ -454,8 +454,10 @@ friend_edit(int type)
 	} else if (type == BOARD_WATER) {
 	    boardheader_t *bp = NULL;
 	    currbid = getbnum(currboard);
+	    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
 	    bp = getbcache(currbid);
 	    bp->perm_reload = now;
+	    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
 	    substitute_record(fn_board, bp, sizeof(boardheader_t), currbid);
 	    // log_usies("SetBoard", bp->brdname);
 	}

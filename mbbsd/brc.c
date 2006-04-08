@@ -1,4 +1,4 @@
-/* $Id: brc.c 3323 2006-04-08 14:20:03Z kcwu $ */
+/* $Id: brc.c 3341 2006-04-08 14:58:06Z kcwu $ */
 #include "bbs.h"
 
 /**
@@ -371,6 +371,7 @@ brc_initial_board(const char *boardname)
     currbid = getbnum(boardname);
     if( currbid == 0 )
 	currbid = getbnum(DEFAULT_BOARD);
+    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
     currboard = bcache[currbid - 1].brdname;
     currbrdattr = bcache[currbid - 1].brdattr;
 

@@ -1,4 +1,4 @@
-/* $Id: menu.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: menu.c 3341 2006-04-08 14:58:06Z kcwu $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -51,6 +51,7 @@ showtitle(const char *title, const char *mid)
 	int bid = getbnum(currboard);
 	if(bid > 0)
 	{
+	    assert(0<=bid-1 && bid-1<MAX_BOARD);
 	    board_hidden_status = ((getbcache(bid)->brdattr & BRD_HIDE) &&
 				   (getbcache(bid)->brdattr & BRD_POSTMASK));
 	    strlcpy(lastboard, currboard, sizeof(lastboard));
