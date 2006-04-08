@@ -1,4 +1,4 @@
-/* $Id: admin.c 3269 2006-01-21 17:05:46Z scw $ */
+/* $Id: admin.c 3327 2006-04-08 14:20:37Z kcwu $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -951,6 +951,7 @@ int make_symbolic_link(const char *bname, int gid)
     int bid;
     
     bid = getbnum(bname);
+    if(bid==0) return -1;
     memset(&newboard, 0, sizeof(newboard));
 
     /*
