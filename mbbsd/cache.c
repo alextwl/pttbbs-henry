@@ -1,4 +1,4 @@
-/* $Id: cache.c 3331 2006-04-08 14:21:12Z kcwu $ */
+/* $Id: cache.c 3332 2006-04-08 14:21:20Z kcwu $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -603,6 +603,7 @@ reload_bcache(void)
 		n = 5;
 	    SHM->n_bottom[i] = n;
 	}
+    printf("load bottom done");
     if( pid == 0 )
 	exit(0);
     // if pid == -1 should be returned
