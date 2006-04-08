@@ -1,4 +1,4 @@
-/* $Id: record.c 3292 2006-03-22 17:57:26Z kcwu $ */
+/* $Id: record.c 3324 2006-04-08 14:20:12Z kcwu $ */
 
 #include "bbs.h"
 
@@ -546,7 +546,10 @@ append_record(const char *fpath, const fileheader_t * record, int size)
     struct stat     st;
 
     if ((fd = open(fpath, O_WRONLY | O_CREAT, 0644)) == -1) {
-	perror("open");
+	char buf[STRLEN];
+	assert(errno != EISDIR);
+	sprintf(buf, "id(%s), open(%s)", cuser.userid, fpath);
+	perror(buf);
 	return -1;
     }
     flock(fd, LOCK_EX);
