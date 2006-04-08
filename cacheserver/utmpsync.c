@@ -1,4 +1,4 @@
-/* $Id: utmpsync.c 3280 2006-03-12 16:05:50Z kcwu $ */
+/* $Id: utmpsync.c 3336 2006-04-08 14:22:02Z kcwu $ */
 #include "bbs.h"
 #include <err.h>
 
@@ -8,8 +8,10 @@ int main(int argc, char **argv)
 {
     int     sfd, index, i;
     attach_SHM();
-    if( (sfd = toconnect(OUTTACACHEHOST, OUTTACACHEPORT)) < 0 )
+    if( (sfd = toconnect(OUTTACACHEHOST, OUTTACACHEPORT)) < 0 ) {
+	printf("connect fail\n");
 	return 1;
+    }
 
     index = -1;
     towrite(sfd, &index, sizeof(index));
