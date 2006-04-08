@@ -1,4 +1,4 @@
-/* $Id: board.c 3270 2006-02-02 12:35:55Z scw $ */
+/* $Id: board.c 3325 2006-04-08 14:20:21Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -344,7 +344,7 @@ load_boards(char *key)
 	int childcount; 
 	int bid;
 
-	if (bptr->firstchild[type] == 0 )
+	if (bptr->firstchild[type] == 0 || bptr->childcount==0)
 	    load_uidofgid(class_bid, type);
 
         childcount = bptr->childcount;  // Ptt: child count after load_uidofgid
