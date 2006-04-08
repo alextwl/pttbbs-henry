@@ -1,4 +1,4 @@
-/* $Id: fav.c 3297 2006-03-22 17:58:41Z kcwu $ */
+/* $Id: fav.c 3323 2006-04-08 14:20:03Z kcwu $ */
 #include "bbs.h"
 
 /**
@@ -582,8 +582,8 @@ int fav_save(void)
     if (!dirty)
 	return 0;
 
-    setuserfile(buf, FAV4".tmp");
     setuserfile(buf2, FAV4);
+    snprintf(buf, sizeof(buf), "%s.tmp.%x",buf2, getpid());
     fwp = fopen(buf, "w");
     if(fwp == NULL)
 	return -1;
