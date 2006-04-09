@@ -1,4 +1,4 @@
-/* $Id: board.c 3342 2006-04-09 07:17:37Z victor $ */
+/* $Id: board.c 3343 2006-04-09 07:17:40Z victor $ */
 #include "bbs.h"
 
 /* personal board state
@@ -377,13 +377,16 @@ load_boards(char *key)
 		continue;
 
 	    if (bptr->brdattr & BRD_SYMBOLIC) {
-		// FIXME filter out the bad link
-
 		/* Only SYSOP knows a board is symbolic */
 		if (HasUserPerm(PERM_SYSOP) || HasUserPerm(PERM_SYSSUPERSUBOP))
 		    state |= NBRD_SYMBOLIC;
-		else
+		else {
 		    bid = BRD_LINK_TARGET(bptr);
+		    if (bcache[bid - 1].brdname[0] == 0) {
+			vmsg("連結已損毀，請至 SYSOP 回報此問題。");
+			continue;
+		    }
+		}
 	    }
 	    assert(0<=bid-1 && bid-1<MAX_BOARD);
 	    addnewbrdstat(bid-1, state);
