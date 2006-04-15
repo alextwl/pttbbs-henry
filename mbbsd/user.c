@@ -1,4 +1,4 @@
-/* $Id: user.c 3346 2006-04-15 03:05:40Z in2 $ */
+/* $Id: user.c 3347 2006-04-15 03:34:18Z victor $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -488,7 +488,7 @@ makeregcode(char *buf)
 {
     char    fpath[PATHLEN];
     int     fd, i;
-    static char *alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM";
+    const char *alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM";
 
     /* generate a new regcode */
     buf[13] = 0;
