@@ -1,4 +1,4 @@
-/* $Id: board.c 3345 2006-04-11 16:15:27Z victor $ */
+/* $Id: board.c 3348 2006-04-17 07:23:31Z victor $ */
 #include "bbs.h"
 
 /* personal board state
@@ -836,7 +836,7 @@ choose_board(int newflag)
 		num = brdnum - 1;
 	    break;
 	case '*':
-	    {
+	    if (IS_LISTING_FAV()) {
 		int i = 0;
 		assert(brdnum<=nbrdsize);
 		for (i = 0; i < brdnum; i++)
@@ -1328,18 +1328,17 @@ choose_board(int newflag)
 }
 
 int
-root_board(void)
+Class(void)
 {
     init_brdbuf();
     class_bid = 1;
-/*    class_bid = 0; */
     LIST_BRD();
     choose_board(0);
     return 0;
 }
 
 int
-Boards(void)
+Favorite(void)
 {
     init_brdbuf();
     class_bid = 0;
