@@ -1830,7 +1830,7 @@ u_register(void)
 	   "告訴所有老骨頭" ANSI_COLOR(31) "我來啦^$。\\n\n\n\n");
     pressanykey();
     cuser.userlevel |= PERM_POST;
-    brc_initial_board("WhoAmI");
+    brc_initial_board("Chat");
     set_board();
     do_post();
     cuser.userlevel &= ~PERM_POST;

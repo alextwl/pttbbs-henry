@@ -982,7 +982,7 @@ inline static void birthday_make_a_wish(const struct tm *ptime, const struct tm 
 {
     if (tmp->tm_mday != ptime->tm_mday) {
 	more("etc/birth.post", YEA);
-	brc_initial_board("WhoAmI");
+	brc_initial_board("Chat");
 	set_board();
 	do_post();
     }
