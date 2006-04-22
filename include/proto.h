@@ -278,6 +278,7 @@ int file_exist_record(const char *file, const char *string);
 void friend_edit(int type);
 void friend_load(int);
 int t_override(void);
+int t_import_old_pal(void);
 int t_reject(void);
 void friend_add(const char *uident, int type, const char *des);
 void friend_delete(const char *uident, int type);

@@ -118,12 +118,14 @@ osong(void)
     lockreturn0(OSONG, LOCK_MULTI);
 
     /* Jaky 一人一天點一首 */
+#ifdef ONESONG_PERDAY
     if (!strcmp(buf, Cdatedate(&cuser.lastsong)) && !HasUserPerm(PERM_SYSOP)) {
 	move(22, 0);
 	vmsg("你今天已經點過囉，明天再點吧....");
 	unlockutmpmode();
 	return 0;
     }
+#endif
 
     while (1) {
 	char ans[4];
@@ -148,9 +150,9 @@ osong(void)
 	}
     }
 
-    if (cuser.money < 200) {
+    if (cuser.money < 20) {
 	move(22, 0);
-	vmsg("點歌要200銀唷!....");
+	vmsg("點歌要20銀唷!....");
 	unlockutmpmode();
 	return 0;
     }
@@ -242,7 +244,7 @@ osong(void)
 	snprintf(genbuf, sizeof(genbuf), "%s says \"%s\" to %s.", sender, say, receiver);
 	log_usies("OSONG", genbuf);
 	/* 把第一首拿掉 */
-	vice(200, "點歌");
+	vice(20, "點歌");
     }
     snprintf(save_title, sizeof(save_title), "%s:%s", sender, say);
     hold_mail(filename, receiver);
