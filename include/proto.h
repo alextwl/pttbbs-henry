@@ -1,4 +1,4 @@
-/* $Id: proto.h 3308 2006-03-26 16:57:05Z kcwu $ */
+/* $Id: proto.h 3350 2006-04-23 16:49:13Z scw $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -88,8 +88,8 @@ int check_cooldown(boardheader_t *bp);
 #define setutmpbid(bid) currutmp->brc_id=bid;
 int HasBoardPerm(boardheader_t *bptr);
 int New(void);
-int Boards(void);
-int root_board(void);
+int Favorite(void);
+int Class(void);
 void save_brdbuf(void);
 void init_brdbuf(void);
 #ifdef CRITICAL_MEMORY
