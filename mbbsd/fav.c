@@ -1,4 +1,4 @@
-/* $Id: fav.c 3341 2006-04-08 14:58:06Z kcwu $ */
+/* $Id: fav.c 3351 2006-05-01 07:27:50Z victor $ */
 #include "bbs.h"
 
 /**
@@ -590,9 +590,15 @@ int fav_save(void)
     if(fwp == NULL)
 	return -1;
     write_favrec(fwp, fp);
-    fclose(fwp);
 
-    Rename(buf, buf2);
+    fflush(fwp);
+    if (!ferror(fwp)) {
+	fclose(fwp);
+	Rename(buf, buf2);
+    }
+    else
+	fclose(fwp);
+
     return 0;
 }
 
