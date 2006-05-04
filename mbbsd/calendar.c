@@ -1,4 +1,4 @@
-/* $Id: calendar.c 2798 2005-06-08 04:22:19Z piaip $ */
+/* $Id: calendar.c 3352 2006-05-04 05:42:59Z victor $ */
 #include "bbs.h"
 
 typedef struct event_t {
@@ -53,7 +53,7 @@ ParseDate(char *date, event_t * t)
     t->month = atoi(m);
     t->day = atoi(d);
     if (t->year < 1 || t->month < 1 || t->month > 12 ||
-	t->day < 1 || t->day > 31)
+	t->day < 1 || t->day > MonthDay(t->month, IsLeap(t->y)))
 	return 1;
     t->days = Days(t->year, t->month, t->day);
     return 0;
