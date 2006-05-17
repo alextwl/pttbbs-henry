@@ -1,4 +1,4 @@
-/* $Id: proto.h 3353 2006-05-04 06:35:06Z victor $ */
+/* $Id: proto.h 3356 2006-05-17 11:45:14Z victor $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -271,7 +271,6 @@ void subscribe_newfav(void);
 /* file */
 int file_count_line(const char *file);
 int file_append_line(const char *file, const char *string);
-int file_delete_line(const char *file, const char *string, int  case_sensitive);
 int file_exist_record(const char *file, const char *string);
 
 /* friend */
