@@ -1,4 +1,4 @@
-/* $Id: board.c 3358 2006-05-17 11:57:11Z victor $ */
+/* $Id: board.c 3359 2006-05-19 04:09:36Z victor $ */
 #include "bbs.h"
 
 /* personal board state
@@ -724,14 +724,13 @@ choose_board(int newflag)
 	if (brdnum <= 0) {
 	    load_boards(keyword);
 	    if (brdnum <= 0) {
+		if (keyword[0] != 0) {
+		    vmsg("沒有任何看板標題有此關鍵字");
+		    keyword[0] = 0;
+		    brdnum = -1;
+		    continue;
+		}
 		if (IS_LISTING_BRD()) {
-		    if (keyword[0] != 0) {
-			vmsg("沒有任何看板標題有此關鍵字 "
-				"(板主應注意看板標題命名)");
-			keyword[0] = 0;
-			brdnum = -1;
-			continue;
-		    }
 		    if (HasUserPerm(PERM_SYSOP) || GROUPOP()) {
 			if (paste_taged_brds(class_bid) || 
     			    m_newbrd(class_bid, 0) == -1)
