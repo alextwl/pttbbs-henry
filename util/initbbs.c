@@ -1,4 +1,4 @@
-/* $Id: initbbs.c 2898 2005-07-05 17:22:56Z piaip $ */
+/* $Id: initbbs.c 3360 2006-05-20 03:06:27Z in2 $ */
 #include "bbs.h"
 
 static void initDir() {
@@ -10,6 +10,7 @@ static void initDir() {
     mkdir("out", 0755);
     mkdir("tmp", 0755);
     mkdir("run", 0755);
+    mkdir("jobspool", 0755);
 }
 
 static void initHome() {
