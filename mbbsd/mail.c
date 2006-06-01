@@ -1,4 +1,4 @@
-/* $Id: mail.c 3355 2006-05-08 11:02:35Z in2 $ */
+/* $Id: mail.c 3362 2006-06-01 11:37:07Z scw $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -599,9 +599,15 @@ multi_send(char *title)
 		outc(' ');
 	    }
 	    outs(p->word);
-	    if (searchuser(p->word, p->word) && strcmp(STR_GUEST, p->word))
+	    if (searchuser(p->word, p->word) && strcmp(STR_GUEST, p->word)) {
+		sethomefile(genbuf, p->word, FN_OVERRIDES);
+		if (!belong(genbuf, cuser.userid)) { // not friend, check if rejected
+		    sethomefile(genbuf, p->word, FN_REJECT);
+		    if (belong(genbuf, cuser.userid))
+			continue;
+		}
 		sethomepath(genbuf, p->word);
-	    else
+	    } else
 		continue;
 	    stampfile(genbuf, &mymail);
 	    unlink(genbuf);
