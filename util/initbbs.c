@@ -1,4 +1,4 @@
-/* $Id: initbbs.c 3360 2006-05-20 03:06:27Z in2 $ */
+/* $Id: initbbs.c 3363 2006-06-02 03:38:11Z in2 $ */
 #include "bbs.h"
 
 static void initDir() {
@@ -180,6 +180,13 @@ static void initBoards() {
 	strcpy(b.title, "嘰哩 ◎範本精靈投稿區");
 	b.brdattr = BRD_NOTRAN;
 	b.level = 0;
+	b.gid = 5;
+	newboard(fp, &b);
+
+	strcpy(b.brdname, "ALLHIDPOST");
+	strcpy(b.title, "嘰哩 ◎跨板式LOCAL新文章(隱板)");
+	b.brdattr = BRD_POSTMASK | BRD_HIDE;
+	b.level = PERM_SYSOP;
 	b.gid = 5;
 	newboard(fp, &b);
 	
