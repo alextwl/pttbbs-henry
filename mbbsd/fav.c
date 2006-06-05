@@ -1,4 +1,4 @@
-/* $Id: fav.c 3365 2006-06-04 16:13:16Z victor $ */
+/* $Id: fav.c 3366 2006-06-05 08:44:10Z victor $ */
 #include "bbs.h"
 
 /**
@@ -499,6 +499,10 @@ int fav_load(void)
 	    fav4_read_favrec(frp, fp);
 	    fav_stack_push_fav(fp);
 	    fclose(frp);
+
+    	    fav_save();
+	    setuserfile(old, FAV ".bak");
+	    Copy(buf, old);
 	}
 	else
 #endif
