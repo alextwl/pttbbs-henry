@@ -1,4 +1,4 @@
-/* $Id: fav.c 3366 2006-06-05 08:44:10Z victor $ */
+/* $Id: fav.c 3367 2006-06-05 10:21:33Z victor $ */
 #include "bbs.h"
 
 /**
@@ -448,7 +448,7 @@ static void read_favrec(FILE *frp, fav_t *fp)
 	switch (ft->type) {
 	    case FAVT_FOLDER:
 		fread(&cast_folder(ft)->fid, sizeof(char), 1, frp);
-		fread(&cast_folder(ft)->title, sizeof(BTLEN + 1), 1, frp);
+		fread(&cast_folder(ft)->title, BTLEN + 1, 1, frp);
 		break;
 	    case FAVT_BOARD:
 	    case FAVT_LINE:
@@ -547,7 +547,7 @@ static void write_favrec(FILE *fwp, fav_t *fp)
 	switch (ft->type) {
 	    case FAVT_FOLDER:
 		fwrite(&cast_folder(ft)->fid, sizeof(char), 1, fwp);
-		fwrite(&cast_folder(ft)->title, sizeof(BTLEN + 1), 1, fwp);
+		fwrite(&cast_folder(ft)->title, BTLEN + 1, 1, fwp);
 		break;
 	    case FAVT_BOARD:
 	    case FAVT_LINE:
