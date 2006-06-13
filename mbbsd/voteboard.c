@@ -1,4 +1,4 @@
-/* $Id: voteboard.c 3341 2006-04-08 14:58:06Z kcwu $ */
+/* $Id: voteboard.c 3369 2006-06-13 09:17:28Z victor $ */
 #include "bbs.h"
 
 #define VOTEBOARD "NewBoard"
@@ -221,7 +221,7 @@ do_voteboard(int type)
 	snprintf(genbuf, sizeof(genbuf),
 		 "%s\n\n%s%s\n%s", "申請新板", "英文名稱: ", topic, "中文名稱: ");
 
-	if (!getdata(8, 0, "請輸入看板中文名稱：", topic, 20, DOECHO))
+	if (!getdata(8, 0, "請輸入看板中文名稱：", topic, BTLEN + 1, DOECHO))
 	    return FULLUPDATE;
 	strcat(genbuf, topic);
 	strcat(genbuf, "\n看板類別: ");
