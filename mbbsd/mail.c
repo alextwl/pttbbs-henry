@@ -1,4 +1,4 @@
-/* $Id: mail.c 3362 2006-06-01 11:37:07Z scw $ */
+/* $Id: mail.c 3370 2006-06-16 02:44:51Z wens $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1271,7 +1271,7 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 
     ent = getbnum(xboard);
     assert(0<=ent-1 && ent-1<MAX_BOARD);
-    if ( !((currmode & MODE_BOARD) || HasUserPerm(PERM_SYSOP)) &&
+    if ( !(HasUserPerm(PERM_SYSOP)) &&
 	    (cuser.firstlogin > (now - (time4_t)bcache[ent - 1].post_limit_regtime * 2592000) ||
 	    cuser.numlogins < ((unsigned int)(bcache[ent - 1].post_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[ent - 1].post_limit_posts) * 10)) ) {
