@@ -1,4 +1,4 @@
-/* $Id: edit.c 3318 2006-04-01 14:27:55Z kcwu $ */
+/* $Id: edit.c 3371 2006-06-16 07:26:12Z in2 $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -1645,7 +1645,7 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
 		line++;
 		/* check crosspost */
 		if (currstat == POSTING && po ) {
-		    int msgsum = str_checksum(msg);
+		    int msgsum = StringHash(msg);
 		    if (msgsum) {
 			if (postrecord.last_bid != currbid &&
 			    postrecord.checksum[po] == msgsum) {

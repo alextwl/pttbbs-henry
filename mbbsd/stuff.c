@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3341 2006-04-08 14:58:06Z kcwu $ */
+/* $Id: stuff.c 3371 2006-06-16 07:26:12Z in2 $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -131,17 +131,6 @@ subject(char *title)
 /* ----------------------------------------------------- */
 /* 字串轉換檢查函數                                      */
 /* ----------------------------------------------------- */
-int
-str_checksum(const char *str)
-{
-    int             n = 1;
-    if (strlen(str) < 6)
-	return 0;
-    while (*str)
-	n += *(str++) * (n);
-    return n;
-}
-
 /**
  * 將字串 s 轉為小寫存回 t
  * @param t allocated char array

@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3349 2006-04-23 16:41:32Z scw $ */
+/* $Id: bbs.c 3371 2006-06-16 07:26:12Z in2 $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -1323,7 +1323,7 @@ cross_post(int ent, fileheader_t * fhdr, const char *direct)
     }
 
     /* ­É¥ÎÅÜ¼Æ */
-    ent = str_checksum(fhdr->title);
+    ent = StringHash(fhdr->title);
     author = getbnum(xboard);
     assert(0<=author-1 && author-1<MAX_BOARD);
 
