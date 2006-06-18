@@ -1,4 +1,4 @@
-/* $Id: proto.h 3364 2006-06-04 07:13:10Z victor $ */
+/* $Id: proto.h 3373 2006-06-18 04:18:41Z in2 $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -618,6 +618,7 @@ int is_validuserid(const char *ident);
 int userid_is_BM(const char *userid, const char *list);
 int is_uBM(const char *list, const char *id);
 inline int *intbsearch(int key, const int *base0, int nmemb);
+inline unsigned int *uintbsearch(const unsigned int, const unsigned int *, const int);
 int qsort_intcompar(const void *a, const void *b);
 #ifndef CRITICAL_MEMORY
     #define MALLOC(p)  malloc(p)
