@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3375 2006-07-01 12:44:04Z wens $ */
+/* $Id: bbs.c 3376 2006-07-01 12:53:14Z wens $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -1556,7 +1556,7 @@ do_limitedit(int ent, fileheader_t * fhdr, const char *direct)
 	return DONOTHING;
     
     strcpy(buf, "更改 ");
-    if (HasUserPerm(PERM_SYSOP) || (HasUserPerm(PERM_SYSSUPERSUBOP) && GROUPOP()))
+    if (HasUserPerm(PERM_SYSOP | PERM_SYSSUPERSUBOP))
 	strcat(buf, "(A)本板發表限制 ");
     strcat(buf, "(B)本板預設");
     if (fhdr->filemode & FILE_VOTE)
