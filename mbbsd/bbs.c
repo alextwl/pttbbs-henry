@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3376 2006-07-01 12:53:14Z wens $ */
+/* $Id: bbs.c 3377 2006-07-01 12:58:11Z wens $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -2171,6 +2171,17 @@ recommend(int ent, fileheader_t * fhdr, const char *direct)
     if( fhdr->filemode & FILE_BID){
 	return do_bid(ent, fhdr, bp, direct, ptime);
     }
+
+#ifndef DEBUG
+    if ( !((currmode & MODE_BOARD) || HasUserPerm(PERM_SYSOP)) &&
+	    (cuser.firstlogin > (now - (time4_t)bcache[currbid - 1].post_limit_regtime * 2592000) ||
+	    cuser.numlogins < ((unsigned int)(bcache[currbid - 1].post_limit_logins) * 10) ||
+	    cuser.numposts < ((unsigned int)(bcache[currbid - 1].post_limit_posts) * 10)) ) {
+	move(5, 10);
+	vmsg("你不夠資深喔！");
+	return FULLUPDATE;
+    }
+#endif
 
     if((currmode & MODE_BOARD) || HasUserPerm(PERM_SYSOP))
     {
