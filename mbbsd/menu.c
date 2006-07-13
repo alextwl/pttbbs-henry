@@ -546,7 +546,7 @@ static const commands_t moneylist[] = {
     {p_cloak, 0,        "22Cloak       切換 隱身/現身   $19  /次"},
 #endif
     {p_from, 0,         "33From        暫時修改故鄉     $49  /次"},
-    {ordersong,0,       "44OSong       歐桑動態點歌機   $200 /次"},
+    {ordersong,0,       "44OSong       歐桑動態點歌機   $20  /次"},
     {p_exmail, 0,       "55Exmail      購買信箱         $1000/封"},
     {NULL, 0, NULL}
 };
