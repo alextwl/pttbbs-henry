@@ -1276,6 +1276,50 @@ choose_board(int newflag)
     --choose_board_depth;
 }
 
+void
+force_board(char *bname)
+{
+    boardheader_t  *bh;
+    boardstat_t    *ptr;
+    int             i;
+
+    if (!cuser.userlevel)
+        return;         /* 訪客略過 */
+
+    if (bname[0] == '\0' || !(i = getbnum(bname)))
+        return;         /* 檢查看板是否存在 */
+
+    bh = getbcache(i);
+
+    if (!HasBoardPerm(bh))
+        return;         /* 檢查權限是否足夠 */
+
+    currbid = i;
+    fav_load();
+
+    if (nbrd)
+    {
+        free(nbrd);
+        nbrd = NULL;
+    }
+
+    nbrd = (boardstat_t *) MALLOC(sizeof(boardstat_t));
+    ptr = addnewbrdstat((int)(bh - bcache), 1);
+    brc_initial_board(bname);
+
+    check_newpost(ptr);
+    while (ptr->myattr & NBRD_UNREAD)
+    {
+        vmsgf("%s 板有新公告，看完公告再離開吧... ^_^", bname);
+        brc_initial_board(bname);
+        Read();
+        check_newpost(ptr);
+    }
+
+    free(nbrd);
+    nbrd = NULL;
+}
+
 int
 root_board(void)
 {
