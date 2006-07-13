@@ -1072,7 +1072,8 @@ user_vote_one(vote_buffer_t *vbuf, const char *bname, int ind)
 			}
 		}
 		move(b_lines - 1, 0);
-		outs("已完成投票！\n");
+		demoney(100);
+		outs("已完成投票！送你車馬費 100 新山城幣！\n");
 	    }
 	}
 	break;
