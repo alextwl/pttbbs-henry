@@ -1094,7 +1094,7 @@ auto_scan(char fdata[][STRLEN], char ans[])
 	return 0;
 }
 
-#define REJECT_REASONS (6)
+#define REJECT_REASONS (7)
 /* 處理 Register Form */
 int
 scan_register_form(const char *regfile, int automode, int neednum)
@@ -1115,6 +1115,7 @@ scan_register_form(const char *regfile, int automode, int neednum)
 	"詳填連絡電話 (含區域碼, 中間不用加 '-', '(', ')'等符號",
 	"確實填寫註冊申請表",
 	"用中文填寫申請單",
+	"說明其他原因 (稍候有額外欄位可供輸入)",
 	NULL
     };
     char    *autoid = "AutoScan";
@@ -1262,9 +1263,9 @@ scan_register_form(const char *regfile, int automode, int neednum)
 		if (ans[0] != 'n' ||
 		    getdata(9 + n, 0, "退回原因：", buf, 60, DOECHO))
 		    if ((buf[0] - '0') >= 0 && (buf[0] - '0') < n) {
-			int             i;
+			int             i, j = 0;
 			fileheader_t    mhdr;
-			char            title[128], buf1[80];
+			char            title[128], buf1[80], buf2[60];
 			FILE           *fp;
 
 			sethomepath(buf1, muser.userid);
@@ -1279,7 +1280,13 @@ scan_register_form(const char *regfile, int automode, int neednum)
 			    for(i = 0; buf[i] && i < sizeof(buf); i++){
 				if (buf[i] >= '0' && buf[i] < '0'+n)
 				{
-				    fprintf(fp, "[退回原因] 請%s\n",
+				    if (buf[i] == '0' + n - 1) {
+					if (getdata(8 + n, 0, "其他原因：", buf2, 60, DOECHO)) {
+					    fprintf(fp, "[退回原因] %s\n",buf2);
+					    j = 1;
+					}
+				    } else
+				        fprintf(fp, "[退回原因] 請%s\n",
 					    reason[buf[i] - '0']);
 				}
 			    }
@@ -1290,8 +1297,10 @@ scan_register_form(const char *regfile, int automode, int neednum)
 			    for (n = 0; field[n]; n++)
 				fprintf(fout, "%s: %s\n", field[n], fdata[n]);
 			    fprintf(fout, "Date: %s\n", Cdate(&now));
-			    fprintf(fout, "Rejected: %s [%s]\n----\n",
+			    fprintf(fout, "Rejected: %s [%s]\n",
 				    uid, buf);
+			    if (j) fprintf(fout, "Rejected-Comment: %s\n", buf2);
+			    fprintf(fout, "----\n");
 			    fclose(fout);
 			}
 			break;
