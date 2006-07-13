@@ -1361,7 +1361,7 @@ scan_register_form(const char *regfile, int automode, int neednum)
     clrtobot();
 
     move(5, 0);
-    prints("您審了 %d 份註冊單，AutoScan 審了 %d 份", nSelf, nAuto);
+    prints("您審了 %d 份註冊單。", nSelf);
 
     pressanykey();
     return (0);
@@ -1397,10 +1397,8 @@ m_register(void)
 	}
     }
     fclose(fn);
-    getdata(b_lines - 1, 0, "開始審核嗎(Auto/Yes/No)？[N] ", ans, sizeof(ans), LCECHO);
-    if (ans[0] == 'a')
-	scan_register_form(fn_register, 1, 0);
-    else if (ans[0] == 'y')
+    getdata(b_lines - 1, 0, "開始審核嗎(Yes/No)？[N] ", ans, sizeof(ans), LCECHO);
+    if (ans[0] == 'y')
 	scan_register_form(fn_register, 0, 0);
 
     return 0;
