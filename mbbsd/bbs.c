@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3382 2006-07-22 05:07:08Z wens $ */
+/* $Id: bbs.c 3383 2006-07-22 05:09:39Z wens $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -3065,7 +3065,7 @@ b_config(void)
 
 	prints( " " ANSI_COLOR(1;36) "1" ANSI_RESET 
 		" - 未滿十八歲 " ANSI_COLOR(1) "%s" ANSI_RESET
-		" 進入",
+		" 進入\n",
 		(bp->brdattr & BRD_OVER18) ? "不可以" : "可以" );
 
 	prints( " " ANSI_COLOR(1;36) "y" ANSI_RESET 
