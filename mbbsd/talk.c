@@ -1,4 +1,4 @@
-/* $Id: talk.c 3330 2006-04-08 14:21:03Z kcwu $ */
+/* $Id: talk.c 3384 2006-07-23 09:39:36Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3269,16 +3269,32 @@ t_changeangel(){
 }
 
 int t_angelmsg(){
-    char msg[3][74];
+    char msg[3][74] = { "", "", "" };
     char buf[512];
     int i;
+    FILE* fp;
+
+    setuserfile(buf, "angelmsg");
+    fp = fopen(buf, "r");
+    if(fp){
+	move(5, 0);
+	outs("原有留言：\n");
+	for (i = 0; i < 3; ++i) {
+	    if(fgets(msg[i], sizeof(msg[0]), fp))
+		outs(msg[i]);
+	    else
+		break;
+	}
+	fclose(fp);
+    }
+
     do {
 	move(12, 0);
 	clrtobot();
 	outs("不在的時候要跟小主人說什麼呢？"
 	     "最多三行，按[Enter]結束");
 	for (i = 0; i < 3 &&
-		getdata(14 + i, 0, "：", msg[i], sizeof(msg[i]), DOECHO);
+		getdata_buf(14 + i, 0, "：", msg[i], sizeof(msg[i]), DOECHO);
 		++i);
 	getdata(b_lines - 2, 0, "(S)儲存 (E)重新來過 (Q)取消？[S]",
 		buf, 4, LCECHO);
