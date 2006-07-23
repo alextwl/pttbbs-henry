@@ -1,4 +1,4 @@
-/* $Id: mail.c 3371 2006-06-16 07:26:12Z in2 $ */
+/* $Id: mail.c 3385 2006-07-23 09:51:32Z scw $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -201,7 +201,7 @@ void
 setupmailusage(void)
 {  // Ptt: get_sum_records is a bad function
 	int             max_keepmail = MAX_KEEPMAIL;
-	if (HasUserPerm(PERM_SYSSUPERSUBOP)) {
+	if (HasUserPerm(PERM_SYSSUPERSUBOP | PERM_ANGEL)) {
 	    mailsumlimit = 900;
 	    max_keepmail = 700;
 	}
