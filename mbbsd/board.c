@@ -1,4 +1,4 @@
-/* $Id: board.c 3366 2006-06-05 08:44:10Z victor $ */
+/* $Id: board.c 3388 2006-07-26 02:02:17Z victor $ */
 #include "bbs.h"
 
 /* personal board state
@@ -40,7 +40,7 @@ static int      class_bid = 0;
 static int nbrdsize = 0;
 static boardstat_t *nbrd = NULL;
 static char	choose_board_depth = 0;
-static short    brdnum;
+static int      brdnum;
 static char     yank_flag = 1;
 
 static time4_t   last_save_fav_and_brc;
