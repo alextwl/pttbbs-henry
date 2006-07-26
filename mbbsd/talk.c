@@ -1,4 +1,4 @@
-/* $Id: talk.c 3384 2006-07-23 09:39:36Z scw $ */
+/* $Id: talk.c 3390 2006-07-26 13:05:03Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3280,9 +3280,10 @@ int t_angelmsg(){
 	move(5, 0);
 	outs("­ì¦³¯d¨¥¡G\n");
 	for (i = 0; i < 3; ++i) {
-	    if(fgets(msg[i], sizeof(msg[0]), fp))
+	    if(fgets(msg[i], sizeof(msg[0]), fp)) {
 		outs(msg[i]);
-	    else
+		chomp(msg[i]);
+	    } else
 		break;
 	}
 	fclose(fp);
