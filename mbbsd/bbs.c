@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3392 2006-07-28 06:54:22Z wens $ */
+/* $Id: bbs.c 3393 2006-07-28 17:07:37Z wens $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -1355,7 +1355,7 @@ cross_post(int ent, fileheader_t * fhdr, const char *direct)
     }
 
 #ifdef USE_COOLDOWN
-       if(check_cooldown(bp))
+       if(check_cooldown(getbcache(author)))
 	  return FULLUPDATE;
 #endif
 
