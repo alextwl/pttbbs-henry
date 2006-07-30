@@ -1,4 +1,4 @@
-/* $Id: talk.c 3390 2006-07-26 13:05:03Z scw $ */
+/* $Id: talk.c 3395 2006-07-30 13:02:46Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3426,8 +3426,8 @@ AngelNotOnline(){
 
 static void
 TalkToAngel(){
-    userinfo_t* uent;
     static int AngelPermChecked = 0;
+    userinfo_t* uent;
     userec_t xuser;
 
     if (strcmp(cuser.myangel, "-") == 0){
@@ -3452,6 +3452,8 @@ TalkToAngel(){
 	AngelNotOnline();
 	return;
     }
+
+    more("etc/angel_usage", NA);
 
     /* 這段話或許可以在小天使回答問題時 show 出來
     move(b_lines - 1, 0);
