@@ -107,6 +107,8 @@
 	ANSI_COLOR(31) "(V)" 	ANSI_COLOR(30) "投票 "\
 	""
 #define MSG_MAILER_LEN (78)
+
+#ifdef OLD_GEM_SUPPORT
 #define MSG_MAILER      \
 	ANSI_COLOR(34;46) " 鴻雁往返 " \
 	ANSI_COLOR(31;47) " (R)"	ANSI_COLOR(30) "回信" \
@@ -117,6 +119,18 @@
 	ANSI_COLOR(31) "(z/b)" 	ANSI_COLOR(30) "信件夾 " \
 	ANSI_COLOR(31) "←[q]" 	ANSI_COLOR(30) "離開 " \
 	""
+#else
+#define MSG_MAILER      \
+	ANSI_COLOR(34;46) " 鴻雁往返 " \
+	ANSI_COLOR(31;47) " (R)"	ANSI_COLOR(30) "回信" \
+	ANSI_COLOR(31) "(x)"	ANSI_COLOR(30) "轉寄" \
+	ANSI_COLOR(31) "(y)" 	ANSI_COLOR(30) "回群組信" \
+	ANSI_COLOR(31) "(D)" 	ANSI_COLOR(30) "刪除" \
+	ANSI_COLOR(31) "(c)" 	ANSI_COLOR(30) "收入信件夾" \
+	ANSI_COLOR(31) "(z)" 	ANSI_COLOR(30) "信件夾 " \
+	ANSI_COLOR(31) "←[q]" 	ANSI_COLOR(30) "離開 " \
+	""
+#endif
 
 #define MSG_SHORTULIST  ANSI_COLOR(7) \
     "使用者代號    目前狀態   │使用者代號    目前狀態   │"\

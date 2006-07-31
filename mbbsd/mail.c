@@ -1374,6 +1374,7 @@ mail_man(void)
     return FULLUPDATE;
 }
 
+#ifdef OLD_GEM_SUPPORT
 int
 mail_gem(void)
 {
@@ -1388,6 +1389,7 @@ mail_gem(void)
     currstat = stat0;
     return FULLUPDATE;
 }
+#endif
 
 static int
 mail_cite(int ent, fileheader_t * fhdr, const char *direct)
@@ -1587,7 +1589,11 @@ static const onekey_t mail_comms[] = {
     { 0, NULL }, // 'Z' 90
     { 0, NULL }, { 0, NULL }, { 0, NULL }, { 0, NULL }, { 0, NULL }, { 0, NULL },
     { 0, NULL }, // 'a' 97
+#ifdef OLD_GEM_SUPPORT
     { 0, mail_gem }, // 'b'
+#else
+    { 0, NULL }, // 'b'
+#endif
     { 1, mail_cite }, // 'c'
     { 1, mail_del }, // 'd'
     { 0, NULL }, // 'e'
