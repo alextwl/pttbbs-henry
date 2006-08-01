@@ -1,3 +1,3 @@
 bin/toplazyBM
-bin/post Record Ãi´kª©¥D±Æ¦æº] [PttÄµ¹î§½] etc/toplazyBM
-bin/post ViolateLaw ¤µ¤é§KÂ¾ª©¥D   [Pttªk°'|'] etc/firelazyBM   
+bin/post Record Ãi´kª©¥D±Æ¦æº] [¤s«°¤H¨Æ§½] etc/toplazyBM
+bin/post Violation ¤µ¤é§KÂ¾ª©¥D [¤s«°¤H¨Æ§½] etc/firelazyBM   

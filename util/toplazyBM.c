@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
-    fprintf(inf, "警告: 板主若於兩個月未上站,將予於免職\n");
+    fprintf(inf, "警告: 板主若逾一個月未上站,將予於免職\n");
     fprintf(inf,
 	    "看板名稱                                      "
 	    "    板主        幾天沒來啦\n"
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 	    if (diff < 0)
 		diff = 0;
 
-	    if (diff >= 45 * 86400
+	    if (diff >= 21 * 86400
 		    && !(xuser.userlevel & PERM_SYSOPHIDE)
 		    && !(xuser.userlevel & PERM_SYSOP)) {
 		strlcpy(lostbms[j].bmname, p, sizeof(bms[index].bmname));
@@ -118,8 +118,8 @@ int main(int argc, char *argv[])
 		lostbms[j].ctitle = allbrd[i].title;
 		lostbms[j].lostdays = diff / 86400;
 
-		//超過90天 免職
-		if (lostbms[j].lostdays > 90) {
+		// 超過30天 免職
+		if (lostbms[j].lostdays > 30) {
 		    xuser.userlevel &= ~PERM_BM;
 		    bms[index].flag = 1;
 		    flag = 1;
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
     //write to the etc/toplazyBM
     for (i = 0; i < j; i++) {
-	if (lostbms[i].lostdays > 90) {
+	if (lostbms[i].lostdays > 30) {
 	    fprintf(firef, "%-*.*s%-*.*s%-*.*s%3d天沒上站\n",
 		    IDLEN, IDLEN, lostbms[i].title, BTLEN-10,
 		    BTLEN-10, lostbms[i].ctitle, IDLEN,IDLEN,
@@ -175,15 +175,15 @@ int main(int argc, char *argv[])
 
 	lostdays = lostbms[i].lostdays;
 
-	if (lostdays != 45 && lostdays != 60 && lostdays!=75 &&(lostdays <= 90))
+	if (lostdays != 21 && lostdays != 24 && lostdays!= 27 &&(lostdays <= 30))
 	    continue;
 
 	sprintf(genbuf, BBSHOME "/home/%c/%s", 
 		lostbms[i].bmname[0], lostbms[i].bmname);
 	stampfile(genbuf, &mymail);
 
-	strcpy(mymail.owner, "[PTT警察局]");
-	if (lostdays <= 90)
+	strcpy(mymail.owner, "[山城人事局]");
+	if (lostdays <= 30)
 	    sprintf(mymail.title,
 		    "\033[32m版主通知\033[m %s版版主%s",
 		    lostbms[i].title, lostbms[i].bmname);
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 		    lostbms[i].title, lostbms[i].bmname);
 
 	unlink(genbuf);
-	if (lostdays <= 90)
+	if (lostdays <= 30)
 	    LINK(OUTFILE, genbuf);
 	else
 	    LINK(FIREFILE, genbuf);
