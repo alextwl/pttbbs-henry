@@ -1,4 +1,4 @@
-/* $Id: board.c 3388 2006-07-26 02:02:17Z victor $ */
+/* $Id: board.c 3396 2006-08-03 03:27:41Z victor $ */
 #include "bbs.h"
 
 /* personal board state
@@ -707,7 +707,7 @@ paste_taged_brds(int gid)
 static void
 choose_board(int newflag)
 {
-    static short    num = 0;
+    static int      num = 0;
     boardstat_t    *ptr;
     int             head = -1, ch = 0, currmodetmp, tmp, tmp1, bidtmp;
     char            keyword[13] = "", buf[64];
