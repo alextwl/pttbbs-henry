@@ -1,4 +1,4 @@
-/* $Id: user.c 3380 2006-07-19 13:46:20Z in2 $ */
+/* $Id: user.c 3397 2006-08-08 06:06:58Z scw $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -713,19 +713,31 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	}
 
 #ifdef PLAY_ANGEL
-	if (adminmode)
+	if (adminmode) {
+	    const char* prompt;
+	    userec_t the_angel;
+	    if (x.myangel[0] == 0 || x.myangel[0] == '-' ||
+		    (getuser(x.myangel, &the_angel) &&
+		     the_angel.userlevel & PERM_ANGEL))
+		prompt = "小天使：";
+	    else
+		prompt = "小天使（此帳號已無小天使資格）：";
 	    while (1) {
 	        userec_t xuser;
-		getdata_str(i, 0, "小天使：", buf, IDLEN + 1, DOECHO,
+		getdata_str(i, 0, prompt, buf, IDLEN + 1, DOECHO,
 			x.myangel);
 		if(buf[0] == 0 || strcmp(buf, "-") == 0 ||
 			(getuser(buf, &xuser) &&
-			    (xuser.userlevel & PERM_ANGEL))){
+			    (xuser.userlevel & PERM_ANGEL)) ||
+			strcmp(x.myangel, buf) == 0){
 		    strlcpy(x.myangel, xuser.userid, IDLEN + 1);
 		    ++i;
 		    break;
 		}
+
+		prompt = "小天使：";
 	    }
+	}
 #endif
 
 #ifdef CHESSCOUNTRY
