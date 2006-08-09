@@ -1,4 +1,4 @@
-/* $Id: chess.c 3308 2006-03-26 16:57:05Z kcwu $ */
+/* $Id: chess.c 3398 2006-08-09 13:57:01Z scw $ */
 #include "bbs.h"
 #include "chess.h"
 
@@ -1353,8 +1353,8 @@ ChessPhotoInitial(ChessInfo* info)
 #define PHOTO(X) (photo + (X) * CHESS_PHOTO_COLUMN)
 
     fp = NULL;
-    if(getuser(info->user1.userid, &xuser)) {
-	sethomefile(genbuf, info->user1.userid, info->constants->photo_file_name);
+    if(getuser(info->user2.userid, &xuser)) {
+	sethomefile(genbuf, info->user2.userid, info->constants->photo_file_name);
 	fp = fopen(genbuf, "r");
     }
 
@@ -1406,16 +1406,16 @@ ChessPhotoInitial(ChessInfo* info)
 	fclose(fp);
 
     sprintf(PHOTO(6), "      %s%2.2s´Ñ" ANSI_RESET,
-	    info->constants->turn_color[(int) info->myturn],
-	    info->constants->turn_str[(int) info->myturn]);
+	    info->constants->turn_color[(int) info->myturn ^ 1],
+	    info->constants->turn_str[(int) info->myturn ^ 1]);
     strcpy(PHOTO(7), "           ¢ä.¢á           ");
     sprintf(PHOTO(8), "                               %s%2.2s´Ñ" ANSI_RESET,
-	    info->constants->turn_color[info->myturn ^ 1],
-	    info->constants->turn_str[info->myturn ^ 1]);
+	    info->constants->turn_color[info->myturn],
+	    info->constants->turn_str[info->myturn]);
 
     fp = NULL;
-    if(getuser(info->user2.userid, &xuser)) {;
-	sethomefile(genbuf, info->user2.userid, info->constants->photo_file_name);
+    if(getuser(info->user1.userid, &xuser)) {;
+	sethomefile(genbuf, info->user1.userid, info->constants->photo_file_name);
 	fp = fopen(genbuf, "r");
     }
 
