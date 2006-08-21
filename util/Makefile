@@ -1,4 +1,4 @@
-# $Id: Makefile 3303 2006-03-26 16:13:56Z kcwu $
+# $Id: Makefile 3399 2006-08-21 15:58:46Z wens $
 
 .include "../pttbbs.mk"
 
@@ -20,7 +20,7 @@ MBBSD_OBJS= \
 CPROG_WITH_UTIL= \
 	boardlist	BM_money	post		poststat	\
 	jungo		account		birth		deluserfile	\
-	expire		mandex		horoscope	\
+	expire		mandex		horoscope	broadcast	\
 	openvice	parse_news	openticket	topusr		\
 	yearsold	toplazyBM	toplazyBBM	writemoney	\
 	reaper		buildAnnounce	inndBM		mailangel	\
