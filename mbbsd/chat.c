@@ -1,4 +1,4 @@
-/* $Id: chat.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: chat.c 3400 2006-08-28 06:37:00Z scw $ */
 #include "bbs.h"
 
 #ifndef DBCSAWARE
@@ -181,7 +181,6 @@ chat_help(char *arg)
 	chathelp("[/p]ager", "切換呼叫器");
 	chathelp("[/q]uery", "查詢網友");
 	chathelp("[/r]oom", "列出一般談天室");
-	chathelp("[/u]sers", "列出站上使用者");
 	chathelp("[/w]ho", "列出本談天室使用者");
 	chathelp("[/w]hoin <room>", "列出談天室<room> 的使用者");
     }
@@ -272,7 +271,6 @@ static const chat_command_t chat_cmdtbl[] = {
     {"date", chat_date},
     {"pager", chat_pager},
     {"query", chat_query},
-    {"users", chat_users},
     {NULL, NULL}
 };
 
