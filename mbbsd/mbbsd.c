@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3374 2006-06-18 06:36:46Z wens $ */
+/* $Id: mbbsd.c 3402 2006-08-28 16:41:20Z scw $ */
 #define TELOPTS
 #define TELCMDS
 #include "bbs.h"
@@ -927,8 +927,8 @@ setup_utmp(int mode)
     uinfo.badsale = cuser.badsale;
     */
     if(cuser.withme & (cuser.withme<<1) & (WITHME_ALLFLAG<<1))
-	cuser.withme = 0;
-    uinfo.withme = cuser.withme;
+	cuser.withme = 0; /* unset all if contradict */
+    uinfo.withme = cuser.withme & ~WITHME_ALLFLAG;
     memcpy(uinfo.mind, cuser.mind, 4);
     strip_nonebig5((unsigned char *)uinfo.mind, 4);
 #ifdef WHERE
