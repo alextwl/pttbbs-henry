@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3373 2006-06-18 04:18:41Z in2 $ */
+/* $Id: stuff.c 3404 2006-08-31 06:38:40Z wens $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -1038,7 +1038,7 @@ time4_t time4(time4_t *ptr)
 #ifdef OUTTACACHE
 int tobind(const char * host, int port)
 {
-    int     sockfd, val;
+    int     sockfd, val = 1;
     struct  sockaddr_in     servaddr;
 
     if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
