@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: banip.pl 3374 2006-06-18 06:36:46Z wens $
+# $Id: banip.pl 3408 2006-08-31 17:10:03Z kcwu $
 
 @list = (
 #bbsnet
@@ -143,7 +143,7 @@ foreach( @list ){
 }
 print scalar keys %hash, ",\n";
 
-foreach (sort keys %hash) {
+foreach (sort { $a <=> $b } keys %hash) {
     print "${_}U,\t";
     print "\n" if ++$i % 4 == 0;
 }
