@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3402 2006-08-28 16:41:20Z scw $ */
+/* $Id: mbbsd.c 3409 2006-09-01 00:41:55Z kcwu $ */
 #define TELOPTS
 #define TELCMDS
 #include "bbs.h"
@@ -1293,10 +1293,6 @@ start_client(void)
     signal_restart(SIGUSR2, write_request);
 
     dup2(0, 1);
-
-    /* initialize passwd semaphores */
-    if (passwd_init())
-	exit(1);
 
     do_term_init();
     Signal(SIGALRM, abort_bbs);

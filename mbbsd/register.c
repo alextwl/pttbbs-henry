@@ -1,4 +1,4 @@
-/* $Id: register.c 3308 2006-03-26 16:57:05Z kcwu $ */
+/* $Id: register.c 3409 2006-09-01 00:41:55Z kcwu $ */
 #include "bbs.h"
 
 char           *
@@ -154,6 +154,10 @@ setupnewuser(const userec_t *user)
 	    }
 	}
     }
+
+    /* initialize passwd semaphores */
+    if (passwd_init())
+	exit(1);
 
     passwd_lock();
 
