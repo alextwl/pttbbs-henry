@@ -1,4 +1,4 @@
-/* $Id: user.c 3397 2006-08-08 06:06:58Z scw $ */
+/* $Id: user.c 3411 2006-09-12 05:50:01Z wens $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -1862,17 +1862,7 @@ u_register(void)
 
     toregister(email, genbuf, phone, career, rname, addr, mobile);
 
-    clear();
-    move(9, 3);
-    outs("最後Post一篇" ANSI_COLOR(32) "自我介紹文章" ANSI_RESET "給大家吧，"
-	   "告訴所有老骨頭" ANSI_COLOR(31) "我來啦^$。\\n\n\n\n");
-    pressanykey();
-    cuser.userlevel |= PERM_POST;
-    brc_initial_board("WhoAmI");
-    set_board();
-    do_post();
-    cuser.userlevel &= ~PERM_POST;
-    return 0;
+    return FULLUPDATE;
 }
 
 /* 列出所有註冊使用者 */
