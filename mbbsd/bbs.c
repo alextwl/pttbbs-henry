@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3393 2006-07-28 17:07:37Z wens $ */
+/* $Id: bbs.c 3413 2006-09-16 18:41:39Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -2227,6 +2227,20 @@ recommend(int ent, fileheader_t * fhdr, const char *direct)
 	if (d > 0)
 	{
 	    vmsgf("本板禁止快速連續推文，請再等 %d 秒", d);
+	    return FULLUPDATE;
+	}
+    }
+    {
+	static unsigned char lastrecommend_minute = 0;
+	static unsigned short recommend_in_minute = 0;
+	unsigned char now_in_minute = (unsigned char)(now / 60);
+	if(now_in_minute != lastrecommend_minute) {
+	    recommend_in_minute = 0;
+	    lastrecommend_minute = now_in_minute;
+	}
+	recommend_in_minute++;
+	if(recommend_in_minute>60) {
+	    vmsg("系統禁止短時間內大量推文");
 	    return FULLUPDATE;
 	}
     }
