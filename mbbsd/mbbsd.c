@@ -1,6 +1,8 @@
-/* $Id: mbbsd.c 3414 2006-09-16 18:41:55Z kcwu $ */
+/* $Id: mbbsd.c 3419 2006-09-16 18:46:17Z kcwu $ */
+#ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
+#endif
 #include "bbs.h"
 #include "banip.h"
 
