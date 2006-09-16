@@ -1,4 +1,4 @@
-/* $Id: user.c 3411 2006-09-12 05:50:01Z wens $ */
+/* $Id: user.c 3416 2006-09-16 18:44:02Z kcwu $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -504,7 +504,7 @@ makeregcode(char *buf)
     buf[0] = 'v';
     buf[1] = '6';
     for( i = 2 ; i < 13 ; ++i )
-	buf[i] = alphabet[rand() % 52];
+	buf[i] = alphabet[random() % 52];
 
     getregfile(fpath);
     if( (fd = open(fpath, O_WRONLY | O_CREAT, 0600)) == -1 ){
