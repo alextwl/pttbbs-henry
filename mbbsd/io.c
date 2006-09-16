@@ -1,4 +1,4 @@
-/* $Id: io.c 3341 2006-04-08 14:58:06Z kcwu $ */
+/* $Id: io.c 3415 2006-09-16 18:42:50Z kcwu $ */
 #include "bbs.h"
 
 #define OBUFSIZE  2048
@@ -88,6 +88,7 @@ int
 ochar(int c)
 {
     if (obufsize > OBUFSIZE - 1) {
+	STATINC(STAT_SYSWRITESOCKET);
 	/* suppose one byte data doesn't need to be converted. */
 	write(1, outbuf, obufsize);
 	obufsize = 0;
