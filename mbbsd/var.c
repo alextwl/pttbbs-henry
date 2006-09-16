@@ -1,4 +1,4 @@
-/* $Id: var.c 3348 2006-04-17 07:23:31Z victor $ */
+/* $Id: var.c 3420 2006-09-16 18:46:36Z kcwu $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -386,7 +386,7 @@ char		raw_connection = 0;
 char            fromhost[STRLEN] = "\0";
 char            water_usies = 0;
 FILE           *fp_writelog = NULL;
-water_t         water[6], *swater[6], *water_which = &water[0];
+water_t         *water, *swater[6], *water_which;
 char            over18 = 0;
 
 /* chc_play.c */

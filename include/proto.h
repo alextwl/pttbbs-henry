@@ -1,4 +1,4 @@
-/* $Id: proto.h 3373 2006-06-18 04:18:41Z in2 $ */
+/* $Id: proto.h 3420 2006-09-16 18:46:36Z kcwu $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -665,6 +665,7 @@ int cmpwatermtime(const void *a, const void *b);
 void getmessage(msgque_t msg);
 void my_write2(void);
 int t_idle(void);
+void check_water_init(void);
 const char *modestring(const userinfo_t * uentp, int simple);
 int t_users(void);
 int my_write(pid_t pid, const char *hint, const char *id, int flag, userinfo_t *);
