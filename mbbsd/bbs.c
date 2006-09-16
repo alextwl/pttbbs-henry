@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3413 2006-09-16 18:41:39Z kcwu $ */
+/* $Id: bbs.c 3414 2006-09-16 18:41:55Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -46,10 +46,10 @@ query_file_money(const fileheader_t *pfh)
 }
 
 /* hack for listing modes */
-enum {
+enum LISTMODES {
     LISTMODE_DATE = 0,
     LISTMODE_MONEY,
-} LISTMODES;
+};
 static char *listmode_desc[] = {
     "日 期",
     "價 格",

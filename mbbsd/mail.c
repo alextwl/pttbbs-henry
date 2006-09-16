@@ -1,4 +1,4 @@
-/* $Id: mail.c 3389 2006-07-26 12:11:27Z scw $ */
+/* $Id: mail.c 3414 2006-09-16 18:41:55Z kcwu $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -6,11 +6,11 @@ static char     currmaildir[32];
 static char     msg_cc[] = ANSI_COLOR(32) "[¸s²Õ¦W³æ]" ANSI_RESET "\n";
 static char     listfile[] = "list.0";
 
-enum {
+enum SHOWMAIL_MODES {
     SHOWMAIL_NORM = 0,
     SHOWMAIL_SUM,
     SHOWMAIL_RANGE,
-} SHOWMAIL_MODES;
+};
 static int	showmail_mode = SHOWMAIL_NORM;
 
 int
