@@ -1,4 +1,4 @@
-/* $Id: board.c 3396 2006-08-03 03:27:41Z victor $ */
+/* $Id: board.c 3418 2006-09-16 18:45:51Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -315,6 +315,12 @@ load_boards(char *key)
 #if HOTBOARDCACHE
 	else if(IN_HOTBOARD()){
 	    nbrdsize = SHM->nHOTs;
+	    if(nbrdsize == 0) {
+		nbrdsize = 1;
+		nbrd = (boardstat_t *)malloc(sizeof(boardstat_t) * 1);
+		addnewbrdstat(0, 0); // dummy
+		return;
+	    }
 	    assert(0<nbrdsize);
 	    nbrd = (boardstat_t *)malloc(sizeof(boardstat_t) * nbrdsize);
 	    for( i = 0 ; i < nbrdsize; ++i ) {
