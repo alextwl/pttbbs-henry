@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3420 2006-09-16 18:46:36Z kcwu $ */
+/* $Id: mbbsd.c 3423 2006-09-17 13:23:03Z kcwu $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -1092,8 +1092,6 @@ user_login(void)
     resolve_fcache();
     /* resolve_boards(); */
     numboards = SHM->Bnumber;
-    memset(&water[0], 0, sizeof(water_t) * 6);
-    strlcpy(water[0].userid, " ¥þ³¡ ", sizeof(water[0].userid));
 
     if(getenv("SSH_CLIENT") != NULL){
 	struct sockaddr_in xsin;
