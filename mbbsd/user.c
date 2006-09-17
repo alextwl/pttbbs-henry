@@ -1,4 +1,4 @@
-/* $Id: user.c 3416 2006-09-16 18:44:02Z kcwu $ */
+/* $Id: user.c 3422 2006-09-17 11:52:01Z victor $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -534,7 +534,7 @@ getregcode(char *buf)
     return buf;
 }
 
-static char *
+static void
 delregcodefile(void)
 {
     char    fpath[PATHLEN];
