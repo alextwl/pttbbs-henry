@@ -1,4 +1,4 @@
-/* $Id: user.c 3422 2006-09-17 11:52:01Z victor $ */
+/* $Id: user.c 3427 2006-09-24 09:13:19Z ptt $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -301,6 +301,7 @@ violate_law(userec_t * u, int unum)
     } else {
         kick_all(u->userid);
 	u->userlevel |= PERM_VIOLATELAW;
+	u->timeviolatelaw = now;
 	u->vl_count++;
 	passwd_update(unum, u);
 	post_violatelaw(u->userid, cuser.userid, reason, "»@³æ³B¥÷");
