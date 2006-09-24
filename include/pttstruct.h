@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3386 2006-07-25 15:17:18Z wens $ */
+/* $Id: pttstruct.h 3428 2006-09-24 09:15:01Z ptt $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -112,7 +112,8 @@ typedef struct userec_t {
     unsigned short  chess_elo_rating;	/* 象棋等級分 */
     unsigned int    withme;	/* 我想找人下棋，聊天.... */
     time4_t timeremovebadpost;  /* 上次刪除劣文時間 */
-    char    pad[30];
+    time4_t timeviolatelaw; /* 被開罰單時間 */
+    char    pad[26];
 } userec_t;
 /* these are flags in userec_t.uflag */
 #define PAGER_FLAG      0x4     /* true if pager was OFF last session */
