@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3430 2006-09-25 05:39:17Z ptt $ */
+/* $Id: bbs.c 3431 2006-09-25 06:01:03Z ptt $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -596,13 +596,15 @@ do_crosspost(const char *brd, fileheader_t *postfile, const char *fpath,
     if(!strncasecmp(postfile->title, str_reply, 3))
         len=len+4;
 
-    setbpath(genbuf, brd);
 
     memcpy(&fh, postfile, sizeof(fileheader_t));
     if(isstamp) 
-         stampfile(genbuf, &fh);
+    {
+         setbpath(genbuf, brd);
+         stampfile(genbuf, &fh); 
+    }
     else
-	 strcat(genbuf, postfile->filename);
+         setbfile(genbuf, brd, postfile->filename);
 
     if(!strcmp(brd, "UnAnonymous"))
        strcpy(fh.owner, cuser.userid);
