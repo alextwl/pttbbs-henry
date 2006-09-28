@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3432 2006-09-28 13:32:34Z wens $ */
+/* $Id: bbs.c 3433 2006-09-28 13:35:41Z wens $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -2683,7 +2683,7 @@ lock_post(int ent, fileheader_t * fhdr, const char *direct)
 
 	if (getans("要將文章鎖定嗎(y/N)?") != 'y')
 	    return FULLUPDATE;
-        setbfile(fn1, currboard, r->filename);
+        setbfile(fn1, currboard, fhdr->filename);
         fhdr->filename[0] = 'L';
         log_file(fn1,  LOG_CREAT | LOG_VF, "\n※ Locked on: %d/%d",
                 ptime->tm_mon + 1, ptime->tm_mday);
