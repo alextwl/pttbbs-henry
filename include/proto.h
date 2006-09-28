@@ -1,4 +1,4 @@
-/* $Id: proto.h 3420 2006-09-16 18:46:36Z kcwu $ */
+/* $Id: proto.h 3432 2006-09-28 13:32:34Z wens $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -652,6 +652,7 @@ int post_file(const char *bname, const char *title, const char *filename, const 
 void post_newboard(const char *bgroup, const char *bname, const char *bms);
 void post_violatelaw(const char *crime, const char *police, const char *reason, const char *result);
 void post_change_perm(int oldperm, int newperm, const char *sysopid, const char *userid);
+void post_policelog(const char *bname, const char *atitle, const char *action, const int toggle);
 
 /* talk */
 #define iswritable(uentp)    \
