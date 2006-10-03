@@ -1,4 +1,4 @@
-/* $Id: user.c 3427 2006-09-24 09:13:19Z ptt $ */
+/* $Id: user.c 3439 2006-10-03 06:47:36Z wens $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -305,7 +305,7 @@ violate_law(userec_t * u, int unum)
 	u->vl_count++;
 	passwd_update(unum, u);
 	post_violatelaw(u->userid, cuser.userid, reason, "罰單處份");
-	mail_violatelaw(u->userid, cuser.userid, reason, "罰單處份");
+	mail_violatelaw(u->userid, "站務警察", reason, "罰單處份");
     }
     pressanykey();
 }
