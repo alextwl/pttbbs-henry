@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3423 2006-09-17 13:23:03Z kcwu $ */
+/* $Id: mbbsd.c 3441 2006-10-07 15:12:36Z wens $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -1553,9 +1553,7 @@ shell_login(int argc, char *argv[], char *envp[])
 
     init_tty();
     if (check_ban_and_load(0)) {
-#ifdef OVERLOADBLOCKFDS
 	sleep(10);
-#endif
 	return 0;
     }
 #ifdef DETECT_CLIENT
