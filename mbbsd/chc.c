@@ -1,4 +1,4 @@
-/* $Id: chc.c 3244 2005-11-16 03:11:54Z scw $ */
+/* $Id: chc.c 3442 2006-10-08 13:51:52Z kcwu $ */
 #include "bbs.h"
 #include "chc.h"
 
@@ -325,6 +325,9 @@ chc_genlog(ChessInfo* info, FILE* fp, ChessGameResult result)
     const int nStep = info->history.used;
     board_t   board;
     int i;
+
+    fprintf(fp, "按 z 可進入打譜模式\n");
+    fprintf(fp, "\n");
 
     if (info->myturn == RED)
 	fprintf(fp, "%s(%d) V.S. %s(%d)\n",
