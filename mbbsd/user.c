@@ -1,4 +1,4 @@
-/* $Id: user.c 3439 2006-10-03 06:47:36Z wens $ */
+/* $Id: user.c 3443 2006-10-12 06:52:25Z timerover $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -144,10 +144,13 @@ user_display(const userec_t * u, int adminmode)
     prints("                私人信箱: %d 封  (購買信箱: %d 封)\n"
 	   "                手機號碼: %010d\n"
 	   "                生    日: %04i/%02i/%02i\n"
-	   "                小雞名字: %s\n",
+	   "                優 劣 文: 優:%d / 劣:%d\n",
 	   get_num_records(genbuf, sizeof(fileheader_t)),
 	   u->exmailbox, u->mobile,
-	   u->year + 1900, u->month, u->day, u->mychicken.name);
+	   u->year + 1900, u->month, u->day,
+           u->goodpost, u->badpost);
+    prints("                上站位置: %s\n", u->lasthost);
+
 #ifdef PLAY_ANGEL
     if (adminmode)
 	prints("                小 天 使: %s\n",
@@ -155,7 +158,6 @@ user_display(const userec_t * u, int adminmode)
 #endif
     prints("                註冊日期: %s", ctime4(&u->firstlogin));
     prints("                前次光臨: %s", ctime4(&u->lastlogin));
-    prints("                前次點歌: %s", ctime4(&u->lastsong));
     prints("                上站文章: %d 次 / %d 篇\n",
 	   u->numlogins, u->numposts);
 
