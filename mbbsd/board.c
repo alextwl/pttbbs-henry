@@ -347,7 +347,7 @@ load_boards(char *key)
 		    !((state = HasBoardPerm(bptr)) || GROUPOP()) ||
 		    TITLE_MATCH(bptr, key)
 #if ! HOTBOARDCACHE
-		    || (IN_HOTBOARD() && bptr->nuser < 5)
+		    || (IN_HOTBOARD() && bptr->nuser < 3)
 #endif
 		    )
 		    continue;
