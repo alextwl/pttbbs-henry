@@ -1,4 +1,4 @@
-/* $Id: proto.h 3308 2006-03-26 16:57:05Z kcwu $ */
+/* $Id: proto.h 3437 2006-10-01 14:12:06Z wens $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -88,8 +88,8 @@ int check_cooldown(boardheader_t *bp);
 #define setutmpbid(bid) currutmp->brc_id=bid;
 int HasBoardPerm(boardheader_t *bptr);
 int New(void);
-int Boards(void);
-int root_board(void);
+int Favorite(void);
+int Class(void);
 void save_brdbuf(void);
 void init_brdbuf(void);
 #ifdef CRITICAL_MEMORY
@@ -236,15 +236,15 @@ void fav_sort_by_name(void);
 void fav_sort_by_class(void);
 int fav_load(void);
 int fav_save(void);
-void fav_remove_item(short id, char type);
-fav_type_t *getadmtag(short bid);
-fav_type_t *getboard(short bid);
-fav_type_t *getfolder(short fid);
-char getbrdattr(short bid);
-time4_t getbrdtime(short bid);
-void setbrdtime(short bid, time4_t t);
+void fav_remove_item(int id, char type);
+fav_type_t *getadmtag(int bid);
+fav_type_t *getboard(int bid);
+fav_type_t *getfolder(int fid);
+char getbrdattr(int bid);
+time4_t getbrdtime(int bid);
+void setbrdtime(int bid, time4_t t);
 int fav_getid(fav_type_t *ft);
-void fav_tag(short id, char type, char boolean);
+void fav_tag(int id, char type, char boolean);
 void move_in_current_folder(int from, int to);
 void fav_move(int from, int to);
 fav_type_t *fav_add_line(void);
@@ -256,7 +256,7 @@ void fav_add_all_tagged_item(void);
 void fav_remove_all_tag(void);
 void fav_set_folder_title(fav_type_t *ft, char *title);
 int fav_stack_full(void);
-void fav_folder_in(short fid);
+void fav_folder_in(int fid);
 void fav_folder_out(void);
 void fav_free(void);
 int fav_v3_to_v4(void);
@@ -271,7 +271,6 @@ void subscribe_newfav(void);
 /* file */
 int file_count_line(const char *file);
 int file_append_line(const char *file, const char *string);
-int file_delete_line(const char *file, const char *string, int  case_sensitive);
 int file_exist_record(const char *file, const char *string);
 
 /* friend */
@@ -620,6 +619,7 @@ int is_validuserid(const char *ident);
 int userid_is_BM(const char *userid, const char *list);
 int is_uBM(const char *list, const char *id);
 inline int *intbsearch(int key, const int *base0, int nmemb);
+inline unsigned int *uintbsearch(const unsigned int, const unsigned int *, const int);
 int qsort_intcompar(const void *a, const void *b);
 #ifndef CRITICAL_MEMORY
     #define MALLOC(p)  malloc(p)
@@ -653,6 +653,7 @@ int post_file(const char *bname, const char *title, const char *filename, const 
 void post_newboard(const char *bgroup, const char *bname, const char *bms);
 void post_violatelaw(const char *crime, const char *police, const char *reason, const char *result);
 void post_change_perm(int oldperm, int newperm, const char *sysopid, const char *userid);
+void post_policelog(const char *bname, const char *atitle, const char *action, const char *reason, const int toggle);
 
 /* talk */
 #define iswritable(uentp)    \
@@ -666,6 +667,7 @@ int cmpwatermtime(const void *a, const void *b);
 void getmessage(msgque_t msg);
 void my_write2(void);
 int t_idle(void);
+void check_water_init(void);
 const char *modestring(const userinfo_t * uentp, int simple);
 int t_users(void);
 int my_write(pid_t pid, const char *hint, const char *id, int flag, userinfo_t *);
@@ -794,6 +796,7 @@ int freecuser(void);
 
 /* calendar */
 int calendar(void);
+int ParseDate(const char *date, int *year, int *month, int *day);
 
 /* util */
 void touchbtotal(int bid);

@@ -1,4 +1,4 @@
-/* $Id: board.c 3270 2006-02-02 12:35:55Z scw $ */
+/* $Id: board.c 3418 2006-09-16 18:45:51Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -37,9 +37,10 @@ typedef struct {
 #define IN_CLASS()	(class_bid > 0)
 static int      class_bid = 0;
 
+static int nbrdsize = 0;
 static boardstat_t *nbrd = NULL;
 static char	choose_board_depth = 0;
-static short    brdnum;
+static int      brdnum;
 static char     yank_flag = 1;
 
 static time4_t   last_save_fav_and_brc;
@@ -47,10 +48,8 @@ static time4_t   last_save_fav_and_brc;
 /* These are all the states yank_flag may be. */
 #define LIST_FAV()         (yank_flag = 0)
 #define LIST_BRD()         (yank_flag = 1)
-#define LIST_GUEST()       (yank_flag = 2)
 #define IS_LISTING_FAV()   (yank_flag == 0)
 #define IS_LISTING_BRD()   (yank_flag == 1)
-#define IS_LISTING_GUEST() (yank_flag == 2)
 
 inline int getbid(const boardheader_t *fh)
 {
@@ -168,7 +167,10 @@ load_uidofgid(const int gid, const int type)
 {
     boardheader_t  *bptr, *currbptr, *parent;
     int             bid, n, childcount = 0;
+    assert(0<=type && type<2);
+    assert(0<= gid-1 && gid-1<MAX_BOARD);
     currbptr = parent = &bcache[gid - 1];
+    assert(0<=numboards && numboards<=MAX_BOARD);
     for (n = 0; n < numboards; ++n) {
 	bid = SHM->bsorted[type][n]+1;
 	if( bid<=0 || !(bptr = getbcache(bid)) 
@@ -197,6 +199,8 @@ addnewbrdstat(int n, int state)
 {
     boardstat_t    *ptr;
 
+    assert(0<=n && n<MAX_BOARD);
+    assert(0<=brdnum && brdnum<nbrdsize);
     ptr = &nbrd[brdnum++];
     //boardheader_t  *bptr = &bcache[n];
     //ptr->total = &(SHM->total[n]);
@@ -248,16 +252,20 @@ load_boards(char *key)
     brdnum = 0;
     if (nbrd) {
         free(nbrd);
+	nbrdsize = 0;
 	nbrd = NULL;
     }
     if (!IN_CLASS()) {
 	if(IS_LISTING_FAV()){
 	    fav_t   *fav = get_current_fav();
 	    int     nfav = get_data_number(fav);
-	    if( nfav == 0 ){
+	    if( nfav == 0 ) {
+		nbrdsize = 1;
 		nbrd = (boardstat_t *)malloc(sizeof(boardstat_t) * 1);
-		goto EMPTYFAV;
+		addnewbrdstat(0, 0); // dummy
+    		return;
 	    }
+	    nbrdsize = nfav;
 	    nbrd = (boardstat_t *)malloc(sizeof(boardstat_t) * nfav);
             for( i = 0 ; i < fav->DataTail; ++i ){
 		int state;
@@ -287,7 +295,8 @@ load_boards(char *key)
 			    continue;
 		    }else{
 			boardheader_t *bptr = getbcache(fav_getid(&fav->favh[i]));
-			if( HasBoardPerm(bptr) && strcasestr(bptr->title, key))
+			assert(0<=fav_getid(&fav->favh[i])-1 && fav_getid(&fav->favh[i])-1<MAX_BOARD);
+			if (strcasestr(bptr->title, key))
 			    state = NBRD_BOARD;
 			else
 			    continue;
@@ -302,14 +311,19 @@ load_boards(char *key)
 		    state |= NBRD_TAG;
 		addnewbrdstat(fav_getid(&fav->favh[i]) - 1, NBRD_FAV | state);
 	    }
-	EMPTYFAV:
-	    if (brdnum == 0)
-		addnewbrdstat(0, 0);
 	}
 #if HOTBOARDCACHE
 	else if(IN_HOTBOARD()){
-	    nbrd = (boardstat_t *)malloc(sizeof(boardstat_t) * SHM->nHOTs);
-	    for( i = 0 ; i < SHM->nHOTs ; ++i ) {
+	    nbrdsize = SHM->nHOTs;
+	    if(nbrdsize == 0) {
+		nbrdsize = 1;
+		nbrd = (boardstat_t *)malloc(sizeof(boardstat_t) * 1);
+		addnewbrdstat(0, 0); // dummy
+		return;
+	    }
+	    assert(0<nbrdsize);
+	    nbrd = (boardstat_t *)malloc(sizeof(boardstat_t) * nbrdsize);
+	    for( i = 0 ; i < nbrdsize; ++i ) {
 		if(SHM->HBcache[i] == -1)
 		    continue;
 		addnewbrdstat(SHM->HBcache[i], HasBoardPerm(&bcache[SHM->HBcache[i]]));
@@ -317,11 +331,16 @@ load_boards(char *key)
 	}
 #endif
 	else { // general case
-	    nbrd = (boardstat_t *) malloc(sizeof(boardstat_t) * numboards);
-	    for (i = 0; i < numboards; i++) {
+	    nbrdsize = numboards;
+	    assert(0<nbrdsize && nbrdsize<=MAX_BOARD);
+	    nbrd = (boardstat_t *) malloc(sizeof(boardstat_t) * nbrdsize);
+	    for (i = 0; i < nbrdsize; i++) {
 		int n = SHM->bsorted[type][i];
-		boardheader_t *bptr = &bcache[n];
-		if (n < 0 || bptr == NULL)
+		boardheader_t *bptr;
+		if (n < 0)
+		    continue;
+		bptr = &bcache[n];
+		if (bptr == NULL)
 		    continue;
 		if (!bptr->brdname[0] ||
 		    (bptr->brdattr & (BRD_GROUPBOARD | BRD_SYMBOLIC)) ||
@@ -344,32 +363,43 @@ load_boards(char *key)
 	int childcount; 
 	int bid;
 
-	if (bptr->firstchild[type] == 0 )
+	assert(0<=class_bid-1 && class_bid-1<MAX_BOARD);
+	if (bptr->firstchild[type] == 0 || bptr->childcount==0)
 	    load_uidofgid(class_bid, type);
 
         childcount = bptr->childcount;  // Ptt: child count after load_uidofgid
 
-	nbrd = (boardstat_t *) malloc((childcount+2) * sizeof(boardstat_t));
+	nbrdsize = childcount + 5;
+	nbrd = (boardstat_t *) malloc((childcount+5) * sizeof(boardstat_t));
         // 預留兩個以免大量開板時掛調
 	for (bid = bptr->firstchild[type]; bid > 0 && 
-		brdnum < childcount+2; bid = bptr->next[type]) {
+		brdnum < childcount+5; bid = bptr->next[type]) {
+	    assert(0<=bid-1 && bid-1<MAX_BOARD);
             bptr = getbcache(bid);
 	    state = HasBoardPerm(bptr);
 	    if ( !(state || GROUPOP()) || TITLE_MATCH(bptr, key) )
 		continue;
 
 	    if (bptr->brdattr & BRD_SYMBOLIC) {
-
 		/* Only SYSOP knows a board is symbolic */
 		if (HasUserPerm(PERM_SYSOP) || HasUserPerm(PERM_SYSSUPERSUBOP))
 		    state |= NBRD_SYMBOLIC;
-		else
+		else {
 		    bid = BRD_LINK_TARGET(bptr);
+		    if (bcache[bid - 1].brdname[0] == 0) {
+			vmsg("連結已損毀，請至 SYSOP 回報此問題。");
+			continue;
+		    }
+		}
 	    }
+	    assert(0<=bid-1 && bid-1<MAX_BOARD);
 	    addnewbrdstat(bid-1, state);
 	}
-        if(childcount < brdnum) //Ptt: dirty fix fix soon 
-                getbcache(class_bid)->childcount = 0;
+        if(childcount < brdnum) {
+	    //Ptt: dirty fix fix soon 
+	    fprintf(stderr, "childcount < brdnum, %d<%d, class_bid=%d\n",childcount,brdnum,class_bid);
+	    getbcache(class_bid)->childcount = 0;
+	}
            
                  
     }
@@ -383,6 +413,7 @@ search_board(void)
     move(0, 0);
     clrtoeol();
     CreateNameList();
+    assert(brdnum<=nbrdsize);
     for (num = 0; num < brdnum; num++)
 	if (!IS_LISTING_FAV() ||
 	    (nbrd[num].myattr & NBRD_BOARD && HasBoardPerm(B_BH(&nbrd[num]))) )
@@ -532,9 +563,7 @@ show_brdlist(int head, int clsflag, int newflag)
  	char    *unread[2] = {ANSI_COLOR(37) "  " ANSI_RESET, ANSI_COLOR(1;31) "ˇ" ANSI_RESET};
  
 	if (IS_LISTING_FAV() && get_data_number(get_current_fav()) == 0){
-	    // brdnum > 0 ???
-	    move(3, 0);
-	    outs("        --- 空目錄 ---");
+	    mouts(3, 0, "        --- 空目錄 - 請按 a (add) 或 i (insert) 加入看板 ---");
 	    return;
 	}
 
@@ -542,6 +571,7 @@ show_brdlist(int head, int clsflag, int newflag)
 	    move(myrow, 0);
 	    clrtoeol();
 	    if (head < brdnum) {
+		assert(0<=head && head<nbrdsize);
 		ptr = &nbrd[head++];
 		if (ptr->myattr & NBRD_LINE){
 		    if( !newflag )
@@ -651,6 +681,7 @@ set_menu_BM(char *BM)
 
 static void replace_link_by_target(boardstat_t *board)
 {
+    assert(0<=board->bid-1 && board->bid-1<MAX_BOARD);
     board->bid = BRD_LINK_TARGET(getbcache(board->bid));
     board->myattr &= ~NBRD_SYMBOLIC;
 }
@@ -666,12 +697,14 @@ paste_taged_brds(int gid)
     for (tmp = 0; tmp < fav->DataTail; tmp++) {
 	    boardheader_t  *bh;
 	    bid = fav_getid(&fav->favh[tmp]);
+	    assert(0<=bid-1 && bid-1<MAX_BOARD);
 	    bh = getbcache(bid);
 	    if( !is_set_attr(&fav->favh[tmp], FAVH_ADM_TAG))
 		continue;
 	    set_attr(&fav->favh[tmp], FAVH_ADM_TAG, FALSE);
 	    if (bh->gid != gid) {
 		bh->gid = gid;
+		assert(0<=bid-1 && bid-1<MAX_BOARD);
 		substitute_record(FN_BOARD, bh,
 				  sizeof(boardheader_t), bid);
 		reset_board(bid);
@@ -685,7 +718,7 @@ paste_taged_brds(int gid)
 static void
 choose_board(int newflag)
 {
-    static short    num = 0;
+    static int      num = 0;
     boardstat_t    *ptr;
     int             head = -1, ch = 0, currmodetmp, tmp, tmp1, bidtmp;
     char            keyword[13] = "", buf[64];
@@ -696,32 +729,28 @@ choose_board(int newflag)
     ++choose_board_depth;
     brdnum = 0;
     if (!cuser.userlevel)	/* guest yank all boards */
-	LIST_GUEST();
+	LIST_BRD();
 
     do {
 	if (brdnum <= 0) {
 	    load_boards(keyword);
-	    if (brdnum <= 0 && !IS_LISTING_FAV()) {
+	    if (brdnum <= 0) {
 		if (keyword[0] != 0) {
-		    vmsg("沒有任何看板標題有此關鍵字 "
-			    "(板主應注意看板標題命名)");
+		    vmsg("沒有任何看板標題有此關鍵字");
 		    keyword[0] = 0;
 		    brdnum = -1;
 		    continue;
 		}
-		if (!IS_LISTING_GUEST()) {
-		    brdnum = -1;
-		    yank_flag++; /* FAV => BRD, BRD => GUEST */
-		    continue;
-		}
-		if (HasUserPerm(PERM_SYSOP) || GROUPOP()) {
-                    if (paste_taged_brds(class_bid) || 
-		        m_newbrd(class_bid, 0) == -1)
+		if (IS_LISTING_BRD()) {
+		    if (HasUserPerm(PERM_SYSOP) || GROUPOP()) {
+			if (paste_taged_brds(class_bid) || 
+    			    m_newbrd(class_bid, 0) == -1)
+			    break;
+			brdnum = -1;
+			continue;
+		    } else
 			break;
-		    brdnum = -1;
-		    continue;
-		} else
-		    break;
+		}
 	    }
 	    head = -1;
 	}
@@ -735,6 +764,7 @@ choose_board(int newflag)
 	if (head < 0) {
 	    if (newflag) {
 		tmp = num;
+		assert(brdnum<=nbrdsize);
 		while (num < brdnum) {
 		    ptr = &nbrd[num];
 		    if (ptr->myattr & NBRD_UNREAD)
@@ -806,12 +836,14 @@ choose_board(int newflag)
 		num = brdnum - 1;
 	    break;
 	case '*':
-	    {
+	    if (IS_LISTING_FAV()) {
 		int i = 0;
+		assert(brdnum<=nbrdsize);
 		for (i = 0; i < brdnum; i++)
 		{
 		    ptr = &nbrd[i];
 		    if (IS_LISTING_FAV()){
+			assert(nbrdsize>0);
 			if(get_fav_type(&nbrd[0]) != 0)
 			    fav_tag(ptr->bid, get_fav_type(ptr), 2);
 		    }
@@ -821,8 +853,10 @@ choose_board(int newflag)
 	    }
 	    break;
 	case 't':
+	    assert(0<=num && num<nbrdsize);
 	    ptr = &nbrd[num];
 	    if (IS_LISTING_FAV()){
+		assert(nbrdsize>0);
 		if(get_fav_type(&nbrd[0]) != 0)
 		    fav_tag(ptr->bid, get_fav_type(ptr), 2);
 	    }
@@ -889,17 +923,18 @@ choose_board(int newflag)
 	    brdnum = -1;
 	    break;
 	case 'y':
-	    if (get_current_fav() != NULL || !IS_LISTING_FAV()){
-		if (cuser.userlevel)
-		    yank_flag ^= 1; /* FAV <=> BRD */
-		else
-		    yank_flag ^= 2; /* guest, FAV <=> GUEST */
+	    if (HasUserPerm(PERM_LOGINOK)) {
+		if (get_current_fav() != NULL || !IS_LISTING_FAV()){
+		    if (cuser.userlevel)
+			yank_flag ^= 1; /* FAV <=> BRD */
+		}
+		brdnum = -1;
 	    }
-	    brdnum = -1;
 	    break;
 	case 'D':
 	    if (HasUserPerm(PERM_SYSOP) ||
 		    (HasUserPerm(PERM_SYSSUPERSUBOP) &&	GROUPOP())) {
+		assert(0<=num && num<nbrdsize);
 		ptr = &nbrd[num];
 		if (ptr->myattr & NBRD_SYMBOLIC) {
 		    if (getans("確定刪除連結？[N/y]") == 'y')
@@ -946,6 +981,7 @@ choose_board(int newflag)
 		    break;
 		}
 		/* done move if it's the first item. */
+		assert(nbrdsize>0);
 		if (get_fav_type(&nbrd[0]) != 0)
 		    move_in_current_folder(brdnum, num);
 		brdnum = -1;
@@ -963,6 +999,7 @@ choose_board(int newflag)
 	case 'z':
 	case 'm':
 	    if (HasUserPerm(PERM_LOGINOK)) {
+		assert(0<=num && num<nbrdsize);
 		ptr = &nbrd[num];
 		if (IS_LISTING_FAV()) {
 		    if (ptr->myattr & NBRD_FAV) {
@@ -1010,6 +1047,7 @@ choose_board(int newflag)
 		}
 		fav_set_folder_title(ft, "新的目錄");
 		/* don't move if it's the first item */
+		assert(nbrdsize>0);
 		if (get_fav_type(&nbrd[0]) != 0)
 		    move_in_current_folder(brdnum, num);
 		brdnum = -1;
@@ -1017,6 +1055,7 @@ choose_board(int newflag)
 	    }
 	    break;
 	case 'T':
+	    assert(0<=num && num<nbrdsize);
 	    if (HasUserPerm(PERM_LOGINOK) && nbrd[num].myattr & NBRD_FOLDER) {
 		fav_type_t *ft = getfolder(nbrd[num].bid);
 		strlcpy(buf, get_item_title(ft), sizeof(buf));
@@ -1041,12 +1080,12 @@ choose_board(int newflag)
 		switch(c){
 		    case '2':
 			fav_save();
-			setuserfile(fname, FAV4);
+			setuserfile(fname, FAV);
 			sprintf(buf, "%s.bak", fname);
                         Copy(fname, buf);
 			break;
 		    case '3':
-			setuserfile(fname, FAV4);
+			setuserfile(fname, FAV);
 			sprintf(buf, "%s.bak", fname);
 			if (!dashf(buf)){
 			    vmsg("你沒有備份你的最愛喔");
@@ -1067,7 +1106,7 @@ choose_board(int newflag)
 	    break;
 
 	case 'Z':
-	    if (HasUserPerm(PERM_LOGINOK)) {
+	    if (HasUserPerm(PERM_LOGINOK))
 		vmsg("為避免誤按此功\能已取消，請改至個人設定區修改設定");
 	    break;
 
@@ -1088,6 +1127,7 @@ choose_board(int newflag)
 
 	case 'v':
 	case 'V':
+	    assert(0<=num && num<nbrdsize);
 	    ptr = &nbrd[num];
 	    if(nbrd[num].bid < 0 || !HasBoardPerm(B_BH(ptr)))
 		break;
@@ -1110,6 +1150,7 @@ choose_board(int newflag)
 	    break;
 	case 'E':
 	    if (HasUserPerm(PERM_SYSOP | PERM_BOARD) || GROUPOP()) {
+		assert(0<=num && num<nbrdsize);
 		ptr = &nbrd[num];
 		move(1, 1);
 		clrtobot();
@@ -1156,7 +1197,8 @@ choose_board(int newflag)
 		    fav_type_t * ptr = getboard(bid);
 		    if (ptr != NULL) { // already in fav list
 			// move curser to item
-			for (num = 0; bid != nbrd[num].bid; ++num);
+			for (num = 0; num<nbrdsize && bid != nbrd[num].bid; ++num);
+			assert(bid==nbrd[num].bid);
 		    } else {
 			ptr = fav_add_board(bid);
 
@@ -1192,28 +1234,35 @@ choose_board(int newflag)
 	case '\r':
 	case 'r':
 	    {
-		ptr = &nbrd[num];
 		if (IS_LISTING_FAV()) {
+		    assert(nbrdsize>0);
 		    if (get_fav_type(&nbrd[0]) == 0)
 			break;
-		    else if (ptr->myattr & NBRD_LINE)
+		    assert(0<=num && num<nbrdsize);
+		    ptr = &nbrd[num];
+		    if (ptr->myattr & NBRD_LINE)
 			break;
-		    else if (ptr->myattr & NBRD_FOLDER){
+		    if (ptr->myattr & NBRD_FOLDER){
 			int t = num;
 			num = 0;
 			fav_folder_in(ptr->bid);
 			choose_board(0);
 			fav_folder_out();
 			num = t;
+			LIST_FAV(); // XXX press 'y' in fav makes yank_flag = LIST_BRD
 			brdnum = -1;
 			head = 9999;
 			break;
 		    }
-		}
-		else if (ptr->myattr & NBRD_SYMBOLIC) {
-		    replace_link_by_target(ptr);
+		} else {
+		    assert(0<=num && num<nbrdsize);
+		    ptr = &nbrd[num];
+		    if (ptr->myattr & NBRD_SYMBOLIC) {
+			replace_link_by_target(ptr);
+		    }
 		}
 
+		assert(0<=ptr->bid-1 && ptr->bid-1<MAX_BOARD);
 		if (!(B_BH(ptr)->brdattr & BRD_GROUPBOARD)) {	/* 非sub class */
 		    if (HasBoardPerm(B_BH(ptr))) {
 			brc_initial_board(B_BH(ptr)->brdname);
@@ -1255,6 +1304,7 @@ choose_board(int newflag)
 		    setutmpbid(ptr->bid);
 		    free(nbrd);
 		    nbrd = NULL;
+		    nbrdsize = 0;
 	    	    if (IS_LISTING_FAV()) {
 			LIST_BRD();
 			choose_board(0);
@@ -1273,22 +1323,22 @@ choose_board(int newflag)
     } while (ch != 'q');
     free(nbrd);
     nbrd = NULL;
+    nbrdsize = 0;
     --choose_board_depth;
 }
 
 int
-root_board(void)
+Class(void)
 {
     init_brdbuf();
     class_bid = 1;
-/*    class_bid = 0; */
     LIST_BRD();
     choose_board(0);
     return 0;
 }
 
 int
-Boards(void)
+Favorite(void)
 {
     init_brdbuf();
     class_bid = 0;

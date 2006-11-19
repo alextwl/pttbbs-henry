@@ -1,4 +1,4 @@
-/* $Id: friend.c 3293 2006-03-22 17:57:35Z kcwu $ */
+/* $Id: friend.c 3357 2006-05-17 11:46:57Z victor $ */
 #include "bbs.h"
 
 /* ------------------------------------- */
@@ -179,12 +179,38 @@ friend_append(int type, int count)
     }
 }
 
+static int
+delete_friend_from_file(const char *file, const char *string, int  case_sensitive)
+{
+    FILE           *fp, *nfp = NULL;
+    char            fnew[80];
+    char            genbuf[STRLEN + 1];
+
+    sprintf(fnew, "%s.%3.3X", file, (unsigned int)(random() & 0xFFF));
+    if ((fp = fopen(file, "r")) && (nfp = fopen(fnew, "w"))) {
+	while (fgets(genbuf, sizeof(genbuf), fp))
+	    if ((genbuf[0] > ' ')) {
+		char buf[32];
+		sscanf(genbuf, " %s", buf);
+		if (((case_sensitive && strcmp(buf, string)) ||
+		    (!case_sensitive && strcasecmp(buf, string))))
+    		    fputs(genbuf, nfp);
+	    }
+	Rename(fnew, file);
+    }
+    if(fp)
+	fclose(fp);
+    if(nfp)
+	fclose(nfp);
+    return 0;
+}
+
 void
 friend_delete(const char *uident, int type)
 {
     char            fn[80];
     setfriendfile(fn, type);
-    file_delete_line(fn, uident, 0);
+    delete_friend_from_file(fn, uident, 0);
 }
 
 static void
@@ -195,7 +221,7 @@ delete_user_friend(const char *uident, const char *thefriend, int type)
     if (type == FRIEND_ALOHA) {
 #endif
 	sethomefile(fn, uident, "aloha");
-	file_delete_line(fn, thefriend, 0);
+	delete_friend_from_file(fn, thefriend, 0);
 #if 0
     }
     else {
@@ -454,8 +480,10 @@ friend_edit(int type)
 	} else if (type == BOARD_WATER) {
 	    boardheader_t *bp = NULL;
 	    currbid = getbnum(currboard);
+	    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
 	    bp = getbcache(currbid);
 	    bp->perm_reload = now;
+	    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
 	    substitute_record(fn_board, bp, sizeof(boardheader_t), currbid);
 	    // log_usies("SetBoard", bp->brdname);
 	}

@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3283 2006-03-12 16:07:22Z kcwu $ */
+/* $Id: pttstruct.h 3428 2006-09-24 09:15:01Z ptt $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -112,7 +112,8 @@ typedef struct userec_t {
     unsigned short  chess_elo_rating;	/* 象棋等級分 */
     unsigned int    withme;	/* 我想找人下棋，聊天.... */
     time4_t timeremovebadpost;  /* 上次刪除劣文時間 */
-    char    pad[30];
+    time4_t timeviolatelaw; /* 被開罰單時間 */
+    char    pad[26];
 } userec_t;
 /* these are flags in userec_t.uflag */
 #define PAGER_FLAG      0x4     /* true if pager was OFF last session */
@@ -199,7 +200,9 @@ typedef struct boardheader_t {
     char    posttype[33];
     char    posttype_f;
     unsigned char fastrecommend_pause;	/* 快速連推間隔 */
-    char    pad3[49];
+    unsigned char vote_limit_badpost;   /* 連署 : 劣文上限 */
+    unsigned char post_limit_badpost;   /* 發表文章 : 劣文上限 */
+    char    pad3[47];
 } boardheader_t;
 
 /* 下面是八進位喔 */
@@ -228,6 +231,7 @@ typedef struct boardheader_t {
 #define BRD_NOFASTRECMD 0020000000         /* 禁止快速推文 */
 #define BRD_IPLOGRECMD  0040000000         /* 推文記錄 IP */
 #define BRD_OVER18      0100000000         /* 十八禁 */
+#define BRD_NOREPLY     0200000000         /* 不可回文 */
 
 #define BRD_LINK_TARGET(x)	((x)->postexpire)
 #define GROUPOP()               (currmode & MODE_GROUPOP)
@@ -262,7 +266,7 @@ typedef struct fileheader_t {
 	    unsigned char posts;
 	    unsigned char logins;
 	    unsigned char regtime;
-	    unsigned char pad[1];
+	    unsigned char badpost;
 	} vote_limits;
 	struct {
 	    /* is this ordering correct? */

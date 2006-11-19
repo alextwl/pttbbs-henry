@@ -1,10 +1,12 @@
-/* $Id: fav.c 3297 2006-03-22 17:58:41Z kcwu $ */
+/* $Id: fav.c 3445 2006-11-08 09:52:45Z victor $ */
 #include "bbs.h"
 
 /**
  * Structure
  * =========
- * fav4 的主要架構如下：
+ * fav 檔的前兩個 byte 是版號，接下來才是真正的 data。
+ *
+ * fav 的主要架構如下：
  * 
  *   fav_t - 用來裝各種 entry(fav_type_t) 的 directory
  *     進入我的最愛時，看到的東西就是根據 fav_t 生出來的。
@@ -33,9 +35,6 @@
  * (FAVH_ADM_TAG == 1, FAVH_FAV == 0)。
  */
 
-#ifdef MEM_CHECK
-static int	memcheck;
-#endif
 
 /* the total number of items, every level. */
 static int 	fav_number;
@@ -50,13 +49,9 @@ static char     dirty = 0;
 static fav_t   *fav_tmp;
 //static int	fav_tmp_snum; /* the sequence number in favh in fav_t */
 
-
-// DEPRECATED
-typedef struct {
-    char            fid;
-    char            title[BTLEN + 1];
-    int             this_folder;
-} fav_folder4_t;
+#if 1 // DEPRECATED
+static void fav4_read_favrec(FILE *frp, fav_t *fp);
+#endif
 
 /**
  * cast_(board|line|folder) 一族用於將 base class 作轉型
@@ -207,6 +202,7 @@ char *get_item_title(fav_type_t *ft)
 {
     switch (get_item_type(ft)){
 	case FAVT_BOARD:
+	    assert(0<=cast_board(ft)->bid-1 && cast_board(ft)->bid-1<MAX_BOARD);
 	    return bcache[cast_board(ft)->bid - 1].brdname;
 	case FAVT_FOLDER:
 	    return cast_folder(ft)->title;
@@ -220,6 +216,7 @@ static char *get_item_class(fav_type_t *ft)
 {
     switch (get_item_type(ft)){
 	case FAVT_BOARD:
+	    assert(0<=cast_board(ft)->bid-1 && cast_board(ft)->bid-1<MAX_BOARD);
 	    return bcache[cast_board(ft)->bid - 1].title;
 	case FAVT_FOLDER:
 	    return "目錄";
@@ -229,16 +226,6 @@ static char *get_item_class(fav_type_t *ft)
     return NULL;
 }
 
-#ifdef MEM_CHECK
-inline static void fav_set_memcheck(int n) {
-    memcheck = n;
-}
-
-inline static int fav_memcheck(void) {
-    return memcheck;
-}
-#endif
-/* ---*/
 
 static int get_type_size(int type)
 {
@@ -250,6 +237,7 @@ static int get_type_size(int type)
 	case FAVT_LINE:
 	    return sizeof(fav_line_t);
     }
+    assert(0);
     return 0;
 }
 
@@ -260,25 +248,6 @@ inline static void* fav_malloc(int size){
     assert(p);
     memset(p, 0, size);
     return p;
-}
-
-/**
- * allocate header(fav_type_t, base class) 跟 fav_*_t (derived class)
- * @return 新 allocate 的空間
- */
-static fav_type_t *fav_item_allocate(int type)
-{
-    int size;
-    fav_type_t *ft;
-
-    size = get_type_size(type);
-    if (!size)
-	return NULL;
-
-    ft = (fav_type_t *)fav_malloc(sizeof(fav_type_t));
-    ft->fp = fav_malloc(size);
-    ft->type = type;
-    return ft;
 }
 
 /**
@@ -324,7 +293,6 @@ static void rebuild_fav(fav_t *fp)
 	ft = &fp->favh[i];
 	switch (get_item_type(ft)){
 	    case FAVT_BOARD:
-		break;
 	    case FAVT_LINE:
 		break;
 	    case FAVT_FOLDER:
@@ -426,7 +394,7 @@ inline static void fav_stack_pop(void){
     fav_stack[--fav_stack_num] = NULL;
 }
 
-void fav_folder_in(short fid)
+void fav_folder_in(int fid)
 {
     fav_type_t *tmp = getfolder(fid);
     if (get_item_type(tmp) == FAVT_FOLDER){
@@ -459,13 +427,10 @@ static void read_favrec(FILE *frp, fav_t *fp)
 	fread(&ft->attr, sizeof(ft->attr), 1, frp);
 	ft->fp = (void *)fav_malloc(get_type_size(ft->type));
 
-	/* TODO A pointer has different size between 32 and 64-bit arch.
-	 * But the pointer in fav_folder_t is irrelevant here. 
-	 * In order not to touch the current .fav4, fav_folder4_t is used
-	 * here.  It should be FIXED in the next version. */
 	switch (ft->type) {
 	    case FAVT_FOLDER:
-		fread(ft->fp, sizeof(fav_folder4_t), 1, frp);
+		fread(&cast_folder(ft)->fid, sizeof(char), 1, frp);
+		fread(&cast_folder(ft)->title, BTLEN + 1, 1, frp);
 		break;
 	    case FAVT_BOARD:
 	    case FAVT_LINE:
@@ -497,18 +462,36 @@ static void read_favrec(FILE *frp, fav_t *fp)
 int fav_load(void)
 {
     FILE *frp;
-    char buf[128];
+    char buf[PATHLEN];
+    unsigned short version;
     fav_t *fp;
     if (fav_stack_num > 0)
 	return -1;
-    setuserfile(buf, FAV4);
+    setuserfile(buf, FAV);
 
     if (!dashf(buf)) {
-	fp = (fav_t *)fav_malloc(sizeof(fav_t));
-	fav_stack_push_fav(fp);
-#ifdef MEM_CHECK
-	fav_set_memcheck(MEM_CHECK);
+#if 1 // DEPRECATED
+	char old[PATHLEN];
+	setuserfile(old, FAV4);
+	if (dashf(old)) {
+	    if ((frp = fopen(old, "r")) == NULL)
+		return -1;
+	    fp = (fav_t *)fav_malloc(sizeof(fav_t));
+	    fav_number = 0;
+	    fav4_read_favrec(frp, fp);
+	    fav_stack_push_fav(fp);
+	    fclose(frp);
+
+    	    fav_save();
+	    setuserfile(old, FAV ".bak");
+	    Copy(buf, old);
+	}
+	else
 #endif
+	{
+	    fp = (fav_t *)fav_malloc(sizeof(fav_t));
+	    fav_stack_push_fav(fp);
+	}
 	return 0;
     }
 
@@ -516,12 +499,11 @@ int fav_load(void)
 	return -1;
     fp = (fav_t *)fav_malloc(sizeof(fav_t));
     fav_number = 0;
+    fread(&version, sizeof(version), 1, frp);
+    // if (version != FAV_VERSION) { ... }
     read_favrec(frp, fp);
     fav_stack_push_fav(fp);
     fclose(frp);
-#ifdef MEM_CHECK
-    fav_set_memcheck(MEM_CHECK);
-#endif
     return 0;
 }
 
@@ -544,10 +526,10 @@ static void write_favrec(FILE *fwp, fav_t *fp)
 	fwrite(&ft->type, sizeof(ft->type), 1, fwp);
 	fwrite(&ft->attr, sizeof(ft->attr), 1, fwp);
 
-	/* TODO Please refer to read_favrec() */
 	switch (ft->type) {
 	    case FAVT_FOLDER:
-		fwrite(ft->fp, sizeof(fav_folder4_t), 1, fwp);
+		fwrite(&cast_folder(ft)->fid, sizeof(char), 1, fwp);
+		fwrite(&cast_folder(ft)->title, BTLEN + 1, 1, fwp);
 		break;
 	    case FAVT_BOARD:
 	    case FAVT_LINE:
@@ -570,11 +552,8 @@ int fav_save(void)
 {
     FILE *fwp;
     char buf[PATHLEN], buf2[PATHLEN];
+    unsigned short version = FAV_VERSION;
     fav_t *fp = get_fav_root();
-#ifdef MEM_CHECK
-    if (fav_memcheck() != MEM_CHECK)
-	return -1;
-#endif
     if (fp == NULL)
 	return -1;
 
@@ -582,15 +561,17 @@ int fav_save(void)
     if (!dirty)
 	return 0;
 
-    setuserfile(buf, FAV4".tmp");
-    setuserfile(buf2, FAV4);
+    setuserfile(buf2, FAV);
+    snprintf(buf, sizeof(buf), "%s.tmp.%x",buf2, getpid());
     fwp = fopen(buf, "w");
     if(fwp == NULL)
 	return -1;
+    fwrite(&version, sizeof(version), 1, fwp);
     write_favrec(fwp, fp);
-    fclose(fwp);
 
-    Rename(buf, buf2);
+    if(fclose(fwp)==0)
+	Rename(buf, buf2);
+
     return 0;
 }
 
@@ -656,7 +637,7 @@ void fav_free(void)
  * 從目前的 dir 中找出特定類別 (type)、id 為 id 的 entry。
  * 找不到傳回 NULL
  */
-static fav_type_t *get_fav_item(short id, int type)
+static fav_type_t *get_fav_item(int id, int type)
 {
     int i;
     fav_type_t *ft;
@@ -678,7 +659,7 @@ static fav_type_t *get_fav_item(short id, int type)
 /**
  * 從目前的 dir 中 remove 特定類別 (type)、id 為 id 的 entry。
  */
-void fav_remove_item(short id, char type)
+void fav_remove_item(int id, char type)
 {
     fav_remove(get_current_fav(), get_fav_item(id, type));
 }
@@ -686,11 +667,12 @@ void fav_remove_item(short id, char type)
 /**
  * get*(bid) 傳回目前的 dir 中該類別 id == bid 的 entry。
  */
-fav_type_t *getadmtag(short bid)
+fav_type_t *getadmtag(int bid)
 {
     int i;
     fav_t *fp = get_fav_root();
     fav_type_t *ft;
+    assert(0<=bid-1 && bid-1<MAX_BOARD);
     for (i = 0; i < fp->DataTail; i++) {
 	ft = &fp->favh[i];
 	if (get_item_type(ft) == FAVT_BOARD && cast_board(ft)->bid == bid && is_set_attr(ft, FAVH_ADM_TAG))
@@ -699,12 +681,13 @@ fav_type_t *getadmtag(short bid)
     return NULL;
 }
 
-fav_type_t *getboard(short bid)
+fav_type_t *getboard(int bid)
 {
+    assert(0<=bid-1 && bid-1<MAX_BOARD);
     return get_fav_item(bid, FAVT_BOARD);
 }
 
-fav_type_t *getfolder(short fid)
+fav_type_t *getfolder(int fid)
 {
     return get_fav_item(fid, FAVT_FOLDER);
 }
@@ -715,7 +698,7 @@ char *get_folder_title(int fid)
 }
 
 
-char getbrdattr(short bid)
+char getbrdattr(int bid)
 {
     fav_type_t *fb = getboard(bid);
     if (!fb)
@@ -765,15 +748,19 @@ static int enlarge_if_full(fav_t *fp)
 }
 
 /**
- * 將一個新的 entry item 加入 fp 中
+ * pre-append an item, and return the reference back.
  */
-static int fav_add(fav_t *fp, fav_type_t *item)
+static fav_type_t *fav_preappend(fav_t *fp, int type)
 {
+    fav_type_t *item;
     if (enlarge_if_full(fp) < 0)
-	return -1;
-    fav_item_copy(&fp->favh[fp->DataTail], item);
+	return NULL;
+    item = &fp->favh[fp->DataTail];
+    item->fp = fav_malloc(get_type_size(type));
+    item->attr = FAVH_FAV;
+    item->type = type;
     fav_increase(fp, item);
-    return 0;
+    return item;
 }
 
 static void move_in_folder(fav_t *fav, int src, int dst)
@@ -841,18 +828,6 @@ inline static fav_t *alloc_folder_item(void){
     return fp;
 }
 
-static fav_type_t *init_add(fav_t *fp, int type)
-{
-    fav_type_t *ft;
-    if (is_maxsize())
-	return NULL;
-    if ((ft = fav_item_allocate(type)) == NULL)
-	return NULL;
-    set_attr(ft, FAVH_FAV, TRUE);
-    fav_add(fp, ft);
-    return ft;
-}
-
 /**
  * 新增一分隔線
  * @return 加入的 entry 指標
@@ -860,9 +835,11 @@ static fav_type_t *init_add(fav_t *fp, int type)
 fav_type_t *fav_add_line(void)
 {
     fav_t *fp = get_current_fav();
+    if (is_maxsize())
+	return NULL;
     if (fp == NULL || get_line_num(fp) >= MAX_LINE)
 	return NULL;
-    return init_add(fp, FAVT_LINE);
+    return fav_preappend(fp, FAVT_LINE);
 }
 
 /**
@@ -873,11 +850,11 @@ fav_type_t *fav_add_folder(void)
 {
     fav_t *fp = get_current_fav();
     fav_type_t *ft;
-    if (fav_stack_full())
+    if (is_maxsize() || fav_stack_full())
 	return NULL;
     if (fp == NULL || get_folder_num(fp) >= MAX_FOLDER)
 	return NULL;
-    ft = init_add(fp, FAVT_FOLDER);
+    ft = fav_preappend(fp, FAVT_FOLDER);
     if (ft == NULL)
 	return NULL;
     cast_folder(ft)->this_folder = alloc_folder_item();
@@ -899,8 +876,9 @@ fav_type_t *fav_add_board(int bid)
     if (ft != NULL)
 	return ft;
 
-    ft = init_add(fp, FAVT_BOARD);
-
+    if (is_maxsize())
+	return NULL;
+    ft = fav_preappend(fp, FAVT_BOARD);
     if (ft == NULL)
 	return NULL;
     cast_board(ft)->bid = bid;
@@ -916,13 +894,11 @@ fav_type_t *fav_add_admtag(int bid)
     fav_type_t *ft;
     if (is_maxsize())
 	return NULL;
-    ft = fav_item_allocate(FAVT_BOARD);
-    if (ft == NULL)
-	return NULL; 
+    ft = fav_preappend(fp, FAVT_BOARD);
+    set_attr(ft, FAVH_FAV, FALSE);
+    cast_board(ft)->bid = bid;
     // turn on  FAVH_ADM_TAG
     set_attr(ft, FAVH_ADM_TAG, TRUE);
-    fav_add(fp, ft);
-    cast_board(ft)->bid = bid;
     return ft; 
 }   
 
@@ -935,7 +911,7 @@ fav_type_t *fav_add_admtag(int bid)
  * @param bool 同 set_attr
  * @note 若同一個目錄不幸有同樣的東西，只有第一個會作用。
  */
-void fav_tag(short id, char type, char bool) {
+void fav_tag(int id, char type, char bool) {
     fav_type_t *ft = get_fav_item(id, type);
     if (ft != NULL)
 	set_attr(ft, FAVH_TAG, bool);
@@ -987,15 +963,19 @@ static int add_and_remove_tag(fav_t *fp, fav_type_t *ft)
 	    }
 	}
     }
-    tmp = fav_malloc(sizeof(fav_type_t));
-    fav_item_copy(tmp, ft);
-    /* since fav_item_copy is symbolic link, we disable removed link to
-     * prevent double-free when doing fav_clean(). */
+    tmp = fav_preappend(fav_get_tmp_fav(), ft->type);
+    if (ft->type == FAVT_FOLDER) {
+	strlcpy(cast_folder(tmp)->title, cast_folder(ft)->title, BTLEN + 1);
+	cast_folder(tmp)->this_folder = cast_folder(ft)->this_folder;
+    }
+    else {
+	memcpy(tmp->fp, ft->fp, get_type_size(ft->type));
+    }
+
+
+    free(ft->fp);
     ft->fp = NULL;
     set_attr(tmp, FAVH_TAG, FALSE);
-
-    if (fav_add(fav_get_tmp_fav(), tmp) < 0)
-	return -1;
     fav_remove(fp, ft);
     return 0;
 }
@@ -1161,3 +1141,82 @@ void subscribe_newfav(void)
 {
     updatenewfav(0);
 }
+
+#if 1 // DEPRECATED
+typedef struct {
+    char            fid;
+    char            title[BTLEN + 1];
+    int             this_folder;
+} fav_folder4_t;
+
+typedef struct {
+    int             bid;
+    time4_t         lastvisit;		/* UNUSED */
+    char	    attr;
+} fav4_board_t;
+
+static int fav4_get_type_size(int type)
+{
+    switch (type){
+	case FAVT_BOARD:
+	    return sizeof(fav4_board_t);
+	case FAVT_FOLDER:
+	    return sizeof(fav_folder_t);
+	case FAVT_LINE:
+	    return sizeof(fav_line_t);
+    }
+    return 0;
+}
+
+static void fav4_read_favrec(FILE *frp, fav_t *fp)
+{
+    int i;
+    fav_type_t *ft;
+
+    fread(&fp->nBoards, sizeof(fp->nBoards), 1, frp);
+    fread(&fp->nLines, sizeof(fp->nLines), 1, frp);
+    fread(&fp->nFolders, sizeof(fp->nFolders), 1, frp);
+    fp->DataTail = get_data_number(fp);
+    fp->nAllocs = fp->DataTail + FAV_PRE_ALLOC;
+    fp->lineID = fp->folderID = 0;
+    fp->favh = (fav_type_t *)fav_malloc(sizeof(fav_type_t) * fp->nAllocs);
+    fav_number += get_data_number(fp);
+
+    for(i = 0; i < fp->DataTail; i++){
+	ft = &fp->favh[i];
+	fread(&ft->type, sizeof(ft->type), 1, frp);
+	fread(&ft->attr, sizeof(ft->attr), 1, frp);
+	ft->fp = (void *)fav_malloc(fav4_get_type_size(ft->type));
+
+	/* TODO A pointer has different size between 32 and 64-bit arch.
+	 * But the pointer in fav_folder_t is irrelevant here. 
+	 * In order not to touch the current .fav4, fav_folder4_t is used
+	 * here.  It should be FIXED in the next version. */
+	switch (ft->type) {
+	    case FAVT_FOLDER:
+		fread(ft->fp, sizeof(fav_folder4_t), 1, frp);
+		break;
+	    case FAVT_BOARD:
+	    case FAVT_LINE:
+		fread(ft->fp, fav4_get_type_size(ft->type), 1, frp);
+		break;
+	}
+    }
+
+    for(i = 0; i < fp->DataTail; i++){
+	ft = &fp->favh[i];
+	switch (ft->type) {
+	    case FAVT_FOLDER: {
+		fav_t *p = (fav_t *)fav_malloc(sizeof(fav_t));
+		fav4_read_favrec(frp, p);
+		cast_folder(ft)->this_folder = p;
+		cast_folder(ft)->fid = ++(fp->folderID);
+	    	break;
+	    }
+	    case FAVT_LINE:
+		cast_line(ft)->lid = ++(fp->lineID);
+		break;
+	}
+    }
+}
+#endif

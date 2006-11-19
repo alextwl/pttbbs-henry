@@ -1,4 +1,4 @@
-/* $Id: talk.c 3314 2006-03-30 01:32:25Z scw $ */
+/* $Id: talk.c 3420 2006-09-16 18:46:36Z kcwu $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -265,22 +265,27 @@ int sync_outta_server(int sfd)
     if(res<0)
 	return -1;
     if(res==2) {
+	close(sfd);
 	outs("登入太頻繁, 為避免系統負荷過重, 請稍後再試\n");
 	refresh();
-	sleep(10);
-	abort_bbs(0);
+	sleep(30);
+	log_usies("REJECTLOGIN", NULL);
+	memset(currutmp, 0, sizeof(userinfo_t));
+	exit(0);
     }
 
     verbose_progress(0, &iBar, &dir, barMax);
     if(toread(sfd, &nfs, sizeof(nfs))<0)
 	return -1;
-    if(nfs<0 || nfs>=MAX_FRIEND) {
+    if(nfs<0 || nfs>MAX_FRIEND*2) {
 	fprintf(stderr, "invalid nfs=%d\n",nfs);
 	return -1;
     }
 
     if(toread(sfd, fs, sizeof(fs[0])*nfs)<0)
 	return -1;
+
+    close(sfd);
 
     verbose_progress(0, &iBar, &dir, barMax);
     for(i=0; i<nfs; i++) {
@@ -317,9 +322,9 @@ void login_friend_online(void)
     sfd = toconnect(OUTTACACHEHOST, OUTTACACHEPORT);
     if(sfd>=0) {
 	int res=sync_outta_server(sfd);
-	close(sfd);
-	if(res==0)
+	if(res==0) // sfd will be closed if return 0
 	    return;
+	close(sfd);
     }
 #endif
 
@@ -455,6 +460,7 @@ my_query(const char *uident)
     {MSG_BIG_BOY, MSG_BIG_GIRL,
 	MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
     MSG_MAN, MSG_WOMAN, MSG_PLANT, MSG_MIME};
+    static time_t last_query;
 
     STATINC(STAT_QUERY);
     if ((tuid = getuser(uident, &muser))) {
@@ -513,6 +519,11 @@ my_query(const char *uident)
 	}
 	else
 	   pressanykey();
+	if(now-last_query<1)
+	    sleep(2);
+	else if(now-last_query<2)
+	    sleep(1);
+	last_query=now;
 	return FULLUPDATE;
     }
     return DONOTHING;
@@ -520,6 +531,17 @@ my_query(const char *uident)
 
 static char     t_last_write[80];
 
+void check_water_init(void)
+{
+    if(water==NULL) {
+	water = (water_t*)malloc(sizeof(water_t)*6);
+	memset(water, 0, sizeof(water_t)*6);
+	water_which = &water[0];
+
+	strlcpy(water[0].userid, " 全部 ", sizeof(water[0].userid));
+    }
+}
+		
 static void
 water_scr(const water_t * tw, int which, char type)
 {
@@ -579,6 +601,7 @@ my_write2(void)
     water_t        *tw;
     unsigned char   mode0;
 
+    check_water_init();
     if (swater[0] == NULL)
 	return;
     wmofo = REPLYING;
@@ -716,6 +739,7 @@ my_write(pid_t pid, const char *prompt, const char *id, int flag, userinfo_t * p
     userinfo_t     *uin;
     uin = (puin != NULL) ? puin : (userinfo_t *) search_ulist_pid(pid);
     strlcpy(destid, id, sizeof(destid));
+    check_water_init();
 
     /* what if uin is NULL but other conditions are not true?
      * will this situation cause SEGV?
@@ -965,6 +989,7 @@ t_display_new(void)
     else
 	t_display_new_flag = 1;
 
+    check_water_init();
     if (WATERMODE(WATER_ORIG))
 	water_which = &water[0];
     else
@@ -1460,7 +1485,10 @@ int make_connection_to_somebody(userinfo_t *uin, int timeout){
     clear();
     prints("正呼叫 %s.....\n鍵入 Ctrl-D 中止....", uin->userid);
 
-    listen(sock, 1);
+    if(listen(sock, 1)<0) {
+	close(sock);
+	return -1;
+    }
     add_io(sock, timeout);
 
     while (1) {
@@ -1484,18 +1512,17 @@ int make_connection_to_somebody(userinfo_t *uin, int timeout){
 		unlockutmpmode();
 		return -1;
 	    } else {
-#ifdef linux
-		add_io(sock, 20);	/* added for linux... achen */
-#endif
+		// change to longer timeout
+		add_io(sock, 20);
 		move(0, 0);
 		outs("再");
 		bell();
 
 		uin->destuip = currutmp - &SHM->uinfo[0];
 		if (pid <= 0 || kill(pid, SIGUSR1) == -1) {
-#ifdef linux
-		    add_io(sock, 20);	/* added 4 linux... achen */
-#endif
+		    close(sock);
+		    currutmp->sockactive = currutmp->destuid = 0;
+		    add_io(0, 0);
 		    vmsg(msg_usr_left);
 		    unlockutmpmode();
 		    return -1;
@@ -1546,11 +1573,12 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 #else
 		msgsock = accept(sock, (struct sockaddr *) 0, (socklen_t *) 0);
 #endif
-		close(sock);
 		if (msgsock == -1) {
 		    perror("accept");
+		    close(sock);
 		    return;
 		}
+		close(sock);
 		strlcpy(currutmp->mateid, uin->userid, sizeof(currutmp->mateid));
 
 		switch (uin->sig) {
@@ -1651,6 +1679,10 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 	strlcpy(currutmp->mateid, uin->userid, sizeof(currutmp->mateid));
 
 	sock = make_connection_to_somebody(uin, 5);
+	if(sock==-1) {
+	    vmsg("無法建立連線");
+	    return;
+	}
 
 #if defined(Solaris) && __OS_MAJOR_VERSION__ == 5 && __OS_MINOR_VERSION__ < 7
 	msgsock = accept(sock, (struct sockaddr *) 0, 0);
@@ -1659,6 +1691,7 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 #endif
 	if (msgsock == -1) {
 	    perror("accept");
+	    close(sock);
 	    unlockutmpmode();
 	    return;
 	}
@@ -3088,19 +3121,14 @@ int
 establish_talk_connection(const userinfo_t *uip)
 {
     int                    a;
-    struct hostent *h;
     struct sockaddr_in sin;
 
     currutmp->msgcount = 0;
     strlcpy(save_page_requestor, page_requestor, sizeof(save_page_requestor));
     memset(page_requestor, 0, sizeof(page_requestor));
-    if (!(h = gethostbyname("localhost"))) {
-	perror("gethostbyname");
-	return -1;
-    }
     memset(&sin, 0, sizeof(sin));
-    sin.sin_family = h->h_addrtype;
-    memcpy(&sin.sin_addr, h->h_addr, h->h_length);
+    sin.sin_family = PF_INET;
+    sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     sin.sin_port = uip->sockaddr;
     if ((a = socket(sin.sin_family, SOCK_STREAM, 0)) < 0) {
 	perror("connect err");
@@ -3144,6 +3172,8 @@ talkreply(void)
     clear();
 
     outs("\n\n");
+    // FIXME CRASH here
+    assert(sig>=0 && sig<sizeof(sig_des)/sizeof(sig_des[0]));
     prints("       (Y) 讓我們 %s 吧！"
 	    "     (A) 我現在很忙，請等一會兒再 call 我\n", sig_des[sig]);
     prints("       (N) 我現在不想 %s"
@@ -3248,16 +3278,33 @@ t_changeangel(){
 }
 
 int t_angelmsg(){
-    char msg[3][74];
+    char msg[3][74] = { "", "", "" };
     char buf[512];
     int i;
+    FILE* fp;
+
+    setuserfile(buf, "angelmsg");
+    fp = fopen(buf, "r");
+    if(fp){
+	move(5, 0);
+	outs("原有留言：\n");
+	for (i = 0; i < 3; ++i) {
+	    if(fgets(msg[i], sizeof(msg[0]), fp)) {
+		outs(msg[i]);
+		chomp(msg[i]);
+	    } else
+		break;
+	}
+	fclose(fp);
+    }
+
     do {
 	move(12, 0);
 	clrtobot();
 	outs("不在的時候要跟小主人說什麼呢？"
 	     "最多三行，按[Enter]結束");
 	for (i = 0; i < 3 &&
-		getdata(14 + i, 0, "：", msg[i], sizeof(msg[i]), DOECHO);
+		getdata_buf(14 + i, 0, "：", msg[i], sizeof(msg[i]), DOECHO);
 		++i);
 	getdata(b_lines - 2, 0, "(S)儲存 (E)重新來過 (Q)取消？[S]",
 		buf, 4, LCECHO);
@@ -3353,8 +3400,9 @@ static inline void
 AngelNotOnline(){
     char buf[256];
     const static char* const not_online_message = "您的小天使現在不在線上";
-    sethomefile(buf, cuser.myangel, "angelmsg");
-    if (!dashf(buf))
+    if (cuser.myangel[0] != '-')
+	sethomefile(buf, cuser.myangel, "angelmsg");
+    if (cuser.myangel[0] == '-' || !dashf(buf))
 	NoAngelFound(not_online_message);
     else {
 	FILE* fp = fopen(buf, "r");
@@ -3387,8 +3435,8 @@ AngelNotOnline(){
 
 static void
 TalkToAngel(){
-    userinfo_t* uent;
     static int AngelPermChecked = 0;
+    userinfo_t* uent;
     userec_t xuser;
 
     if (strcmp(cuser.myangel, "-") == 0){
@@ -3413,6 +3461,8 @@ TalkToAngel(){
 	AngelNotOnline();
 	return;
     }
+
+    more("etc/angel_usage", NA);
 
     /* 這段話或許可以在小天使回答問題時 show 出來
     move(b_lines - 1, 0);

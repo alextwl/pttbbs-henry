@@ -1,4 +1,4 @@
-/* $Id: announce.c 3305 2006-03-26 16:14:11Z kcwu $ */
+/* $Id: announce.c 3340 2006-04-08 14:57:57Z kcwu $ */
 #include "bbs.h"
 
 /* copy temp queue operation -------------------------------------- */
@@ -1077,7 +1077,7 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 		   須等該資料寫入 .DIR 內再 implement才有效率.
 		 */
 		if( !lastlevel && !HasUserPerm(PERM_SYSOP) &&
-		    !is_BM_cache(currbid) && dashd(fname) )
+		    (currbid==0 || !is_BM_cache(currbid)) && dashd(fname) )
 		    vmsg("只有板主才可以拷貝目錄唷!");
 		else
 		    a_copyitem(fname, me.header[me.now - me.page].title, 0, 1);

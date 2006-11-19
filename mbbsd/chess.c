@@ -1,4 +1,4 @@
-/* $Id: chess.c 3308 2006-03-26 16:57:05Z kcwu $ */
+/* $Id: chess.c 3442 2006-10-08 13:51:52Z kcwu $ */
 #include "bbs.h"
 #include "chess.h"
 
@@ -922,12 +922,15 @@ ChessGenLogGlobal(ChessInfo* info, ChessGameResult result)
 
     fp = fopen(fname, "w");
     if (fp != NULL) {
-	info->actions->genlog(info, fp, result);
-	fclose(fp);
-
 	strlcpy(log_header.owner, "[棋譜機器人]", sizeof(log_header.owner));
 	snprintf(log_header.title, sizeof(log_header.title), "[棋譜] %s VS %s",
 		info->user1.userid, info->user2.userid);
+
+	fprintf(fp, "作者: %s 看板: %s\n標題: %s \n", log_header.owner, info->constants->log_board, log_header.title);
+	fprintf(fp, "時間: %s\n", ctime4(&now));
+
+	info->actions->genlog(info, fp, result);
+	fclose(fp);
 
 	setbdir(fname, info->constants->log_board);
 	append_record(fname, &log_header, sizeof(log_header));
@@ -1353,8 +1356,8 @@ ChessPhotoInitial(ChessInfo* info)
 #define PHOTO(X) (photo + (X) * CHESS_PHOTO_COLUMN)
 
     fp = NULL;
-    if(getuser(info->user1.userid, &xuser)) {
-	sethomefile(genbuf, info->user1.userid, info->constants->photo_file_name);
+    if(getuser(info->user2.userid, &xuser)) {
+	sethomefile(genbuf, info->user2.userid, info->constants->photo_file_name);
 	fp = fopen(genbuf, "r");
     }
 
@@ -1406,16 +1409,16 @@ ChessPhotoInitial(ChessInfo* info)
 	fclose(fp);
 
     sprintf(PHOTO(6), "      %s%2.2s棋" ANSI_RESET,
-	    info->constants->turn_color[(int) info->myturn],
-	    info->constants->turn_str[(int) info->myturn]);
+	    info->constants->turn_color[(int) info->myturn ^ 1],
+	    info->constants->turn_str[(int) info->myturn ^ 1]);
     strcpy(PHOTO(7), "           Ｖ.Ｓ           ");
     sprintf(PHOTO(8), "                               %s%2.2s棋" ANSI_RESET,
-	    info->constants->turn_color[info->myturn ^ 1],
-	    info->constants->turn_str[info->myturn ^ 1]);
+	    info->constants->turn_color[info->myturn],
+	    info->constants->turn_str[info->myturn]);
 
     fp = NULL;
-    if(getuser(info->user2.userid, &xuser)) {;
-	sethomefile(genbuf, info->user2.userid, info->constants->photo_file_name);
+    if(getuser(info->user1.userid, &xuser)) {;
+	sethomefile(genbuf, info->user1.userid, info->constants->photo_file_name);
 	fp = fopen(genbuf, "r");
     }
 

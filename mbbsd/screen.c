@@ -1,4 +1,4 @@
-/* $Id: screen.c 3306 2006-03-26 16:14:20Z kcwu $ */
+/* $Id: screen.c 3394 2006-07-30 11:29:43Z wens $ */
 #include "bbs.h"
 
 #define o_clear()     output(clearbuf,clearbuflen)
@@ -120,7 +120,6 @@ redoscr(void)
 		output((char *)bp->data, len);
 	    tc_col += len;
 	    if (tc_col >= t_columns) {
-		/* XXX Is this code right? */
 		if (automargins)
 		    tc_col = t_columns - 1;
 		else {
@@ -210,7 +209,6 @@ refresh(void)
 		output((char *)&bp->data[bp->smod], bp->emod - bp->smod + 1);
 	    tc_col = bp->emod + 1;
 	    if (tc_col >= t_columns) {
-		/* XXX Is this code right? */
 		if (automargins)
 		    tc_col = t_columns - 1;
 		else {

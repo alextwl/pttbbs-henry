@@ -1,4 +1,4 @@
-/* $Id: io.c 3082 2005-08-25 05:33:25Z piaip $ */
+/* $Id: io.c 3420 2006-09-16 18:46:36Z kcwu $ */
 #include "bbs.h"
 
 #define OBUFSIZE  2048
@@ -88,6 +88,7 @@ int
 ochar(int c)
 {
     if (obufsize > OBUFSIZE - 1) {
+	STATINC(STAT_SYSWRITESOCKET);
 	/* suppose one byte data doesn't need to be converted. */
 	write(1, outbuf, obufsize);
 	obufsize = 0;
@@ -444,6 +445,7 @@ igetch(void)
 	case KEY_TAB:
 	    if (WATERMODE(WATER_ORIG) || WATERMODE(WATER_NEW))
 		if (currutmp != NULL && watermode > 0) {
+		    check_water_init();
 		    watermode = (watermode + water_which->count)
 			% water_which->count + 1;
 		    t_display_new();
@@ -469,6 +471,7 @@ igetch(void)
 		i_newfd = my_newfd;
 		continue;
 	    } else if (!WATERMODE(WATER_OFO)) {
+		check_water_init();
 		if (watermode > 0) {
 		    watermode = (watermode + water_which->count)
 			% water_which->count + 1;
@@ -524,6 +527,7 @@ igetch(void)
 	case Ctrl('T'):
 	    if (WATERMODE(WATER_ORIG) || WATERMODE(WATER_NEW)) {
 		if (watermode > 0) {
+		    check_water_init();
 		    if (watermode > 1)
 			watermode--;
 		    else
@@ -537,6 +541,7 @@ igetch(void)
 	case Ctrl('F'):
 	    if (WATERMODE(WATER_NEW)) {
 		if (watermode > 0) {
+		    check_water_init();
 		    if (water_which_flag == (int)water_usies)
 			water_which_flag = 0;
 		    else
@@ -556,6 +561,7 @@ igetch(void)
 	case Ctrl('G'):
 	    if (WATERMODE(WATER_NEW)) {
 		if (watermode > 0) {
+		    check_water_init();
 		    water_which_flag = (water_which_flag + water_usies) % (water_usies + 1);
 		    if (water_which_flag == 0)
 			water_which = &water[0];
@@ -825,6 +831,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	}
 
 	while (1) {
+	    assert(0<=clen);
 	    if(dirty_line) {
 		move(line, col);
 		clrtoeol();
@@ -844,6 +851,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 
 	    if ((ch = igetch()) == '\r')
 		break;
+	    assert(0<=clen);
 	    switch (ch) {
 	    case KEY_DOWN: case Ctrl('N'):
 	    case KEY_UP:   case Ctrl('P'):
@@ -876,6 +884,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 			currchar --;
 #endif
 		}
+	    assert(0<=clen);
 		break;
 	    case KEY_RIGHT:
 		if (buf[currchar])
@@ -888,6 +897,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 			currchar++;
 #endif
 		}
+	    assert(0<=clen);
 		break;
 	    case '\177':
 	    case Ctrl('H'):
@@ -998,6 +1008,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 		}
 		break;
 	    }			/* end case */
+	    assert(0<=clen);
 	}			/* end while */
 
 	if (clen > 1) {
@@ -1008,6 +1019,8 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	// outc('\n');
 	move(y+1, 0);
 	refresh();
+	assert(0<=currchar && currchar<=clen);
+	assert(0<=clen && clen<=len);
     }
     if ((echo == LCECHO) && isupper((int)buf[0]))
 	buf[0] = tolower(buf[0]);

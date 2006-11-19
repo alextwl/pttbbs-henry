@@ -1,4 +1,4 @@
-/* $Id: record.c 3292 2006-03-22 17:57:26Z kcwu $ */
+/* $Id: record.c 3427 2006-09-24 09:13:19Z ptt $ */
 
 #include "bbs.h"
 
@@ -424,6 +424,7 @@ safe_article_delete_range(const char *direct, int from, int to)
 	    read(fd, &newfhdr, sizeof(fileheader_t));
 	    if( newfhdr.filemode & (FILE_MARKED | FILE_DIGEST) )
 		continue;
+	    if(newfhdr.filename[0]=='L') newfhdr.filename[0]='M';
 	    strlcpy(ptr, newfhdr.filename, sizeof(newfhdr.filename));
 	    unlink(fn);
 
@@ -546,7 +547,10 @@ append_record(const char *fpath, const fileheader_t * record, int size)
     struct stat     st;
 
     if ((fd = open(fpath, O_WRONLY | O_CREAT, 0644)) == -1) {
-	perror("open");
+	char buf[STRLEN];
+	assert(errno != EISDIR);
+	sprintf(buf, "id(%s), open(%s)", cuser.userid, fpath);
+	perror(buf);
 	return -1;
     }
     flock(fd, LOCK_EX);

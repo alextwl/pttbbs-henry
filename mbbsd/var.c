@@ -1,4 +1,4 @@
-/* $Id: var.c 3276 2006-03-12 11:25:53Z scw $ */
+/* $Id: var.c 3420 2006-09-16 18:46:36Z kcwu $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -386,7 +386,7 @@ char		raw_connection = 0;
 char            fromhost[STRLEN] = "\0";
 char            water_usies = 0;
 FILE           *fp_writelog = NULL;
-water_t         water[6], *swater[6], *water_which = &water[0];
+water_t         *water, *swater[6], *water_which;
 char            over18 = 0;
 
 /* chc_play.c */
@@ -610,11 +610,11 @@ const commands_t      cmdlist[] = {
 				"00Admin       【 系統維護區 】"},
     {Announce,	0,		"AAnnounce     【 精華公佈欄 】"},
 #ifdef DEBUG
-    {Boards, 	0,		"FFavorite     【 我的最不愛 】"},
+    {Favorite,	0,		"FFavorite     【 我的最不愛 】"},
 #else
-    {Boards, 	0,		"FFavorite     【 我 的 最愛 】"},
+    {Favorite,	0,		"FFavorite     【 我 的 最愛 】"},
 #endif
-    {root_board,0,		"CClass        【 分組討論區 】"},
+    {Class,	0,		"CClass        【 分組討論區 】"},
     {Mail, 	PERM_BASIC,	"MMail         【 私人信件區 】"},
     {Talk, 	0,		"TTalk         【 休閒聊天區 】"},
     {User, 	0,		"UUser         【 個人設定區 】"},

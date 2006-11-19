@@ -1,4 +1,4 @@
-/* $Id: read.c 3284 2006-03-12 16:07:31Z kcwu $ */
+/* $Id: read.c 3320 2006-04-01 14:30:31Z kcwu $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -398,6 +398,9 @@ mail_forward(const fileheader_t * fhdr, const char *direct, int mode)
 #ifndef DEBUG_FWDADDRERR
 	vmsg(msg_fwd_err2);
 #endif
+	break;
+    case -4:
+	vmsg("«H½c¤wº¡");
 	break;
     default:
 	break;

@@ -1,4 +1,4 @@
-/* $Id: user.c 3276 2006-03-12 11:25:53Z scw $ */
+/* $Id: user.c 3443 2006-10-12 06:52:25Z timerover $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -143,11 +143,14 @@ user_display(const userec_t * u, int adminmode)
     sethomedir(genbuf, u->userid);
     prints("                私人信箱: %d 封  (購買信箱: %d 封)\n"
 	   "                手機號碼: %010d\n"
-	   "                生    日: %02i/%02i/%02i\n"
-	   "                小雞名字: %s\n",
+	   "                生    日: %04i/%02i/%02i\n"
+	   "                優 劣 文: 優:%d / 劣:%d\n",
 	   get_num_records(genbuf, sizeof(fileheader_t)),
 	   u->exmailbox, u->mobile,
-	   u->month, u->day, u->year % 100, u->mychicken.name);
+	   u->year + 1900, u->month, u->day,
+           u->goodpost, u->badpost);
+    prints("                上站位置: %s\n", u->lasthost);
+
 #ifdef PLAY_ANGEL
     if (adminmode)
 	prints("                小 天 使: %s\n",
@@ -155,7 +158,6 @@ user_display(const userec_t * u, int adminmode)
 #endif
     prints("                註冊日期: %s", ctime4(&u->firstlogin));
     prints("                前次光臨: %s", ctime4(&u->lastlogin));
-    prints("                前次點歌: %s", ctime4(&u->lastsong));
     prints("                上站文章: %d 次 / %d 篇\n",
 	   u->numlogins, u->numposts);
 
@@ -171,6 +173,7 @@ user_display(const userec_t * u, int adminmode)
 		    fgets(genbuf, 200, fp);
 		fgets(genbuf, 200, fp);
 		prints("%12s棋國自我描述: %s", chess_type[i], genbuf + 11);
+		fclose(fp);
 	    }
 	}
     }
@@ -300,10 +303,11 @@ violate_law(userec_t * u, int unum)
     } else {
         kick_all(u->userid);
 	u->userlevel |= PERM_VIOLATELAW;
+	u->timeviolatelaw = now;
 	u->vl_count++;
 	passwd_update(unum, u);
 	post_violatelaw(u->userid, cuser.userid, reason, "罰單處份");
-	mail_violatelaw(u->userid, cuser.userid, reason, "罰單處份");
+	mail_violatelaw(u->userid, "站務警察", reason, "罰單處份");
     }
     pressanykey();
 }
@@ -483,35 +487,62 @@ void Customize(void)
     vmsg("設定完成");
 }
 
+static char *
+getregfile(char *buf)
+{
+    // not in user's home because s/he could zip his/her home
+    snprintf(buf, PATHLEN, "jobspool/.regcode.%s", cuser.userid);
+    return buf;
+}
 
-char    *
+static char *
+makeregcode(char *buf)
+{
+    char    fpath[PATHLEN];
+    int     fd, i;
+    const char *alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM";
+
+    /* generate a new regcode */
+    buf[13] = 0;
+    buf[0] = 'v';
+    buf[1] = '6';
+    for( i = 2 ; i < 13 ; ++i )
+	buf[i] = alphabet[random() % 52];
+
+    getregfile(fpath);
+    if( (fd = open(fpath, O_WRONLY | O_CREAT, 0600)) == -1 ){
+	perror("open");
+	exit(1);
+    }
+    write(fd, buf, 13);
+    close(fd);
+
+    return buf;
+}
+
+static char *
 getregcode(char *buf)
 {
-    char *uid = &cuser.userid[0];
-    int i;
+    int     fd;
+    char    fpath[PATHLEN];
 
-    /* init seed with magic */
-    strlcpy(buf, REGCODE_MAGIC, 14); /* des keys are only 13 byte */
-
-    /* scramble with user id */
-    for (i = 0; i < IDLEN && uid[i]; i++)
-    {
-	buf[i] ^= uid[i];
-	while (!(buf[i] >= '0' && buf[i] <= 'z'))
-	{
-	    buf[i] = (buf[i] + '0') & 0xff;
-	    buf[i+1] = (buf[i+1] + 0x17) & 0xff;
-	}
+    getregfile(fpath);
+    if( (fd = open(fpath, O_RDONLY)) == -1 ){
+	buf[0] = 0;
+	return buf;
     }
-    /* leave last character untouched anyway */
+    read(fd, buf, 13);
+    close(fd);
     buf[13] = 0;
-
-    /* real encryption */
-    strcpy(buf, crypt(buf, "pd"));
-    /* hack to prevent trailing dots */
-    if (buf[strlen(buf)-1] == '.')
-	buf[strlen(buf)-1] = 'd';
     return buf;
+}
+
+static void
+delregcodefile(void)
+{
+    char    fpath[PATHLEN];
+    getregfile(fpath);
+    unlink(fpath);
 }
 
 #ifdef DEBUG
@@ -575,9 +606,10 @@ static void email_justify(const userec_t *muser)
 	 * by evil mail servers.
 	 */
 	snprintf(buf, sizeof(buf),
-		 " " BBSENAME " - [ %s ]", getregcode(genbuf));
+		 " " BBSENAME " - [ %s ]", makeregcode(genbuf));
 
 	strlcpy(tmp, cuser.userid, sizeof(tmp));
+	// XXX dirty, set userid=SYSOP
 	strlcpy(cuser.userid, str_sysop, sizeof(cuser.userid));
 #ifdef HAVEMOBILE
 	if (strcmp(muser->email, "m") == 0 || strcmp(muser->email, "M") == 0)
@@ -663,45 +695,52 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	    x.sex = u->sex % 8;
 
 	while (1) {
-	    int             len;
-
-	    snprintf(genbuf, sizeof(genbuf), "%02i/%02i/%02i",
-		     u->month, u->day, u->year % 100);
-	    len = getdata_str(i, 0, "生日 月月/日日/西元：", buf, 9,
-			      DOECHO, genbuf);
-	    if (len && len != 8)
-		continue;
-	    if (!len) {
+	    snprintf(genbuf, sizeof(genbuf), "%04i/%02i/%02i",
+		     u->year + 1900, u->month, u->day);
+	    if (getdata_str(i, 0, "生日 西元/月月/日日：", buf, 11, DOECHO, genbuf) == 0) {
 		x.month = u->month;
 		x.day = u->day;
 		x.year = u->year;
-	    } else if (len == 8) {
-		x.month = (buf[0] - '0') * 10 + (buf[1] - '0');
-		x.day = (buf[3] - '0') * 10 + (buf[4] - '0');
-		x.year = (buf[6] - '0') * 10 + (buf[7] - '0');
-	    } else
-		continue;
-	    if (!adminmode && (x.month > 12 || x.month < 1 || x.day > 31 ||
-			  x.day < 1 || x.year < 40))
+	    } else {
+		int y, m, d;
+		if (ParseDate(buf, &y, &m, &d))
+		    continue;
+		x.month = (unsigned char)m;
+		x.day = (unsigned char)d;
+		x.year = (unsigned char)(y - 1900);
+	    }
+	    if (!adminmode && x.year < 40)
 		continue;
 	    i++;
 	    break;
 	}
 
 #ifdef PLAY_ANGEL
-	if (adminmode)
+	if (adminmode) {
+	    const char* prompt;
+	    userec_t the_angel;
+	    if (x.myangel[0] == 0 || x.myangel[0] == '-' ||
+		    (getuser(x.myangel, &the_angel) &&
+		     the_angel.userlevel & PERM_ANGEL))
+		prompt = "小天使：";
+	    else
+		prompt = "小天使（此帳號已無小天使資格）：";
 	    while (1) {
 	        userec_t xuser;
-		getdata_str(i, 0, "小天使：", buf, IDLEN + 1, DOECHO,
+		getdata_str(i, 0, prompt, buf, IDLEN + 1, DOECHO,
 			x.myangel);
 		if(buf[0] == 0 || strcmp(buf, "-") == 0 ||
 			(getuser(buf, &xuser) &&
-			    (xuser.userlevel & PERM_ANGEL))){
+			    (xuser.userlevel & PERM_ANGEL)) ||
+			strcmp(x.myangel, buf) == 0){
 		    strlcpy(x.myangel, xuser.userid, IDLEN + 1);
 		    ++i;
 		    break;
 		}
+
+		prompt = "小天使：";
 	    }
+	}
 #endif
 
 #ifdef CHESSCOUNTRY
@@ -1089,6 +1128,7 @@ showplans_userec(userec_t *user)
 
 		i++;
 	    }
+	    fclose(fp);
 
 	    if (user_query_mode == 1) {
 		win = user->five_win;
@@ -1248,7 +1288,7 @@ u_editcalendar(void)
 {
     char            genbuf[200];
 
-    getdata(b_lines - 1, 0, "行事曆 (D)刪除 (E)編輯 [Q]取消？[Q] ",
+    getdata(b_lines - 1, 0, "行事曆 (D)刪除 (E)編輯 (H)說明 [Q]取消？[Q] ",
 	    genbuf, 3, LCECHO);
 
     if (genbuf[0] == 'e') {
@@ -1264,6 +1304,12 @@ u_editcalendar(void)
 	sethomefile(genbuf, cuser.userid, "calendar");
 	unlink(genbuf);
 	vmsg("行事曆刪除完畢");
+    } else if (genbuf[0] == 'h') {
+	move(1, 0);
+	clrtoline(b_lines);
+	move(3, 0);
+	prints("行事曆格式說明:\n編輯時以一行為單位，如:\n\n# 井號開頭的是註解\n2006/05/04 red 上批踢踢!\n\n其中的 red 是指表示的顏色。");
+	pressanykey();
     }
     return 0;
 }
@@ -1548,8 +1594,8 @@ u_register(void)
 #ifdef FOREIGN_REG
     char            fore[2];
 #endif
-    char            phone[20], career[40], email[50], birthday[9], sex_is[2],
-                    year, mon, day;
+    char            phone[20], career[40], email[50], birthday[11], sex_is[2];
+    unsigned char   year, mon, day;
     char            inregcode[14], regcode[50];
     char            ans[3], *ptr, *errcode;
     char            genbuf[200];
@@ -1599,8 +1645,8 @@ u_register(void)
     if (cuser.month == 0 && cuser.day && cuser.year == 0)
 	birthday[0] = 0;
     else
-	snprintf(birthday, sizeof(birthday), "%02i/%02i/%02i",
-		 cuser.month, cuser.day, cuser.year % 100);
+	snprintf(birthday, sizeof(birthday), "%04i/%02i/%02i",
+		 1900 + cuser.year, cuser.month, cuser.day);
     sex_is[0] = (cuser.sex % 8) + '1';
     sex_is[1] = 0;
     career[0] = phone[0] = '\0';
@@ -1648,26 +1694,23 @@ u_register(void)
 	inregcode[0] = 0;
 
 	do{
-	    getdata(10, 0, "您的輸入: ", inregcode, sizeof(inregcode), DOECHO);
-	    if ((inregcode[0] == '0' && inregcode[1] == '2') ||
-		(inregcode[0] == 'p' && inregcode[1] == 't') ||
-		0
-		)
-	    {
+	    getdata(10, 0, "您的認證碼：",
+		    inregcode, sizeof(inregcode), DOECHO);
+	    if( strcmp(inregcode, "x") == 0 || strcmp(inregcode, "X") == 0 )
+		break;
+	    if( inregcode[0] != 'v' || inregcode[1] != '6' ) {
 		/* old regcode */
 		vmsg("您輸入的認證碼因系統昇級已失效，"
-			"請輸入 x 重填一次 E-Mail");
-	    } else
-	    if( strcmp(inregcode, "x") == 0 ||
-		strcmp(inregcode, "X") == 0 ||
-		strlen(inregcode) == 13 )
-		break;
-	    if( strlen(inregcode) != 13 )
+		     "請輸入 x 重填一次 E-Mail");
+	    } else if( strlen(inregcode) != 13 )
 		vmsg("認證碼輸入不完全，應該一共有十三碼。");
+	    else
+		break;
 	} while( 1 );
 
 	if (strcmp(inregcode, getregcode(regcode)) == 0) {
 	    int             unum;
+	    delregcodefile();
 	    if ((unum = searchuser(cuser.userid, NULL)) == 0) {
 		vmsg("系統錯誤，查無此人！");
 		u_exit("getuser error");
@@ -1684,7 +1727,7 @@ u_register(void)
 	    sethomefile(genbuf, cuser.userid, "justify.wait");
 	    unlink(genbuf);
 	    snprintf(cuser.justify, sizeof(cuser.justify),
-		     "%s:%s:auto", phone, career);
+		     "%s:%s:email", phone, career);
 	    sethomefile(genbuf, cuser.userid, "justify");
 	    log_file(genbuf, LOG_CREAT, cuser.justify);
 	    pressanykey();
@@ -1775,26 +1818,24 @@ u_register(void)
 	getfield(15, "只輸入數字 如:0912345678 (可不填)",
 		 "手機號碼", mobile, 20);
 	while (1) {
-	    int             len;
-
-	    getfield(17, "月月/日日/西元 如:09/27/76", "生日", birthday, 9);
-	    len = strlen(birthday);
-	    if (!len) {
-		snprintf(birthday, 9, "%02i/%02i/%02i",
-			 cuser.month, cuser.day, cuser.year % 100);
+	    getfield(17, "西元/月月/日日 如:1984/02/29", "生日", birthday, sizeof(birthday));
+	    if (birthday[0] == 0) {
+		snprintf(birthday, sizeof(birthday), "%04i/%02i/%02i",
+			 1900 + cuser.year, cuser.month, cuser.day);
 		mon = cuser.month;
 		day = cuser.day;
 		year = cuser.year;
-	    } else if (len == 8) {
-		mon = (birthday[0] - '0') * 10 + (birthday[1] - '0');
-		day = (birthday[3] - '0') * 10 + (birthday[4] - '0');
-		year = (birthday[6] - '0') * 10 + (birthday[7] - '0');
-	    } else{
-		vmsg("您的輸入不正確");
-		continue;
+	    } else {
+		int y, m, d;
+		if (ParseDate(birthday, &y, &m, &d)) {
+		    vmsg("您的輸入不正確");
+		    continue;
+		}
+		mon = (unsigned char)m;
+		day = (unsigned char)d;
+		year = (unsigned char)(y - 1900);
 	    }
-	    if (mon > 12 || mon < 1 || day > 31 || day < 1 || 
-		year < 40){
+	    if (year < 40) {
 		vmsg("您的輸入不正確");
 		continue;
 	    }
@@ -1838,7 +1879,7 @@ u_register(void)
     set_board();
     do_post();
     cuser.userlevel &= ~PERM_POST;
-    return 0;
+    return FULLUPDATE;
 }
 
 /* 列出所有註冊使用者 */

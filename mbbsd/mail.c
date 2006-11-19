@@ -1,4 +1,4 @@
-/* $Id: mail.c 3307 2006-03-26 16:14:28Z kcwu $ */
+/* $Id: mail.c 3414 2006-09-16 18:41:55Z kcwu $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -6,11 +6,11 @@ static char     currmaildir[32];
 static char     msg_cc[] = ANSI_COLOR(32) "[群組名單]" ANSI_RESET "\n";
 static char     listfile[] = "list.0";
 
-enum {
+enum SHOWMAIL_MODES {
     SHOWMAIL_NORM = 0,
     SHOWMAIL_SUM,
     SHOWMAIL_RANGE,
-} SHOWMAIL_MODES;
+};
 static int	showmail_mode = SHOWMAIL_NORM;
 
 int
@@ -201,7 +201,12 @@ void
 setupmailusage(void)
 {  // Ptt: get_sum_records is a bad function
 	int             max_keepmail = MAX_KEEPMAIL;
-	if (HasUserPerm(PERM_SYSSUPERSUBOP)) {
+#ifdef PLAY_ANGEL
+	if (HasUserPerm(PERM_SYSSUPERSUBOP | PERM_ANGEL))
+#else
+	if (HasUserPerm(PERM_SYSSUPERSUBOP))
+#endif
+	{
 	    mailsumlimit = 900;
 	    max_keepmail = 700;
 	}
@@ -606,9 +611,15 @@ multi_send(char *title)
 		outc(' ');
 	    }
 	    outs(p->word);
-	    if (searchuser(p->word, p->word) && strcmp(STR_GUEST, p->word))
+	    if (searchuser(p->word, p->word) && strcmp(STR_GUEST, p->word)) {
+		sethomefile(genbuf, p->word, FN_OVERRIDES);
+		if (!belong(genbuf, cuser.userid)) { // not friend, check if rejected
+		    sethomefile(genbuf, p->word, FN_REJECT);
+		    if (belong(genbuf, cuser.userid))
+			continue;
+		}
 		sethomepath(genbuf, p->word);
-	    else
+	    } else
 		continue;
 	    stampfile(genbuf, &mymail);
 	    unlink(genbuf);
@@ -984,21 +995,22 @@ maildoent(int num, fileheader_t * ent)
 		char buf[MAXPATHLEN];
 		struct stat st;
 
-		setuserfile(buf, ent->filename);
-		if (stat(buf, &st) >= 0)
-		{
-		    filesz = st.st_size;
-		    /* find printing unit */
-		    filesz = (filesz + 1023) / 1024;
-		    if(filesz > 9999)
-		    {
-			filesz = (filesz+512) / 1024; 
-			ut = 'M';
-		    }
-		    if(filesz > 9999)
-		    {
-			filesz = (filesz+512) / 1024;
-			ut = 'G';
+		if( !ent->filename[0] ){
+		    filesz = 0;
+		} else {
+		    setuserfile(buf, ent->filename);
+		    if (stat(buf, &st) >= 0) {
+			filesz = st.st_size;
+			/* find printing unit */
+			filesz = (filesz + 1023) / 1024;
+			if(filesz > 9999){
+			    filesz = (filesz+512) / 1024; 
+			    ut = 'M';
+			}
+			if(filesz > 9999) {
+			    filesz = (filesz+512) / 1024;
+			    ut = 'G';
+			}
 		    }
 		}
 		sprintf(datepart, "%4lu%c", (unsigned long)filesz, ut);
@@ -1262,6 +1274,10 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
     char            genbuf[200];
     char            genbuf2[4];
 
+    if (!CheckPostPerm()) {
+	vmsg("對不起，您目前無法轉錄文章！");
+	return FULLUPDATE;
+    }
     move(2, 0);
     clrtoeol();
     move(1, 0);
@@ -1269,9 +1285,25 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
     if (*xboard == '\0' || !haspostperm(xboard))
 	return FULLUPDATE;
 
+    /* 借用變數 */
+    ent = StringHash(fhdr->title);
+    /* 同樣 title 不管對哪個板都算 cross post , 所以不用檢查 author */
+
+    if ((ent != 0 && ent == postrecord.checksum[0])) {
+	/* 檢查 cross post 次數 */
+	if (postrecord.times++ > MAX_CROSSNUM)
+	    anticrosspost();
+    } else {
+	postrecord.times = 0;
+	postrecord.last_bid = 0;
+	postrecord.checksum[0] = ent;
+    }
+
     ent = getbnum(xboard);
-    if ( !((currmode & MODE_BOARD) || HasUserPerm(PERM_SYSOP)) &&
+    assert(0<=ent-1 && ent-1<MAX_BOARD);
+    if ( !(HasUserPerm(PERM_SYSOP)) &&
 	    (cuser.firstlogin > (now - (time4_t)bcache[ent - 1].post_limit_regtime * 2592000) ||
+	    cuser.badpost > (255 - (unsigned int)(bcache[ent - 1].post_limit_badpost)) ||
 	    cuser.numlogins < ((unsigned int)(bcache[ent - 1].post_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[ent - 1].post_limit_posts) * 10)) ) {
 	move(5, 10);
@@ -1415,7 +1447,7 @@ mail_cite(int ent, fileheader_t * fhdr, const char *direct)
 	CompleteBoard("輸入看板名稱 (直接Enter進入私人信件夾)：", buf);
 	if (*buf)
 	    strlcpy(xboard, buf, sizeof(xboard));
-	if (*xboard && ((bid = getbnum(xboard)) >= 0)){ /* XXXbid */
+	if (*xboard && ((bid = getbnum(xboard)) > 0)){ /* XXXbid */
 	    setapath(fpath, xboard);
 	    setutmpmode(ANNOUNCE);
 	    a_menu(xboard, fpath, 
@@ -1659,7 +1691,7 @@ send_inner_mail(const char *fpath, const char *title, const char *receiver)
     sethomedir(fname, rightid);
     if (strcmp(rightid, cuser.userid) == 0) {
 	if (chk_mailbox_limit())
-	    return -2;
+	    return -4;
     }
 
     sethomepath(fname, rightid);

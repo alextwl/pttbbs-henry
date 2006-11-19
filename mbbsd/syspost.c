@@ -1,4 +1,4 @@
-/* $Id: syspost.c 3242 2005-11-15 20:51:16Z ptt $ */
+/* $Id: syspost.c 3440 2006-10-03 07:06:27Z wens $ */
 #include "bbs.h"
 
 int
@@ -104,16 +104,26 @@ post_violatelaw(const char *crime, const char *police, const char *reason, const
     char title[TTLEN+1];
     char msg[200];
 
-    snprintf(title, sizeof(title),
-	    "[報告] %s:%-*s 判決", crime,
+    snprintf(title, sizeof(title), "[報告] %s:%-*s 判決", crime,
 	    (int)(37 - strlen(reason) - strlen(crime)), reason);
+
     snprintf(msg, sizeof(msg), 
 	    ANSI_COLOR(1;32) "%s" ANSI_RESET "判決：\n"
 	    "     " ANSI_COLOR(1;32) "%s" ANSI_RESET "因" ANSI_COLOR(1;35) "%s" ANSI_RESET "行為，\n"
 	    "違反本站站規，處以" ANSI_COLOR(1;35) "%s" ANSI_RESET "，特此公告\n",
 	    police, crime, reason, result);
 
-    post_msg("Violation",title,msg,"[山城法院]");
+    if (!strstr(police, "警察")) {
+	post_msg("PoliceLog", title, msg, "[山城法院]");
+
+	snprintf(msg, sizeof(msg), 
+		ANSI_COLOR(1;32) "%s" ANSI_RESET "判決：\n"
+		"     " ANSI_COLOR(1;32) "%s" ANSI_RESET "因" ANSI_COLOR(1;35) "%s" ANSI_RESET "行為，\n"
+		"違反本站站規，處以" ANSI_COLOR(1;35) "%s" ANSI_RESET "，特此公告\n",
+		"站務警察", crime, reason, result);
+    }
+
+    post_msg("Violation", title, msg, "[山城法院]");
 }
 
 void
@@ -127,4 +137,18 @@ post_newboard(const char *bgroup, const char *bname, const char *bms)
 	     cuser.userid, bname, bgroup, bms);
 
     post_msg("Record", title, genbuf, "[系統]");
+}
+
+void
+post_policelog(const char *bname, const char *atitle, const char *action, const char *reason, const int toggle)
+{
+    char            genbuf[256], title[TTLEN+1];
+
+    snprintf(title, sizeof(title), "[%s][%s] %s by %s", action, toggle ? "開啟" : "關閉", bname, cuser.userid);
+    snprintf(genbuf, sizeof(genbuf),
+	     "%s (%s) %s %s 看板 %s 功\能\n原因 : %s\n%s%s\n",
+	     cuser.userid, fromhost, toggle ? "開啟" : "關閉", bname, action,
+	     reason, atitle ? "文章標題 : " : "", atitle ? atitle : "");
+
+    post_msg("PoliceLog", title, genbuf, "[系統]");
 }

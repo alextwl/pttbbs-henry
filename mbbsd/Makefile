@@ -1,4 +1,4 @@
-# $Id: Makefile 3137 2005-09-07 16:07:24Z piaip $
+# $Id: Makefile 3374 2006-06-18 06:36:46Z wens $
 
 .include "../pttbbs.mk"
 
@@ -46,6 +46,12 @@ $(PROG): $(OBJS)
 
 ../include/var.h:	var.c
 	perl ../util/parsevar.pl < var.c > ../include/var.h
+
+../include/banip.h: ../util/banip.pl
+	perl ../util/banip.pl > $@
+
+mbbsd.o: mbbsd.c ../include/var.h ../include/banip.h
+	$(CCACHE) $(DIETCC) $(CC) $(CFLAGS) -c $<
 
 test: $(PROG)
 	killall -9 testmbbsd || true

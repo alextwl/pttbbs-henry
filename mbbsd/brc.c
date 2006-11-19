@@ -1,4 +1,4 @@
-/* $Id: brc.c 3310 2006-03-27 13:08:55Z kcwu $ */
+/* $Id: brc.c 3341 2006-04-08 14:58:06Z kcwu $ */
 #include "bbs.h"
 
 /**
@@ -321,8 +321,7 @@ brc_finalize(){
     int ok=0;
     brc_update();
     setuserfile(brcfile, fn_brc);
-    setuserfile(tmpfile, fn_brc);
-    strlcat(tmpfile, ".tmp", sizeof(tmpfile));
+    snprintf(tmpfile, sizeof(tmpfile), "%s.tmp.%x", brcfile, getpid());
     if (brc_buf != NULL &&
 	(fd = open(tmpfile, O_WRONLY | O_CREAT | O_TRUNC, 0644)) != -1) {
 	if(write(fd, brc_buf, brc_size)==brc_size)
@@ -372,6 +371,7 @@ brc_initial_board(const char *boardname)
     currbid = getbnum(boardname);
     if( currbid == 0 )
 	currbid = getbnum(DEFAULT_BOARD);
+    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
     currboard = bcache[currbid - 1].brdname;
     currbrdattr = bcache[currbid - 1].brdattr;
 

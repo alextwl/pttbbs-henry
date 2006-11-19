@@ -1,4 +1,4 @@
-/* $Id: edit.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: edit.c 3426 2006-09-19 11:45:46Z wens $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -1656,7 +1656,7 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
 		line++;
 		/* check crosspost */
 		if (currstat == POSTING && po ) {
-		    int msgsum = str_checksum(msg);
+		    int msgsum = StringHash(msg);
 		    if (msgsum) {
 			if (postrecord.last_bid != currbid &&
 			    postrecord.checksum[po] == msgsum) {
@@ -2532,6 +2532,8 @@ block_color(void)
 
     p = begin;
     while (1) {
+	// FIXME CRASH p will be NULL here.
+	assert(p);
 	transform_to_color(p->data);
 	if (p == end)
 	    break;
@@ -3150,9 +3152,9 @@ vedit(char *fpath, int saveheader, int *islocal)
 	    case Ctrl('B'):
 	    case KEY_PGUP: {
 		short tmp = curr_buf->currln;
-	   	curr_buf->top_of_win = back_line(curr_buf->top_of_win, 22);
+	   	curr_buf->top_of_win = back_line(curr_buf->top_of_win, t_lines - 2);
 	  	curr_buf->currln = tmp;
-	 	curr_buf->currline = back_line(curr_buf->currline, 22);
+	 	curr_buf->currline = back_line(curr_buf->currline, t_lines - 2);
 		curr_buf->curr_window_line = get_lineno_in_window();
 		if (curr_buf->currpnt > curr_buf->currline->len)
 		    curr_buf->currpnt = curr_buf->currline->len;
@@ -3163,9 +3165,9 @@ vedit(char *fpath, int saveheader, int *islocal)
 	    case Ctrl('F'):
 	    case KEY_PGDN: {
 		short tmp = curr_buf->currln;
-		curr_buf->top_of_win = forward_line(curr_buf->top_of_win, 22);
+		curr_buf->top_of_win = forward_line(curr_buf->top_of_win, t_lines - 2);
 		curr_buf->currln = tmp;
-		curr_buf->currline = forward_line(curr_buf->currline, 22);
+		curr_buf->currline = forward_line(curr_buf->currline, t_lines - 2);
 		curr_buf->curr_window_line = get_lineno_in_window();
 		if (curr_buf->currpnt > curr_buf->currline->len)
 		    curr_buf->currpnt = curr_buf->currline->len;
@@ -3183,7 +3185,7 @@ vedit(char *fpath, int saveheader, int *islocal)
 		curr_buf->redraw_everything = YEA;
 		break;
 	    case Ctrl('T'):	/* tail of file */
-		curr_buf->top_of_win = back_line(curr_buf->lastline, 23);
+		curr_buf->top_of_win = back_line(curr_buf->lastline, t_lines - 1);
 		curr_buf->currline = curr_buf->lastline;
 		curr_buf->curr_window_line = get_lineno_in_window();
 		curr_buf->currln = curr_buf->totaln;

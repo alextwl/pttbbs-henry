@@ -1,4 +1,4 @@
-/* $Id: vote.c 3120 2005-08-30 12:48:46Z kcwu $ */
+/* $Id: vote.c 3381 2006-07-22 04:46:30Z wens $ */
 #include "bbs.h"
 
 #define MAX_VOTE_NR	20
@@ -413,7 +413,7 @@ static int
 b_closepolls(void)
 {
     boardheader_t  *fhp;
-    int             pos, dirty;
+    int             pos;
     vote_buffer_t   vbuf;
 
 #ifndef BARRIER_HAS_BEEN_IN_SHM
@@ -435,16 +435,14 @@ b_closepolls(void)
     fclose(cfp);
 #endif
 
-    dirty = 0;
     for (fhp = bcache, pos = 1; pos <= numboards; fhp++, pos++) {
 	if (fhp->bvote && b_close(fhp, &vbuf)) {
 	    if (substitute_record(fn_board, fhp, sizeof(*fhp), pos) == -1)
 		outs(err_board_update);
-	    dirty = 1;
+	    else
+		reset_board(pos);
 	}
     }
-    if (dirty)			/* vote flag changed */
-	reset_board(pos);
 
     return 0;
 }
@@ -536,12 +534,18 @@ vote_view(vote_buffer_t *vbuf, const char *bname, int vote_index)
     fclose(fp);
     free(counts);
     pos = getbnum(bname);
+    assert(0<=pos-1 && pos-1<MAX_BOARD);
     fhp = bcache + pos - 1;
     move(t_lines - 3, 0);
     prints("』 ヘ玡羆布计 = %d 布", total);
     getdata(b_lines - 1, 0, "(A)щ布 (B)矗Ν秨布 (C)膥尿[C] ", genbuf,
 	    4, LCECHO);
     if (genbuf[0] == 'a') {
+	getdata(b_lines - 1, 0, "叫Ω絋粄щ布 (Y/N) [N] ", genbuf,
+		4, LCECHO);
+	if (genbuf[0] == 'n')
+	    return FULLUPDATE;
+
 	setbfile(buf, bname, vbuf->control);
 	unlink(buf);
 	setbfile(buf, bname, vbuf->flags);
@@ -636,6 +640,7 @@ vote_maintain(const char *bname)
     if ((pos = getbnum(bname)) <= 0)
 	return 0;
 
+    assert(0<=pos-1 && pos-1<MAX_BOARD);
     fhp = bcache + pos - 1;
 
     if (fhp->bvote != 0) {
@@ -920,6 +925,7 @@ user_vote_one(vote_buffer_t *vbuf, const char *bname, int ind)
     if ((pos = getbnum(bname)) <= 0)
 	return 0;
 
+    assert(0<=pos-1 && pos-1<MAX_BOARD);
     fhp = bcache + pos - 1;
 #if 0 // backward compatible
     setbfile(buf, bname, STR_new_control);
@@ -1099,6 +1105,7 @@ user_vote(const char *bname)
     if ((pos = getbnum(bname)) <= 0)
 	return 0;
 
+    assert(0<=pos-1 && pos-1<MAX_BOARD);
     fhp = bcache + pos - 1;
 
     move(0, 0);

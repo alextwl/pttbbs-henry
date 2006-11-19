@@ -1,4 +1,4 @@
-/* $Id: bbsrf.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: bbsrf.c 3441 2006-10-07 15:12:36Z wens $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -70,7 +70,7 @@ int showbanfile(char *filename)
 	printf("\n============================="
 	       "=============================\n");
 	fclose(fp);
-	sleep(1);
+	sleep(10);
     }
     return fp ? 0 : -1;
 }

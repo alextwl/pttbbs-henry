@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3308 2006-03-26 16:57:05Z kcwu $ */
+/* $Id: stuff.c 3404 2006-08-31 06:38:40Z wens $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -41,6 +41,7 @@ void
 sethomefile(char *buf, const char *userid, const char *fname)
 {
     assert(is_validuserid(userid));
+    assert(fname[0]);
     snprintf(buf, PATHLEN, str_home_file, userid[0], userid, fname);
 }
 
@@ -48,30 +49,35 @@ void
 setuserfile(char *buf, const char *fname)
 {
     assert(is_validuserid(cuser.userid));
+    assert(fname[0]);
     snprintf(buf, PATHLEN, str_home_file, cuser.userid[0], cuser.userid, fname);
 }
 
 void
 setapath(char *buf, const char *boardname)
 {
+    //assert(boardname[0]);
     snprintf(buf, PATHLEN, "man/boards/%c/%s", boardname[0], boardname);
 }
 
 void
 setadir(char *buf, const char *path)
 {
+    //assert(path[0]);
     snprintf(buf, PATHLEN, "%s/%s", path, str_dotdir);
 }
 
 void
 setbpath(char *buf, const char *boardname)
 {
+    //assert(boardname[0]);
     snprintf(buf, PATHLEN, "boards/%c/%s", boardname[0], boardname);
 }
 
 void
 setbdir(char *buf, const char *boardname)
 {
+    //assert(boardname[0]);
     snprintf(buf, PATHLEN, str_board_file, boardname[0], boardname,
 	    (currmode & MODE_DIGEST ? fn_mandex : str_dotdir));
 }
@@ -79,12 +85,16 @@ setbdir(char *buf, const char *boardname)
 void
 setbfile(char *buf, const char *boardname, const char *fname)
 {
+    //assert(boardname[0]);
+    assert(fname[0]);
     snprintf(buf, PATHLEN, str_board_file, boardname[0], boardname, fname);
 }
 
 void
 setbnfile(char *buf, const char *boardname, const char *fname, int n)
 {
+    //assert(boardname[0]);
+    assert(fname[0]);
     snprintf(buf, PATHLEN, str_board_n_file, boardname[0], boardname, fname, n);
 }
 
@@ -121,17 +131,6 @@ subject(char *title)
 /* ----------------------------------------------------- */
 /* 字串轉換檢查函數                                      */
 /* ----------------------------------------------------- */
-int
-str_checksum(const char *str)
-{
-    int             n = 1;
-    if (strlen(str) < 6)
-	return 0;
-    while (*str)
-	n += *(str++) * (n);
-    return n;
-}
-
 /**
  * 將字串 s 轉為小寫存回 t
  * @param t allocated char array
@@ -982,6 +981,27 @@ inline int *intbsearch(int key, const int *base0, int nmemb)
     return (NULL);
 }
 
+inline unsigned int *
+uintbsearch(const unsigned int key, const unsigned int *base0, const int nmemb)
+{
+    /* 改自 /usr/src/lib/libc/stdlib/bsearch.c ,
+       專給搜 int array 用的, 不透過 compar function 故較快些 */
+    const   char *base = (const char *)base0;
+    size_t  lim;
+    unsigned int     *p;
+
+    for (lim = nmemb; lim != 0; lim >>= 1) {
+        p = (unsigned int *)(base + (lim >> 1) * 4);
+        if( key == *p )
+            return p;
+        if( key > *p ){/* key > p: move right */
+            base = (char *)p + 4;
+            lim--;
+        }               /* else move left */
+    }
+    return (NULL);
+}
+
 int qsort_intcompar(const void *a, const void *b)
 {
     return *(int *)a - *(int *)b;
@@ -1018,7 +1038,7 @@ time4_t time4(time4_t *ptr)
 #ifdef OUTTACACHE
 int tobind(const char * host, int port)
 {
-    int     sockfd, val;
+    int     sockfd, val = 1;
     struct  sockaddr_in     servaddr;
 
     if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {

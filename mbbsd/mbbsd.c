@@ -1,7 +1,10 @@
-/* $Id: mbbsd.c 3313 2006-03-29 18:10:46Z kcwu $ */
+/* $Id: mbbsd.c 3441 2006-10-07 15:12:36Z wens $ */
+#ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
+#endif
 #include "bbs.h"
+#include "banip.h"
 
 #ifdef __linux__
 #    ifdef CRITICAL_MEMORY
@@ -118,7 +121,7 @@ reapchild(int sig)
 void
 log_usies(const char *mode, const char *mesg)
 {
-
+    now = time(NULL);
     if (!mesg)
         log_file(FN_USIES, LOG_CREAT | LOG_VF, 
                  "%s %s %-12s Stay:%d (%s)\n",
@@ -196,6 +199,13 @@ u_exit(const char *mode)
 void
 abort_bbs(int sig)
 {
+    /* ignore normal signals */
+    Signal(SIGALRM, SIG_IGN);
+    Signal(SIGUSR1, SIG_IGN);
+    Signal(SIGUSR2, SIG_IGN);
+    Signal(SIGHUP, SIG_IGN);
+    Signal(SIGTERM, SIG_IGN);
+    Signal(SIGPIPE, SIG_IGN);
     if (currmode)
 	u_exit("ABORTED");
     exit(0);
@@ -257,7 +267,7 @@ abort_bbs_debug(int sig)
     /* log */
     /* assume vsnprintf() in log_file() is signal-safe, is it? */
     log_file("log/crash.log", LOG_VF|LOG_CREAT, 
-	    "%ld %d\n", time4(NULL), getpid());
+	    "%ld %d %d %.12s\n", time4(NULL), getpid(), sig, cuser.userid);
 
     /* try logout... not a good idea, maybe crash again. now disabled */
     /*
@@ -370,6 +380,7 @@ add_history(const msgque_t * msg)
 {
     int             i = 0, j, waterinit = 0;
     water_t        *tmp;
+    check_water_init();
     if (WATERMODE(WATER_ORIG) || WATERMODE(WATER_NEW))
 	add_history_water(&water[0], msg);
     if (WATERMODE(WATER_NEW) || WATERMODE(WATER_OFO)) {
@@ -431,6 +442,7 @@ write_request(int sig)
 #else
     now = time(0);
 #endif
+    check_water_init();
     if (WATERMODE(WATER_OFO)) {
 	/* 如果目前正在回水球模式的話, 就不能進行 add_history() ,
 	   因為會改寫 water[], 而使回水球目的爛掉, 所以分成幾種情況考慮.
@@ -532,7 +544,13 @@ getotherlogin(int num)
 	/* skip sleeping process, this is slow if lots */
 	if(ui->mode == DEBUGSLEEPING)
 	    num++;
-    } while (ui->mode == DEBUGSLEEPING);
+	else if(ui->pid <= 0)
+	    num++;
+	else if(kill(ui->pid, 0) < 0)
+	    num++;
+	else
+	    break;
+    } while (1);
 
     return ui;
 }
@@ -546,33 +564,34 @@ multi_user_check(void)
     if (HasUserPerm(PERM_SYSOP))
 	return;			/* don't check sysops */
 
+    srandom(getpid());
+    // race condition here, sleep may help..?
     if (cuser.userlevel) {
+	usleep(random()%1000000); // 0~1s
 	ui = getotherlogin(1);
 	if(ui == NULL)
 	    return;
-	if (!ui->pid /* || (kill(pid, 0) == -1) */ )
-	    return;		/* stale entry in utmp file */
 
 	getdata(b_lines - 1, 0, "您想刪除其他重複的 login (Y/N)嗎？[Y] ",
 		genbuf, 3, LCECHO);
 
+	usleep(random()%1000000);
 	if (genbuf[0] != 'n') {
-	    // race condition here, sleep may help..?
-	    srandom(getpid());
-	    usleep(random()%1000000+100000); // 0.1~1.1s
 	    do {
 		// scan again, old ui may be invalid
 		ui = getotherlogin(1);
 		if(ui==NULL)
 		    return;
 		if (ui->pid > 0) {
-		    if(kill(ui->pid, SIGHUP)<0)
+		    if(kill(ui->pid, SIGHUP)<0) {
+			perror("kill SIGHUP fail");
 			break;
+		    }
 		    log_usies("KICK ", cuser.nickname);
 		}  else {
 		    fprintf(stderr, "id=%s ui->pid=0\n", cuser.userid);
 		}
-		sleep(1);
+		usleep(random()%2000000+1000000); // 1~3s
 	    } while(getotherlogin(3) != NULL);
 	} else {
 	    /* deny login if still have 3 */
@@ -878,12 +897,12 @@ check_BM(void)
 static void
 setup_utmp(int mode)
 {
+    /* NOTE, 在 getnewutmpent 之前不應該有任何 slow/blocking function */
     userinfo_t      uinfo;
     memset(&uinfo, 0, sizeof(uinfo));
     uinfo.pid = currpid = getpid();
     uinfo.uid = usernum;
     uinfo.mode = currstat = mode;
-    uinfo.alerts |= load_mailalert(cuser.userid);
 
     uinfo.userlevel = cuser.userlevel;
     uinfo.sex = cuser.sex % 8;
@@ -912,8 +931,8 @@ setup_utmp(int mode)
     uinfo.badsale = cuser.badsale;
     */
     if(cuser.withme & (cuser.withme<<1) & (WITHME_ALLFLAG<<1))
-	cuser.withme = 0;
-    uinfo.withme = cuser.withme;
+	cuser.withme = 0; /* unset all if contradict */
+    uinfo.withme = cuser.withme & ~WITHME_ALLFLAG;
     memcpy(uinfo.mind, cuser.mind, 4);
     strip_nonebig5((unsigned char *)uinfo.mind, 4);
 #ifdef WHERE
@@ -937,6 +956,7 @@ setup_utmp(int mode)
 #endif
 
     getnewutmpent(&uinfo);
+    currmode = MODE_STARTED;
     SHM->UTMPneedsort = 1;
     // XXX 不用每 20 才檢查吧
     if (!(cuser.numlogins % 20) && cuser.userlevel & PERM_BM)
@@ -1049,6 +1069,9 @@ user_login(void)
     struct tm       ptime, lasttime;
     int             nowusers, ifbirth = 0, i;
 
+    /* NOTE! 在 setup_utmp 之前, 不應該有任何 blocking/slow function,
+     * 否則可藉機 race condition 達到 multi-login */
+
     /* get local time */
     ptime = *localtime4(&now);
     
@@ -1061,6 +1084,32 @@ user_login(void)
 	 ((ptime.tm_mon+1) > cuser.month ||
 	  ((ptime.tm_mon+1) == cuser.month &&  ptime.tm_mday > cuser.day))) )
 	over18 = 1;
+
+    log_usies("ENTER", fromhost);
+#ifndef VALGRIND
+    setproctitle("%s: %s", margs, cuser.userid);
+#endif
+    resolve_fcache();
+    /* resolve_boards(); */
+    numboards = SHM->Bnumber;
+
+    if(getenv("SSH_CLIENT") != NULL){
+	struct sockaddr_in xsin;
+	char frombuf[50];
+	sscanf(getenv("SSH_CLIENT"), "%s", frombuf);
+	xsin.sin_family = AF_INET;
+	xsin.sin_port = htons(23);
+	if (strrchr(frombuf, ':'))
+	    inet_pton(AF_INET, strrchr(frombuf, ':') + 1, &xsin.sin_addr);
+	else
+	    inet_pton(AF_INET, frombuf, &xsin.sin_addr);
+	getremotename(&xsin, fromhost, remoteusername);   /* RFC931 */
+    }
+
+    /* 初始化 uinfo、flag、mode */
+    setup_utmp(LOGIN);
+    enter_uflag = cuser.uflag;
+    lasttime = *localtime4(&cuser.lastlogin);
 
     /* show welcome_login */
     if( (ifbirth = (ptime.tm_mday == cuser.day &&
@@ -1080,35 +1129,7 @@ user_login(void)
 #endif
     }
     refresh();
-
-    log_usies("ENTER", fromhost);
-#ifndef VALGRIND
-    setproctitle("%s: %s", margs, cuser.userid);
-#endif
-    resolve_fcache();
-    /* resolve_boards(); */
-    numboards = SHM->Bnumber;
-    memset(&water[0], 0, sizeof(water_t) * 6);
-    strlcpy(water[0].userid, " 全部 ", sizeof(water[0].userid));
-
-    if(getenv("SSH_CLIENT") != NULL){
-	struct sockaddr_in xsin;
-	char frombuf[50];
-	sscanf(getenv("SSH_CLIENT"), "%s", frombuf);
-	xsin.sin_family = AF_INET;
-	xsin.sin_port = htons(23);
-	if (strrchr(frombuf, ':'))
-	    inet_pton(AF_INET, strrchr(frombuf, ':') + 1, &xsin.sin_addr);
-	else
-	    inet_pton(AF_INET, frombuf, &xsin.sin_addr);
-	getremotename(&xsin, fromhost, remoteusername);   /* RFC931 */
-    }
-
-    /* 初始化 uinfo、flag、mode */
-    setup_utmp(LOGIN);
-    currmode = MODE_STARTED;
-    enter_uflag = cuser.uflag;
-    lasttime = *localtime4(&cuser.lastlogin);
+    currutmp->alerts |= load_mailalert(cuser.userid);
 
     if ((nowusers = SHM->UTMPnumber) > SHM->max_user) {
 	SHM->max_user = nowusers;
@@ -1274,10 +1295,6 @@ start_client(void)
     signal_restart(SIGUSR2, write_request);
 
     dup2(0, 1);
-
-    /* initialize passwd semaphores */
-    if (passwd_init())
-	exit(1);
 
     do_term_init();
     Signal(SIGALRM, abort_bbs);
@@ -1465,6 +1482,7 @@ bind_port(int port)
 static int      shell_login(int argc, char *argv[], char *envp[]);
 static int      daemon_login(int argc, char *argv[], char *envp[]);
 static int      check_ban_and_load(int fd);
+static int      check_banip(char *host);
 
 int
 main(int argc, char *argv[], char *envp[])
@@ -1535,9 +1553,7 @@ shell_login(int argc, char *argv[], char *envp[])
 
     init_tty();
     if (check_ban_and_load(0)) {
-#ifdef OVERLOADBLOCKFDS
 	sleep(10);
-#endif
 	return 0;
     }
 #ifdef DETECT_CLIENT
@@ -1636,13 +1652,15 @@ daemon_login(int argc, char *argv[], char *envp[])
     /* main loop */
     while( 1 ){
 	len_of_sock_addr = sizeof(xsin);
+	if( 
 #if defined(Solaris) && __OS_MAJOR_VERSION__ == 5 && __OS_MINOR_VERSION__ < 7
-	if( (csock = accept(msock, (struct sockaddr *)&xsin,
-			    &len_of_sock_addr)) < 0 ){
+	   (csock = accept(msock, (struct sockaddr *)&xsin,
+			   &len_of_sock_addr)) < 0
 #else
-	if( (csock = accept(msock, (struct sockaddr *)&xsin,
-			    (socklen_t *)&len_of_sock_addr)) < 0 ){
+	   (csock = accept(msock, (struct sockaddr *)&xsin,
+			   (socklen_t *)&len_of_sock_addr)) < 0 
 #endif
+	   ) {
 	    if (errno != EINTR)
 		sleep(1);
 	    continue;
@@ -1688,6 +1706,10 @@ daemon_login(int argc, char *argv[], char *envp[])
     close(csock);
 
     getremotename(&xsin, fromhost, remoteusername);
+    if( check_banip(fromhost) ){
+	sleep(10);
+	exit(0);
+    }
     telnet_init();
     return 1;
 }
@@ -1750,16 +1772,28 @@ check_ban_and_load(int fd)
     return 0;
 }
 
+static int check_banip(char *host)
+{
+    unsigned int thisip = 0;
+    char *ptr, *myhost = strdup(host);
+
+    for( ptr = strtok(myhost, ".") ; ptr != NULL ; ptr = strtok(NULL, ".") )
+	thisip = thisip * 256 + atoi(ptr);
+    free(myhost);
+
+    return uintbsearch(thisip, &banip[1], banip[0]) ? 1 : 0;
+}
+
 /* ------- piaip's implementation of TELNET protocol ------- */
 
-enum {
+enum TELNET_IAC_STATES {
 	IAC_NONE,
 	IAC_COMMAND,
 	IAC_WAIT_OPT,
 	IAC_WAIT_SE,
 	IAC_PROCESS_OPT,
 	IAC_ERROR
-} TELNET_IAC_STATES;
+};
 
 static unsigned char iac_state = 0; /* as byte to reduce memory */
 

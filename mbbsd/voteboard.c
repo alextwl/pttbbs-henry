@@ -1,4 +1,4 @@
-/* $Id: voteboard.c 2840 2005-06-14 13:15:00Z in2 $ */
+/* $Id: voteboard.c 3387 2006-07-25 15:56:32Z wens $ */
 #include "bbs.h"
 
 #define VOTEBOARD "NewBoard"
@@ -24,10 +24,12 @@ do_voteboardreply(const fileheader_t * fhdr)
 	vmsg("對不起，您目前無法在此發表文章！");
 	return;
     }
-    if ( cuser.numlogins < ((unsigned int)(fhdr->multi.vote_limits.logins) * 10) ||
+    if (cuser.firstlogin > (now - (time4_t)fhdr->multi.vote_limits.regtime * 2592000) ||
+	    cuser.badpost > (255 - (unsigned int)(fhdr->multi.vote_limits.badpost)) ||
+	    cuser.numlogins < ((unsigned int)(fhdr->multi.vote_limits.logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(fhdr->multi.vote_limits.posts) * 10) ) {
 	move(5, 10);
-	vmsg("你的上站數/文章數不足喔！");
+	vmsg("你不夠資深喔！");
 	return;
     }
     setbpath(fpath, currboard);
@@ -166,6 +168,7 @@ do_voteboard(int type)
 	return FULLUPDATE;
     }
     if ( cuser.firstlogin > (now - (time4_t)bcache[currbid - 1].vote_limit_regtime * 2592000) ||
+	    cuser.badpost > (255 - (unsigned int)(bcache[currbid - 1].vote_limit_badpost)) ||
 	    cuser.numlogins < ((unsigned int)(bcache[currbid - 1].vote_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[currbid - 1].vote_limit_posts) * 10) ) {
 	move(5, 10);
@@ -221,7 +224,7 @@ do_voteboard(int type)
 	snprintf(genbuf, sizeof(genbuf),
 		 "%s\n\n%s%s\n%s", "申請新板", "英文名稱: ", topic, "中文名稱: ");
 
-	if (!getdata(8, 0, "請輸入看板中文名稱：", topic, 20, DOECHO))
+	if (!getdata(8, 0, "請輸入看板中文名稱：", topic, BTLEN + 1, DOECHO))
 	    return FULLUPDATE;
 	strcat(genbuf, topic);
 	strcat(genbuf, "\n看板類別: ");
@@ -271,6 +274,7 @@ do_voteboard(int type)
 		 "%s\n\n%s%s\n%s", "罷免板主", "英文名稱: ",
 		 topic, "板主 ID : ");
         temp=getbnum(topic);
+	assert(0<=temp-1 && temp-1<MAX_BOARD);
 	do {
 	    if (!getdata(7, 0, "請輸入板主ID：", topic, IDLEN + 1, DOECHO))
 		return FULLUPDATE;
@@ -349,6 +353,7 @@ do_voteboard(int type)
     votefile.multi.vote_limits.regtime = bcache[currbid - 1].vote_limit_regtime;
     votefile.multi.vote_limits.logins = bcache[currbid - 1].vote_limit_logins;
     votefile.multi.vote_limits.posts = bcache[currbid - 1].vote_limit_posts;
+    votefile.multi.vote_limits.badpost = bcache[currbid - 1].vote_limit_badpost;
     setbdir(genbuf, currboard);
     if (append_record(genbuf, &votefile, sizeof(votefile)) != -1)
 	setbtotal(currbid);
