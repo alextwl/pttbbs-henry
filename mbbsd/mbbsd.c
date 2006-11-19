@@ -1139,7 +1139,6 @@ user_login(void)
 	    if( getans("是否要顯示「壽星」於使用者名單上？(y/N)") == 'y' )
 		currutmp->birth = 1;
 	}
-	force_board("Announce");
 	check_bad_login();
 	check_mailbox_quota();
 	check_register();
