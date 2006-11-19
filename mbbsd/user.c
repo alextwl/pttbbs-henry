@@ -1737,9 +1737,13 @@ u_register(void)
 	}
 
 	move(11, 0);
+	outs(" 暨大同學請輸入「暨大○○系大學部（或研究所）╳╳級」\n"
+		" 非暨大同學，請盡量詳細地填寫您的服務單位\n。");
+/*
 	outs("  請盡量詳細的填寫您的服務單位，大專院校請麻煩"
 	     "加" ANSI_COLOR(1;33) "系所" ANSI_RESET "，公司單位請加" ANSI_COLOR(1;33) "職稱" ANSI_RESET "，\n"
 	     "  暫無工作請麻煩填寫" ANSI_COLOR(1;33) "畢業學校" ANSI_RESET "。\n");
+*/
 	while (1) {
 	    getfield(9, "(畢業)學校(含" ANSI_COLOR(1;33) "系所年級" ANSI_RESET ")或單位職稱",
 		     "服務單位", career, 40);
