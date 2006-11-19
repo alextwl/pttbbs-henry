@@ -1490,7 +1490,7 @@ addsignature(FILE * fp, int ifuseanony)
     if (!strcmp(cuser.userid, STR_GUEST)) {
 	fprintf(fp, ANSI_RESET "\n--\n "
 		ANSI_COLOR(1;33;41) "λ" ANSI_COLOR(32;44) "<<" ANSI_RESET ANSI_COLOR(1;33) " ★ " ANSI_RESET ANSI_COLOR(1)
-		"暨南大學霞蔚山城" ANSI_COLOR(33)" ★ " ANSI_RESET ANSI_COLOR(1) "HenryBBS (henry.twbbs.org)" ANSI_RESET "\n "
+		"暨大資工霞蔚山城" ANSI_COLOR(33)" ★ " ANSI_RESET ANSI_COLOR(1) "bbs.csie.ncnu.edu.tw / henry.twbbs.org" ANSI_RESET "\n "
 		ANSI_COLOR(1;36;42) "≡" ANSI_COLOR(37;43) "Ｃ" ANSI_RESET ANSI_COLOR(1) 
 		" 城民 " ANSI_COLOR(36) "%s" ANSI_COLOR(37) " 來自 " ANSI_COLOR(36) "%s" ANSI_COLOR(37) " 的報導" ANSI_RESET "\n",cuser.userid,fromhost);
 	return;
@@ -1557,7 +1557,7 @@ browse_sigs:
     {
 	fprintf(fp, ANSI_RESET "\n--\n "
 		ANSI_COLOR(1;33;41) "λ" ANSI_COLOR(32;44) "<<" ANSI_RESET ANSI_COLOR(1;33) " ★ " ANSI_RESET ANSI_COLOR(1)
-		"暨南大學霞蔚山城" ANSI_COLOR(33)" ★ " ANSI_RESET ANSI_COLOR(1) "HenryBBS (henry.twbbs.org)" ANSI_RESET "\n "
+		"暨大資工霞蔚山城" ANSI_COLOR(33)" ★ " ANSI_RESET ANSI_COLOR(1) "bbs.csie.ncnu.edu.tw / henry.twbbs.org" ANSI_RESET "\n "
 		ANSI_COLOR(1;36;42) "≡" ANSI_COLOR(37;43) "Ｃ" ANSI_RESET ANSI_COLOR(1) 
 		" 城民 " ANSI_COLOR(36) "%s" ANSI_COLOR(37) " 來自 " ANSI_COLOR(36) "%s" ANSI_COLOR(37) " 的報導" ANSI_RESET "\n","anonymous","匿名天使的家");
     }
@@ -1569,7 +1569,7 @@ browse_sigs:
 	strlcpy(temp, fromhost, sizeof(temp));
 	fprintf(fp, ANSI_RESET "\n--\n "
 		ANSI_COLOR(1;33;41) "λ" ANSI_COLOR(32;44) "<<" ANSI_RESET ANSI_COLOR(1;33) " ★ " ANSI_RESET ANSI_COLOR(1)
-		"暨南大學霞蔚山城" ANSI_COLOR(33)" ★ " ANSI_RESET ANSI_COLOR(1) "HenryBBS (henry.twbbs.org)" ANSI_RESET "\n "
+		"暨大資工霞蔚山城" ANSI_COLOR(33)" ★ " ANSI_RESET ANSI_COLOR(1) "bbs.csie.ncnu.edu.tw / henry.twbbs.org" ANSI_RESET "\n "
 		ANSI_COLOR(1;36;42) "≡" ANSI_COLOR(37;43) "Ｃ" ANSI_RESET ANSI_COLOR(1) 
 		" 城民 " ANSI_COLOR(36) "%s" ANSI_COLOR(37) " 來自 " ANSI_COLOR(36) "%s" ANSI_COLOR(37) " 的報導" ANSI_RESET "\n",cuser.userid,temp);
     }
