@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3404 2006-08-31 06:38:40Z wens $ */
+/* $Id: stuff.c 3448 2006-11-20 10:52:11Z victor $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -708,7 +708,7 @@ int
 show_file(const char *filename, int y, int lines, int mode)
 {
     FILE           *fp;
-    char            buf[256];
+    char            buf[1024];
 
     if (y >= 0)
 	move(y, 0);
