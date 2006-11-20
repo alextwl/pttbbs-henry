@@ -1,4 +1,4 @@
-/* $Id: config.h 3056 2005-08-17 16:42:57Z piaip $ */
+/* $Id: config.h 3446 2006-11-20 04:24:32Z victor $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -31,6 +31,10 @@
 
 #ifndef MAX_ACTIVE
 #define MAX_ACTIVE        (1024)         /* 程计 */
+#endif
+
+#ifndef MAX_GUEST
+#define MAX_GUEST         (100)          /* 程 guest 计 */
 #endif
 
 #ifndef MAX_CPULOAD

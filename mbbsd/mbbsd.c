@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3441 2006-10-07 15:12:36Z wens $ */
+/* $Id: mbbsd.c 3446 2006-11-20 04:24:32Z victor $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -600,7 +600,7 @@ multi_user_check(void)
 	}
     } else {
 	/* allow multiple guest user */
-	if (search_ulistn(usernum, 100) != NULL) {
+	if (search_ulistn(usernum, MAX_GUEST) != NULL) {
 	    vmsg("抱歉，目前已有太多 guest 在站上, 請用new註冊。");
 	    exit(1);
 	}
