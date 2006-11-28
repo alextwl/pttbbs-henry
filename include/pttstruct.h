@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3447 2006-11-20 04:46:39Z wens $ */
+/* $Id: pttstruct.h 3449 2006-11-28 05:53:40Z victor $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -562,6 +562,8 @@ typedef struct {
 
     /* pttcache */
     char    notes[MAX_MOVIE][200*11];
+    // 有人反應 200 不夠用，將來可能會提高
+    char    this_is_unused_and_should_be_removed_later[499][200*11];
     char    gap_18[sizeof(int)];
     char    today_is[20];
     int     n_notes[MAX_MOVIE_SECTION];      /* 一節中有幾個 看板 */
