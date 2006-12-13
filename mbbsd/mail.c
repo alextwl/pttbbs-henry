@@ -1,4 +1,4 @@
-/* $Id: mail.c 3414 2006-09-16 18:41:55Z kcwu $ */
+/* $Id: mail.c 3454 2006-12-13 11:06:42Z wens $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1678,7 +1678,9 @@ send_inner_mail(const char *fpath, const char *title, const char *receiver)
     unlink(fname);
     Copy(fpath, fname);
     sethomedir(fname, rightid);
-    return append_record_forward(fname, &mymail, sizeof(mymail), rightid);
+    append_record_forward(fname, &mymail, sizeof(mymail), rightid);
+    sendalert(receiver, ALERT_NEW_MAIL);
+    return 0;
 }
 
 #include <netdb.h>
