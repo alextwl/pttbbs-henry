@@ -1,4 +1,4 @@
-/* $Id: config.h 3449 2006-11-28 05:53:40Z victor $ */
+/* $Id: config.h 3455 2006-12-19 08:17:21Z scw $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -142,7 +142,7 @@
 #endif
 
 #ifndef INNTIMEZONE
-#define INNTIMEZONE       "+0800 (CST)"
+#define INNTIMEZONE       "+0000 (UTC)"
 #endif
 
 #ifndef ADD_EXMAILBOX
