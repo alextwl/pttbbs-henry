@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3450 2006-12-03 03:21:09Z victor $ */
+/* $Id: pttstruct.h 3458 2006-12-21 04:19:54Z wens $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -176,6 +176,7 @@ typedef struct boardheader_t {
     char    brdname[IDLEN + 1];          /* bid */
     char    title[BTLEN + 1];
     char    BM[IDLEN * 3 + 3];           /* BMs' userid, token '/' */
+    char    pad1[3];
     unsigned int    brdattr;             /* board的屬性 */
     char    chesscountry;
     unsigned char   vote_limit_posts;    /* 連署 : 文章篇數下限 */
