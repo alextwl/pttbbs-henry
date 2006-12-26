@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3414 2006-09-16 18:41:55Z kcwu $ */
+/* $Id: pmore.c 3459 2006-12-26 06:35:16Z victor $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -1248,7 +1248,7 @@ mf_display()
 				override_msg = " 注意: 此頁有控制碼,"
 				    "原內容並不一定有您真實個人資訊";
 			    }
-			    Ptt_prints(buf, NO_RELOAD); // result in buf
+			    Ptt_prints(buf, sizeof(buf), NO_RELOAD); // result in buf
 			}
 			i = strlen(buf);
 

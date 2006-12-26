@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3448 2006-11-20 10:52:11Z victor $ */
+/* $Id: stuff.c 3459 2006-12-26 06:35:16Z victor $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -715,7 +715,7 @@ show_file(const char *filename, int y, int lines, int mode)
     clrtoline(lines + y);
     if ((fp = fopen(filename, "r"))) {
 	while (fgets(buf, sizeof(buf), fp) && lines--)
-	    outs(Ptt_prints(buf, mode));
+	    outs(Ptt_prints(buf, sizeof(buf), mode));
 	fclose(fp);
     } else
 	return 0;

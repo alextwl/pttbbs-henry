@@ -1,4 +1,4 @@
-/* $Id: proto.h 3437 2006-10-01 14:12:06Z wens $ */
+/* $Id: proto.h 3459 2006-12-26 06:35:16Z victor $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -334,7 +334,7 @@ int Copy(const char *src, const char *dst);
 int CopyN(const char *src, const char *dst, int n);
 int AppendTail(const char *src, const char *dst, int off);
 int Link(const char* src, const char* dst);
-char *Ptt_prints(char *str, int mode);
+char *Ptt_prints(char *str, size_t size, int mode);
 char *my_ctime(const time4_t *t, char *ans, int len);
 
 /* lovepaper */
