@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3436 2006-10-01 14:10:36Z wens $ */
+/* $Id: bbs.c 3460 2006-12-26 14:34:09Z scw $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -1511,7 +1511,12 @@ cross_post(int ent, fileheader_t * fhdr, const char *direct)
           }
 #endif
 	setbtotal(getbnum(xboard));
-	cuser.numposts++;
+
+	if (strcmp(xboard, "Test") == 0)
+	    outs("測試信件不列入紀錄，敬請包涵。");
+	else
+	    cuser.numposts++;
+
 	UPDATE_USEREC;
 	outs("文章轉錄完成");
 	pressanykey();
