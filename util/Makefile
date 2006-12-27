@@ -1,4 +1,4 @@
-# $Id: Makefile 3399 2006-08-21 15:58:46Z wens $
+# $Id: Makefile 3461 2006-12-27 16:38:47Z wens $
 
 .include "../pttbbs.mk"
 
@@ -26,6 +26,7 @@ CPROG_WITH_UTIL= \
 	reaper		buildAnnounce	inndBM		mailangel	\
 	outmail		chkhbf		checkmoney      merge_dir       \
 	transman	angel		gamblegive	checkdir	\
+	wretch_man	\
 	chesscountry	tunepasswd	buildir		xchatd
 
 # 下面這些程式, 會直接被 compile
