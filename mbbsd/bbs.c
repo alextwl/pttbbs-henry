@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3468 2007-01-06 21:57:55Z ptt $ */
+/* $Id: bbs.c 3469 2007-01-06 22:14:05Z ptt $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -986,19 +986,18 @@ do_general(int isbid)
 	if (aborted > MAX_POST_MONEY)
 	    aborted = MAX_POST_MONEY;
 #endif
-	if (strcmp(currboard, "Test") && !ifuseanony) {
+	if (strcmp(currboard, "Test") && !ifuseanony &&
+	    !(currbrdattr&BRD_BAD)) {
 	    prints("這是您的第 %d 篇文章。",++cuser.numposts);
             if(postfile.filemode&FILE_BID)
                 outs("招標文章沒有稿酬。");
-            else if(currbrdattr&BRD_BAD)
-                outs("違法改進中看板沒有稿酬。");
             else
               {
                 prints(" 稿酬 %d 銀。",aborted);
                 demoney(aborted);    
               }
 	} else
-	    outs("測試信件不列入紀錄，敬請包涵。");
+	    outs("不列入紀錄，敬請包涵。");
 
 	/* 回應到原作者信箱 */
 
