@@ -1,4 +1,4 @@
-/* $Id: proto.h 3464 2007-01-06 12:01:42Z ptt $ */
+/* $Id: proto.h 3466 2007-01-06 21:39:02Z ptt $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -60,7 +60,7 @@ int inc_badsale(const char *, int num);
 //void set_assess(int uid, unsigned char num, int type);
 
 /* bbs */
-void delete_allpost();
+void delete_allpost(char *userid);
 int invalid_brdname(const char *brd);
 void chomp(char *src);
 int del_range(int ent, const fileheader_t *fhdr, const char *direct);

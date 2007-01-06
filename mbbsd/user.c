@@ -1,4 +1,4 @@
-/* $Id: user.c 3443 2006-10-12 06:52:25Z timerover $ */
+/* $Id: user.c 3466 2007-01-06 21:39:02Z ptt $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -24,6 +24,7 @@ kill_user(int num, const char *userid)
     sethomepath(src, userid);
     snprintf(dst, sizeof(dst), "tmp/%s", userid);
     friend_delete_all(userid, FRIEND_ALOHA);
+    delete_allpost(userid);
     if (dashd(src) && Rename(src, dst) == 0) {
 	snprintf(src, sizeof(src), "/bin/rm -fr home/%c/%s >/dev/null 2>&1", userid[0], userid);
 	system(src);
