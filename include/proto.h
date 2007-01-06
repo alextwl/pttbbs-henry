@@ -1,4 +1,4 @@
-/* $Id: proto.h 3466 2007-01-06 21:39:02Z ptt $ */
+/* $Id: proto.h 3467 2007-01-06 21:47:48Z ptt $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -716,7 +716,7 @@ void sortsong(void);
 int topsong(void);
 
 /* user */
-int kill_user(int num, const char *userid);
+int kill_user(int num, char *userid);
 int u_editcalendar(void);
 void user_display(const userec_t *u, int real);
 void uinfo_query(userec_t *u, int real, int unum);

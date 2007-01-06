@@ -1,4 +1,4 @@
-/* $Id: user.c 3466 2007-01-06 21:39:02Z ptt $ */
+/* $Id: user.c 3467 2007-01-06 21:47:48Z ptt $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -16,11 +16,12 @@ static const char * const chess_type[3] = {
 #endif
 
 int
-kill_user(int num, const char *userid)
+kill_user(int num, char *userid)
 {
     userec_t u;
     char src[256], dst[256];
 
+    if(!userid || num<=0 ) return -1;
     sethomepath(src, userid);
     snprintf(dst, sizeof(dst), "tmp/%s", userid);
     friend_delete_all(userid, FRIEND_ALOHA);
