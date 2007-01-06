@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3467 2007-01-06 21:47:48Z ptt $ */
+/* $Id: bbs.c 3468 2007-01-06 21:57:55Z ptt $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -576,14 +576,14 @@ deleteCrossPost(fileheader_t *fh, char *bname)
 {
     if(!fh || !fh->filename[0]) return;
 
-    if(!strcmp(currboard, ALLPOST) || !strcmp(currboard, "NEWIDPOST") ||
-       !strcmp(currboard, ALLHIDPOST) || !strcmp(currboard, "UnAnonymous"))
+    if(!strcmp(bname, ALLPOST) || !strcmp(bname, "NEWIDPOST") ||
+       !strcmp(bname, ALLHIDPOST) || !strcmp(bname, "UnAnonymous"))
     {
-	char bname[TTLEN + 1], *po = strrchr(fh->title, '.');
+	char xbname[TTLEN + 1], *po = strrchr(fh->title, '.');
 	if(!po) return;
 	
-	sprintf(bname, "%.*s", (int) strlen(po)-3, po+1);
-	do_deleteCrossPost(fh, bname);
+	sprintf(xbname, "%.*s", (int) strlen(po)-3, po+1);
+	do_deleteCrossPost(fh, xbname);
     }
     else
     {
