@@ -1,4 +1,4 @@
-/* $Id: proto.h 3467 2007-01-06 21:47:48Z ptt $ */
+/* $Id: proto.h 3472 2007-01-10 20:55:32Z ptt $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -502,7 +502,8 @@ int get_record(const char *fpath, void *rptr, int size, int id);
 int get_record_keep(const char *fpath, void *rptr, int size, int id, int *fd);
 int get_record_keep_seek(const char *fpath, void *rptr, int size, int id, int *fd, int toseek);
 int append_record(const char *fpath, const fileheader_t *record, int size);
-int stampfile(char *fpath, fileheader_t *fh);
+int stampfile_u(char *fpath, fileheader_t *fh);
+inline int stampfile(char *fpath, fileheader_t *fh);
 void stampdir(char *fpath, fileheader_t *fh);
 int get_num_records(const char *fpath, int size);
 int get_records(const char *fpath, void *rptr, int size, int id, int number);
