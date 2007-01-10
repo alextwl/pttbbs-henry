@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3469 2007-01-06 22:14:05Z ptt $ */
+/* $Id: bbs.c 3470 2007-01-10 20:25:24Z ptt $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -510,10 +510,10 @@ cancelpost(const fileheader_t *fh, int by_BM, char *newpath)
     if ((fin = fopen(fn1, "r"))) {
 	brd = by_BM ? "deleted" : "junk";
 
+        memcpy(&postfile, fh, sizeof(fileheader_t));
 	setbpath(newpath, brd);
 	stampfile(newpath, &postfile);
-	memcpy(postfile.owner, fh->owner, IDLEN + TTLEN + 10);
-
+	
 	nick[0] = '\0';
 	while (fgets(genbuf, sizeof(genbuf), fin)) {
 	    if (!strncmp(genbuf, str_author1, LEN_AUTHOR1) ||
