@@ -1,4 +1,4 @@
-/* $Id: cal.c 3449 2006-11-28 05:53:40Z victor $ */
+/* $Id: cal.c 3473 2007-01-11 11:45:02Z victor $ */
 #include "bbs.h"
 
 /* ¨¾°ô Multi play */
@@ -200,7 +200,7 @@ osong(void)
 	}
 	while ((po = strstr(buf, "<~Src~>"))) {
 	    const char *dot = "";
-	    if (strcmp(sender, cuser.userid) != 0)
+	    if (is_validuserid(sender) && strcmp(sender, cuser.userid) != 0)
 		dot = ".";
 	    po[0] = 0;
 	    snprintf(genbuf, sizeof(genbuf), "%s%s%s%s", buf, sender, dot, po + 7);
