@@ -1,4 +1,4 @@
-/* $Id: account.c 2993 2005-08-05 16:54:29Z piaip $ */
+/* $Id: account.c 3474 2007-01-13 01:55:13Z victor $ */
 #include "bbs.h"
 
 // test
@@ -155,6 +155,7 @@ main(int argc, char **argv)
 	keeplog("etc/today", "Record", "上站人次統計", NULL);
 	keeplog(FN_MONEY, "Security", "本日金錢往來記錄", NULL);
 	keeplog("etc/illegal_money", "Security", "本日違法賺錢記錄", NULL);
+	keeplog("etc/osong.log", "Security", "本日點歌記錄", NULL);
 	keeplog("etc/chicken", "Record", "雞場報告", NULL);
     }
     printf("上站人次統計\n");

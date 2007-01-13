@@ -1,4 +1,4 @@
-/* $Id: cal.c 3473 2007-01-11 11:45:02Z victor $ */
+/* $Id: cal.c 3474 2007-01-13 01:55:13Z victor $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -221,6 +221,7 @@ osong(void)
     fclose(fp1);
     fclose(fp);
 
+    log_file("etc/osong.log",  LOG_CREAT | LOG_VF, "id: %-12s ◇ %s 點給 %s : \"%s\", 轉寄至 %s\n", cuser.userid, sender, receiver, say, address, ctime4(&now));
 
     if (append_record(OSONGPATH "/.DIR", &mail, sizeof(mail)) != -1) {
 	cuser.lastsong = now;
