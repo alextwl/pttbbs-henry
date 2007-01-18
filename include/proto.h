@@ -1,4 +1,4 @@
-/* $Id: proto.h 3472 2007-01-10 20:55:32Z ptt $ */
+/* $Id: proto.h 3475 2007-01-18 09:13:53Z ptt $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -525,6 +525,7 @@ int search_rec(const char* dirname, int (*filecheck)());
 int append_record_forward(char *fpath, fileheader_t *record, int size, const char *origid);
 int get_sum_records(const char* fpath, int size);
 int substitute_ref_record(const char* direct, fileheader_t *fhdr, int ent);
+inline
 int getindex(const char *fpath, fileheader_t *fh, int start);
 
 /* register */
