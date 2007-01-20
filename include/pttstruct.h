@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3478 2007-01-20 10:21:20Z wens $ */
+/* $Id: pttstruct.h 3479 2007-01-20 10:26:46Z wens $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -90,6 +90,7 @@ typedef struct userec_t {
     time4_t lastsong;		/* 上次點歌時間 */
     unsigned int    loginview;	/* 進站畫面 */
     unsigned char   channel;	/* TODO unused */
+    char    padxxx;
     unsigned short  vl_count;	/* 違法記錄 ViolateLaw counter */
     unsigned short  five_win;	/* 五子棋戰績 勝 */
     unsigned short  five_lose;	/* 五子棋戰績 敗 */
