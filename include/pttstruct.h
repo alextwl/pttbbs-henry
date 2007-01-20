@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3458 2006-12-21 04:19:54Z wens $ */
+/* $Id: pttstruct.h 3476 2007-01-20 09:41:26Z wens $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -113,7 +113,7 @@ typedef struct userec_t {
     unsigned int    withme;	/* 我想找人下棋，聊天.... */
     time4_t timeremovebadpost;  /* 上次刪除劣文時間 */
     time4_t timeviolatelaw; /* 被開罰單時間 */
-    char    pad[26];
+    char    pad[28];
 } userec_t;
 /* these are flags in userec_t.uflag */
 #define PAGER_FLAG      0x4     /* true if pager was OFF last session */
