@@ -1,3 +1,4 @@
+/* $Id: utmpserver3.c 3482 2007-02-03 13:10:31Z wens $ */
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
