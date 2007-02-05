@@ -1,4 +1,4 @@
-/* $Id: edit.c 3426 2006-09-19 11:45:46Z wens $ */
+/* $Id: edit.c 3483 2007-02-05 09:47:59Z mhsin $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -1301,6 +1301,10 @@ do_quote(void)
 
 	    if (op != 'a')	/* 去掉 header */
 		while (fgets(buf, 256, inf) && buf[0] != '\n');
+	    /* FIXME by MH:
+	         如果 header 到內文中間沒有空行分隔，會造成 All 以外的模式
+	         都引不到內文。
+	     */
 
 	    if (op == 'a')
 		while (fgets(buf, 256, inf)) {
