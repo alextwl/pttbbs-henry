@@ -1,4 +1,4 @@
-/* $Id: user.c 3467 2007-01-06 21:47:48Z ptt $ */
+/* $Id: user.c 3486 2007-03-13 08:15:46Z wens $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -300,6 +300,9 @@ violate_law(userec_t * u, int unum)
     if (*ans2 != 'y')
 	return;
     if (ans[0] == '9') {
+	if (HasUserPerm(PERM_POLICE) && (u->numlogins > 100 || u->numposts > 100))
+	    return;
+
         kill_user(unum, u->userid);
 	post_violatelaw(u->userid, cuser.userid, reason, "¬å°£ ID");
     } else {
