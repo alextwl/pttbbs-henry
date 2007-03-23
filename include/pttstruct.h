@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3479 2007-01-20 10:26:46Z wens $ */
+/* $Id: pttstruct.h 3489 2007-03-23 12:15:10Z victor $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -569,9 +569,10 @@ typedef struct {
     char    notes[MAX_MOVIE][256*11];
     char    gap_18[sizeof(int)];
     char    today_is[20];
-    int     n_notes[MAX_MOVIE_SECTION];      /* 一節中有幾個 看板 */
+    // FIXME remove  never_used__n_notes & never_used__next_refresh
+    int     never_used__n_notes[MAX_MOVIE_SECTION];      /* 一節中有幾個 看板 */
     char    gap_19[sizeof(int)];
-    int     next_refresh[MAX_MOVIE_SECTION]; /* 下一次要refresh的 看板 */
+    int     never_used__next_refresh[MAX_MOVIE_SECTION]; /* 下一次要refresh的 看板 */
     char    gap_20[sizeof(int)];
     msgque_t loginmsg;  /* 進站水球 */
     int     max_film;
