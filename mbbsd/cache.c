@@ -1,4 +1,4 @@
-/* $Id: cache.c 3489 2007-03-23 12:15:10Z victor $ */
+/* $Id: cache.c 3490 2007-03-23 12:55:36Z victor $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -885,11 +885,6 @@ reload_pttcache(void)
 	    fclose(fp);
 	}
 	SHM->max_film = id - 1;
-	SHM->max_history = SHM->max_film - 2;
-	if (SHM->max_history > MAX_HISTORY - 1)
-	    SHM->max_history = MAX_HISTORY - 1;
-	if (SHM->max_history < 0)
-	    SHM->max_history = 0;
 
 	fp = fopen("etc/today_is", "r");
 	if (fp) {
