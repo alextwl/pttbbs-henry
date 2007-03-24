@@ -1,4 +1,4 @@
-/* $Id: chess.c 3491 2007-03-24 08:51:42Z scw $ */
+/* $Id: chess.c 3492 2007-03-24 08:54:00Z scw $ */
 #include "bbs.h"
 #include "chess.h"
 #include <setjmp.h>
@@ -1434,8 +1434,8 @@ ChessPhotoInitial(ChessInfo* info)
 	    info->constants->turn_str[(int) info->myturn ^ 1]);
     strcpy(PHOTO(7), "           ¢ä.¢á           ");
     sprintf(PHOTO(8), "                               %s%2.2s´Ñ" ANSI_RESET,
-	    info->constants->turn_color[info->myturn],
-	    info->constants->turn_str[info->myturn]);
+	    info->constants->turn_color[(int) info->myturn],
+	    info->constants->turn_str[(int) info->myturn]);
 
     fp = NULL;
     if(getuser(info->user1.userid, &xuser)) {;
