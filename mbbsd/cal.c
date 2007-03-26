@@ -1,4 +1,4 @@
-/* $Id: cal.c 3474 2007-01-13 01:55:13Z victor $ */
+/* $Id: cal.c 3495 2007-03-26 02:47:21Z victor $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -228,6 +228,7 @@ osong(void)
 	/* Jaky 超過 MAX_MOVIE 首歌就開始砍 */
 	nsongs = get_num_records(OSONGPATH "/.DIR", sizeof(mail));
 	if (nsongs > MAX_MOVIE) {
+	    // XXX race condition
 	    delete_range(OSONGPATH "/.DIR", 1, nsongs - MAX_MOVIE);
 	}
 	snprintf(genbuf, sizeof(genbuf), "%s says \"%s\" to %s.", sender, say, receiver);
