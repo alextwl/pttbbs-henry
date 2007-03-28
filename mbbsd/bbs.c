@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3496 2007-03-27 07:11:43Z ptt $ */
+/* $Id: bbs.c 3497 2007-03-28 01:39:38Z in2 $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -964,6 +964,15 @@ do_general(int isbid)
     else
     {
         rename(genbuf, fpath);
+#ifdef LOGPOST
+	{
+            FILE    *fp = fopen("log/post", "a");
+            fprintf(fp, "%d %s boards/%c/%s/%s\n",
+                    now, cuser.userid, currboard[0], currboard,
+                    postfile.filename);
+            fclose(fp);
+        }
+#endif
 	setbtotal(currbid);
 
 	if( currmode & MODE_SELECT )
