@@ -1,4 +1,4 @@
-/* $Id: user.c 3499 2007-04-06 05:19:59Z ptt $ */
+/* $Id: user.c 3500 2007-04-06 05:25:40Z ptt $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -688,7 +688,7 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	{
 	  getdata_str(i, 0, "電子信箱[變動要重新認證]：", buf, 50, DOECHO,
 		    x.email);
-        }while(!isvalidemail(buf));
+        }while(!isvalidemail(buf) && vmsg("認證信箱不能用使用免費信箱"));
 	i++;
 	if (strcmp(buf, x.email) && strchr(buf, '@')) {
 	    strlcpy(x.email, buf, sizeof(x.email));
