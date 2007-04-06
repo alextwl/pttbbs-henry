@@ -1,4 +1,4 @@
-/* $Id: user.c 3486 2007-03-13 08:15:46Z wens $ */
+/* $Id: user.c 3498 2007-04-06 05:17:56Z ptt $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -684,8 +684,11 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	snprintf(buf, sizeof(buf), "%010d", x.mobile);
 	getdata_buf(i++, 0, "手機號碼：", buf, 11, LCECHO);
 	x.mobile = atoi(buf);
-	getdata_str(i++, 0, "電子信箱[變動要重新認證]：", buf, 50, DOECHO,
+	do
+	{
+	  getdata_str(i++, 0, "電子信箱[變動要重新認證]：", buf, 50, DOECHO,
 		    x.email);
+        }while(!isvalidemail(buf));
 	if (strcmp(buf, x.email) && strchr(buf, '@')) {
 	    strlcpy(x.email, buf, sizeof(x.email));
 	    mail_changed = 1 - adminmode;
@@ -1351,7 +1354,7 @@ removespace(char *s)
 
 
 
-static int
+int
 isvalidemail(const char *email)
 {
     FILE           *fp;
