@@ -1,4 +1,4 @@
-/* $Id: proto.h 3475 2007-01-18 09:13:53Z ptt $ */
+/* $Id: proto.h 3503 2007-04-16 02:59:01Z victor $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -801,6 +801,7 @@ int freecuser(void);
 /* calendar */
 int calendar(void);
 int ParseDate(const char *date, int *year, int *month, int *day);
+int getHoroscope(int m, int d);
 
 /* util */
 void touchbtotal(int bid);
