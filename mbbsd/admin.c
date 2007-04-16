@@ -1,4 +1,4 @@
-/* $Id: admin.c 3503 2007-04-16 02:59:01Z victor $ */
+/* $Id: admin.c 3504 2007-04-16 03:05:20Z victor $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -792,7 +792,7 @@ x_file(void)
 	num = atoi(ans);
 	if (num <= 0 || num > 12)
 	    return FULLUPDATE;
-	snprintf(buf, sizeof(buf), "etc/Welcome_birth.%d\n", num);
+	snprintf(buf, sizeof(buf), "etc/Welcome_birth.%d", num);
 	fpath = buf;
 	break;
     case 'l':
