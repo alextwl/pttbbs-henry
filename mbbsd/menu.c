@@ -1,4 +1,4 @@
-/* $Id: menu.c 3509 2007-05-02 03:41:29Z victor $ */
+/* $Id: menu.c 3510 2007-05-02 05:24:37Z victor $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -183,7 +183,7 @@ movie(int cmdmode)
 	} else if (cmdmode == 999999) {	/* Goodbye my friend */
 	    i = 0;
 	} else {
-	    i = N_SYSMOVIE + (int)(((float)SHM->last_film - N_SYSMOVIE + 1) * (rand() / (RAND_MAX + 1.0)));
+	    i = N_SYSMOVIE + (int)(((float)SHM->last_film - N_SYSMOVIE + 1) * (random() / (RAND_MAX + 1.0)));
 	}
 #undef N_SYSMOVIE
 
