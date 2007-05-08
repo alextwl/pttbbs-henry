@@ -1,4 +1,4 @@
-/* $Id: talk.c 3453 2006-12-10 05:42:00Z scw $ */
+/* $Id: talk.c 3513 2007-05-08 17:01:45Z kcwu $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -659,6 +659,9 @@ my_write2(void)
 
 	case KEY_LEFT:
 	    done = 1;
+	    break;
+
+	case KEY_UNKNOWN:
 	    break;
 
 	default:
@@ -1366,6 +1369,8 @@ do_talk(int fd)
 		break;
 	    for (i = 0; i < datac; i++)
 		do_talk_char(&itswin, data[i], flog);
+	} else if (ch == KEY_UNKNOWN) {
+	  // skip
 	} else {
 	    if (ch == Ctrl('C')) {
 		if (im_leaving)

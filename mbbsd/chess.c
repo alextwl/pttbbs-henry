@@ -1,4 +1,4 @@
-/* $Id: chess.c 3492 2007-03-24 08:54:00Z scw $ */
+/* $Id: chess.c 3513 2007-05-08 17:01:45Z kcwu $ */
 #include "bbs.h"
 #include "chess.h"
 #include <setjmp.h>
@@ -603,6 +603,9 @@ ChessPlayFuncMy(ChessInfo* info)
 	    case I_TIMEOUT:
 		break;
 
+	    case KEY_UNKNOWN:
+		break;
+
 	    default:
 		if (info->actions->process_key) {
 		    DO_WITHOUT_PEER(30,
@@ -725,6 +728,9 @@ ChessPlayFuncHis(ChessInfo* info)
 		}
 
 	    case I_TIMEOUT:
+		break;
+
+	    case KEY_UNKNOWN:
 		break;
 
 	    default:

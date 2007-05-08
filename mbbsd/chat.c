@@ -1,4 +1,4 @@
-/* $Id: chat.c 3417 2006-09-16 18:45:02Z kcwu $ */
+/* $Id: chat.c 3513 2007-05-08 17:01:45Z kcwu $ */
 #include "bbs.h"
 
 #ifndef DBCSAWARE
@@ -435,6 +435,8 @@ t_chat(void)
 		    currchar++;
 #endif
 	    }
+	    continue;
+	case KEY_UNKNOWN:
 	    continue;
 	}
 

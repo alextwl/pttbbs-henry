@@ -1,4 +1,4 @@
-/* $Id: io.c 3420 2006-09-16 18:46:36Z kcwu $ */
+/* $Id: io.c 3513 2007-05-08 17:01:45Z kcwu $ */
 #include "bbs.h"
 
 #define OBUFSIZE  2048
@@ -801,7 +801,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 		clen--;
 		continue;
 	    }
-	    if (!isprint(ch)) {
+	    if (ch>=0x100 || !isprint(ch)) {
 		continue;
 	    }
 	    if (clen >= len) {
@@ -969,6 +969,8 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	    case Ctrl('E'):
 	    case KEY_END:
 		currchar = clen;
+		break;
+	    case KEY_UNKNOWN:
 		break;
 	    default:
 		if (isprint2(ch) && clen < len && x + clen < scr_cols) {
