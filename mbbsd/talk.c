@@ -1,4 +1,4 @@
-/* $Id: talk.c 3513 2007-05-08 17:01:45Z kcwu $ */
+/* $Id: talk.c 3514 2007-05-12 19:27:11Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -476,6 +476,7 @@ my_query(const char *uident)
 	prints("¡m¢×¢Ò¼ÊºÙ¡n%s(%s)%*s¡m¸gÀÙª¬ªp¡n%s",
 	       muser.userid,
 	       muser.nickname,
+	       strlen(muser.userid) + strlen(muser.nickname) >= 26 ? 0 :
 	       (int)(26 - strlen(muser.userid) - strlen(muser.nickname)), "",
 	       money_level(muser.money));
 	if (uentp && ((fri_stat & HFM && !uentp->invisible) || strcmp(muser.userid,cuser.userid) == 0))

@@ -1,4 +1,4 @@
-/* $Id: chicken.c 2995 2005-08-05 20:19:49Z piaip $ */
+/* $Id: chicken.c 3514 2007-05-12 19:27:11Z scw $ */
 #include "bbs.h"
 
 #define NUM_KINDS   15		/* 有多少種動物 */
@@ -174,7 +174,7 @@ show_chicken_stat(const chicken_t * thechicken, int age)
 	   ANSI_COLOR(33) "%-7d" ANSI_RESET " 大補丸:" ANSI_COLOR(33) "%-7d" ANSI_RESET " 藥品 :" ANSI_COLOR(33) "%-7d"
 	   ANSI_RESET " \n",
 	   thechicken->name, chicken_type[(int)thechicken->type],
-	   (int)(15 - strlen(thechicken->name)), "",
+	   strlen(thechicken->name) >= 15 ? 0 : (int)(15 - strlen(thechicken->name)), "",
 	   ptime->tm_year % 100, ptime->tm_mon + 1, ptime->tm_mday,
 	 cage[age > 16 ? 16 : age], age, thechicken->hp, thechicken->hp_max,
 	   thechicken->mm, thechicken->mm_max,
