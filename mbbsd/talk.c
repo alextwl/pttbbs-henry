@@ -1,4 +1,4 @@
-/* $Id: talk.c 3514 2007-05-12 19:27:11Z scw $ */
+/* $Id: talk.c 3515 2007-05-23 03:33:29Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3436,6 +3436,7 @@ AngelNotOnline(){
 	move(4, 0);
 	clrtobot();
 
+	buf[0] = 0;
 	fgets(buf, sizeof(buf), fp);
 	if (strncmp(buf, "%%[", 3) == 0) {
 	    chomp(buf);
