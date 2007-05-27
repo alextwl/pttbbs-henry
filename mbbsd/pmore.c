@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3459 2006-12-26 06:35:16Z victor $ */
+/* $Id: pmore.c 3519 2007-05-27 14:08:38Z kcwu $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -809,7 +809,16 @@ mf_parseHeaders()
 
 	// p is pointing at a new line. (\n)
 	l = (int)(p - pb);
+#ifdef CRITICAL_MEMORY
+	// kcwu: dirty hack, avoid 64byte slot. use 128byte slot instead.
+	if (l<100) {
+	    p = (unsigned char*) malloc (100+1);
+	} else {
+	    p = (unsigned char*) malloc (l+1);
+	}
+#else
 	p = (unsigned char*) malloc (l+1);
+#endif
 	fh.headers[i] = p;
 	memcpy(p, pb, l);
 	p[l] = 0;
