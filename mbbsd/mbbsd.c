@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3512 2007-05-07 00:35:59Z kcwu $ */
+/* $Id: mbbsd.c 3516 2007-05-27 14:08:15Z kcwu $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -182,9 +182,13 @@ u_exit(const char *mode)
     cuser.pager = currutmp->pager;
     memcpy(cuser.mind, currutmp->mind, 4);
     setutmpbid(0);
-    if (!(HasUserPerm(PERM_SYSOP) && HasUserPerm(PERM_SYSOPHIDE)) &&
-	!currutmp->invisible)
-	do_aloha("<<下站通知>> -- 我走囉！");
+
+    if (!SHM->GV2.e.shutdown) {
+	if (!(HasUserPerm(PERM_SYSOP) && HasUserPerm(PERM_SYSOPHIDE)) &&
+		!currutmp->invisible)
+	    do_aloha("<<下站通知>> -- 我走囉！");
+    }
+
 
     if ((cuser.uflag != enter_uflag) || dirty || diff) {
 	if (!diff && cuser.numlogins)
