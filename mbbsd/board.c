@@ -1,4 +1,4 @@
-/* $Id: board.c 3418 2006-09-16 18:45:51Z kcwu $ */
+/* $Id: board.c 3517 2007-05-27 14:08:24Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -410,17 +410,18 @@ search_board(void)
 {
     int             num;
     char            genbuf[IDLEN + 2];
+    struct NameList namelist;
+
     move(0, 0);
     clrtoeol();
-    CreateNameList();
+    NameList_init(&namelist);
     assert(brdnum<=nbrdsize);
     for (num = 0; num < brdnum; num++)
 	if (!IS_LISTING_FAV() ||
 	    (nbrd[num].myattr & NBRD_BOARD && HasBoardPerm(B_BH(&nbrd[num]))) )
-	    AddNameList(B_BH(&nbrd[num])->brdname);
-    namecomplete(MSG_SELECT_BOARD, genbuf);
-    FreeNameList();
-    toplev = NULL;
+	    NameList_add(&namelist, B_BH(&nbrd[num])->brdname);
+    namecomplete2(&namelist, MSG_SELECT_BOARD, genbuf);
+    NameList_delete(&namelist);
 
 #ifdef DEBUG
     vmsg(genbuf);

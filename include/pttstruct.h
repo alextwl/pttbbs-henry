@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3516 2007-05-27 14:08:15Z kcwu $ */
+/* $Id: pttstruct.h 3517 2007-05-27 14:08:24Z kcwu $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -651,6 +651,12 @@ typedef struct word_t {
     char    *word;
     struct  word_t  *next;
 } word_t;
+
+struct NameList {
+    int size;
+    int capacity;
+    char (*base)[IDLEN+1];
+};
 
 typedef struct commands_t {
     int     (*cmdfunc)();
