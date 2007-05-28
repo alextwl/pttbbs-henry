@@ -1,4 +1,4 @@
-/* $Id: chess.c 3520 2007-05-28 08:27:22Z scw $ */
+/* $Id: chess.c 3521 2007-05-28 15:13:04Z scw $ */
 #include "bbs.h"
 #include "chess.h"
 #include <setjmp.h>
@@ -1125,8 +1125,17 @@ ChessPlay(ChessInfo* info)
     if (info->mode != CHESS_MODE_REPLAY)
 	ChessGenLog(info, game_result);
 
-    currutmp->sig = -1;
-    Signal(SIGUSR1, old_handler);
+
+    {
+	sigset_t sigset;
+
+	sigemptyset(&sigset);
+	sigaddset(&sigset, SIGUSR1);
+	sigprocmask(SIG_BLOCK, &sigset, NULL);
+
+	// currutmp->sig = -1;
+	Signal(SIGUSR1, old_handler);
+    }
     CurrentPlayingGameInfo = NULL;
 }
 
