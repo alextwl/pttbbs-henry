@@ -1,4 +1,4 @@
-/* $Id: proto.h 3517 2007-05-27 14:08:24Z kcwu $ */
+/* $Id: proto.h 3524 2007-05-30 15:48:39Z scw $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -543,6 +543,12 @@ void check_register(void);
 char *genpasswd(char *pw);
 int setupnewuser(const userec_t *user);
 
+/* reversi */
+void reversi(int s, ChessGameMode mode);
+int reversi_main(void);
+int reversi_personal(void);
+int reversi_watch(void);
+ChessInfo* reversi_replay(FILE* fp);
 
 /* screen */
 void mouts(int y, int x, const char *str);

@@ -1,4 +1,4 @@
-/* $Id: chess.h 3153 2005-09-10 17:30:22Z scw $ */
+/* $Id: chess.h 3524 2007-05-30 15:48:39Z scw $ */
 
 #ifndef INCLUDE_CHESS_H
 #define INCLUDE_CHESS_H
@@ -127,7 +127,7 @@ typedef struct ChessActions {
     /* playing */
     void (*drawline)    (const ChessInfo* info, int line);
     void (*movecur)     (int r, int c);
-    void (*prepare_play)(ChessInfo* info);
+    int  (*prepare_play)(ChessInfo* info);
     int  (*process_key) (ChessInfo* info, int key, ChessGameResult* result);
     int  (*select)      (ChessInfo* info, rc_t location,
 	    ChessGameResult* result);
