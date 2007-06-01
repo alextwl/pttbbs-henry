@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3506 2007-04-16 13:27:07Z victor $ */
+/* $Id: bbs.c 3530 2007-06-01 18:11:21Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -3061,14 +3061,8 @@ b_notes(void)
 int
 board_select(void)
 {
-    char            fpath[80];
-    char            genbuf[100];
-
     currmode &= ~MODE_SELECT;
     currsrmode = 0;
-    snprintf(fpath, sizeof(fpath), "SR.%s", cuser.userid);
-    setbfile(genbuf, currboard, fpath);
-    unlink(genbuf);
     if (currstat == RMAIL)
 	sethomedir(currdirect, cuser.userid);
     else
