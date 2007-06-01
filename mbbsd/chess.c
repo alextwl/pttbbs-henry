@@ -1,4 +1,4 @@
-/* $Id: chess.c 3523 2007-05-30 15:42:18Z scw $ */
+/* $Id: chess.c 3525 2007-06-01 13:47:00Z scw $ */
 #include "bbs.h"
 #include "chess.h"
 #include <setjmp.h>
@@ -387,9 +387,12 @@ ChessReplayUntil(ChessInfo* info, int n)
 
     /* spcial for last one to maintian information correct */
     step = ChessHistoryRetrieve(info, info->current_step);
-    info->turn = info->current_step++ & 1;
+
+    if (info->mode == CHESS_MODE_WATCH || info->mode == CHESS_MODE_REPLAY)
+	info->turn = info->current_step & 1;
     info->actions->prepare_step(info, step);
     info->actions->apply_step(info->board, step);
+    info->current_step++;
 }
 
 static int
@@ -779,7 +782,6 @@ ChessPlayFuncWatch(ChessInfo* info)
 			/* at head but redo-ed */
 			info->actions->init_board(info->board);
 			info->current_step = 0;
-			info->turn = 1;
 			ChessReplayUntil(info, info->history.used - 1);
 			ChessRedraw(info);
 		    }
