@@ -1,4 +1,4 @@
-/* $Id: talk.c 3528 2007-06-01 18:05:58Z kcwu $ */
+/* $Id: talk.c 3532 2007-06-04 07:08:34Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3274,6 +3274,12 @@ t_changeangel(){
 	    "传ぱㄏ碞礚猭传翅 琌璶传ぱㄏ [y/N]",
 	    buf, 3, LCECHO);
     if (buf[0] == 'y' || buf[0] == 'Y') {
+	char buf[100];
+	snprintf(buf, sizeof(buf), "%s %s 传奔 %s ぱㄏ\n",
+		ctime(&now), cuser.userid, cuser.myangel);
+	buf[24] = ' '; // replace '\n'
+	log_file(BBSHOME "/log/changeangel.log", LOG_CREAT, buf);
+
 	cuser.myangel[0] = 0;
 	outs("ぱㄏ穝ЧΘΩ㊣穦匡穝ぱㄏ");
     }
