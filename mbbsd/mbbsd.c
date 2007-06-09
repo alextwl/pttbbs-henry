@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3516 2007-05-27 14:08:15Z kcwu $ */
+/* $Id: mbbsd.c 3538 2007-06-09 19:32:29Z kcwu $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -818,7 +818,6 @@ add_distinct(const char *fname, const char *line)
 	}
 	fclose(fp);
 	fclose(fptmp);
-	unlink(fname);
 	rename(tmpname, fname);
     }
 }
@@ -865,7 +864,6 @@ del_distinct(const char *fname, const char *line, int casesensitive)
 	    }
 	fclose(fp);
 	fclose(fptmp);
-	unlink(fname);
 	rename(tmpname, fname);
     }
 }
