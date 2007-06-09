@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3531 2007-06-04 03:41:43Z scw $ */
+/* $Id: bbs.c 3533 2007-06-09 15:18:04Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16

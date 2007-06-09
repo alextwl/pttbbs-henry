@@ -1,4 +1,4 @@
-/* $Id: talk.c 3532 2007-06-04 07:08:34Z scw $ */
+/* $Id: talk.c 3533 2007-06-09 15:18:04Z kcwu $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
