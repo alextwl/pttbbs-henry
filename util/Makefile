@@ -1,4 +1,4 @@
-# $Id: Makefile 3505 2007-04-16 03:27:18Z victor $
+# $Id: Makefile 3534 2007-06-09 15:18:38Z kcwu $
 
 .include "../pttbbs.mk"
 
@@ -21,11 +21,11 @@ CPROG_WITH_UTIL= \
 	boardlist	BM_money	post		poststat	\
 	jungo		account		birth		deluserfile	\
 	expire		mandex		horoscope	broadcast	\
-	openvice	parse_news	openticket	topusr		\
+	openvice	openticket	topusr		\
 	yearsold	toplazyBM	toplazyBBM	writemoney	\
 	reaper		buildAnnounce	inndBM		mailangel	\
-	outmail		chkhbf		checkmoney      merge_dir       \
-	transman	angel		gamblegive	checkdir	\
+	outmail		chkhbf		merge_dir       \
+	transman	angel		gamblegive	\
 	wretch_man	\
 	chesscountry	tunepasswd	buildir		xchatd
 
