@@ -1,4 +1,4 @@
-# $Id: Makefile 3534 2007-06-09 15:18:38Z kcwu $
+# $Id: Makefile 3535 2007-06-09 15:18:51Z kcwu $
 
 .include "../pttbbs.mk"
 
@@ -34,7 +34,7 @@ CPROG_WITHOUT_UTIL= \
 	uhash_loader	showboard	\
 	countalldice	bbsrf		initbbs		\
 	userlist	merge_passwd	\
-	merge_board	bbsmail         gamble_fix
+	merge_board	bbsmail         
 
 # 下面這些程式會被 install
 PROGS=	${CPROG_WITH_UTIL}		${CPROG_WITHOUT_UTIL}		\
