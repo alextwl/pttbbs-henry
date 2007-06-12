@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3533 2007-06-09 15:18:04Z kcwu $ */
+/* $Id: bbs.c 3542 2007-06-12 14:59:46Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -303,7 +303,7 @@ readdoent(int num, fileheader_t * ent)
     char           *mark, *title,
                     color, special = 0, isonline = 0, recom[8];
     userinfo_t     *uentp;
-    type = brc_unread(ent->filename, brc_num, brc_list) ? '+' : ' ';
+    type = brc_unread(currbid, ent->filename) ? '+' : ' ';
     if ((currmode & MODE_BOARD) && (ent->filemode & FILE_DIGEST))
 	type = (type == ' ') ? '*' : '#';
     else if (currmode & MODE_BOARD || HasUserPerm(PERM_LOGINOK)) {

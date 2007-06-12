@@ -1,4 +1,4 @@
-/* $Id: var.c 3487 2007-03-13 08:49:20Z wens $ */
+/* $Id: var.c 3542 2007-06-12 14:59:46Z kcwu $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -362,10 +362,6 @@ int             numboards = -1;
 SHM_t          *SHM;
 boardheader_t  *bcache;
 userinfo_t     *currutmp;
-
-/* brc.c */
-int             brc_num;
-time4_t         brc_list[BRC_MAXNUM];
 
 /* read.c */
 int             TagNum;			/* tag's number */
