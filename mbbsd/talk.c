@@ -1,4 +1,4 @@
-/* $Id: talk.c 3533 2007-06-09 15:18:04Z kcwu $ */
+/* $Id: talk.c 3543 2007-06-17 09:58:21Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3276,7 +3276,7 @@ t_changeangel(){
     if (buf[0] == 'y' || buf[0] == 'Y') {
 	char buf[100];
 	snprintf(buf, sizeof(buf), "%s小主人 %s 換掉 %s 小天使\n",
-		ctime(&now), cuser.userid, cuser.myangel);
+		ctime4(&now), cuser.userid, cuser.myangel);
 	buf[24] = ' '; // replace '\n'
 	log_file(BBSHOME "/log/changeangel.log", LOG_CREAT, buf);
 
