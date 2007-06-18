@@ -1,4 +1,4 @@
-/* $Id: chicken.c 3514 2007-05-12 19:27:11Z scw $ */
+/* $Id: chicken.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #include "bbs.h"
 
 #define NUM_KINDS   15		/* 有多少種動物 */
@@ -987,7 +987,8 @@ chickenpk(int fd)
 		break;
 	    }
 	    if (deadtype(ochicken)) {
-		strtok(data, "\n");
+		char *p = strchr(data, '\n');
+		if(p) *p = '\0';
 		strlcpy(buf, data, sizeof(buf));
 		snprintf(data, sizeof(data), "d%s , %s 被 %s 打死了\n",
 			 buf + 1, ochicken->name, mychicken->name);

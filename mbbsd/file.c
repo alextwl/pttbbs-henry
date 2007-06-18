@@ -1,4 +1,4 @@
-/* $Id: file.c 3356 2006-05-17 11:45:14Z victor $ */
+/* $Id: file.c 3545 2007-06-18 17:14:32Z kcwu $ */
 
 #include "bbs.h"
 
@@ -57,7 +57,8 @@ int file_exist_record(const char *file, const char *string)
 	return 0;
 
     while (fgets(buf, STRLEN, fp)) {
-	if ((ptr = strtok(buf, str_space)) && !strcasecmp(ptr, string)) {
+	char *strtok_pos;
+	if ((ptr = strtok_r(buf, str_space, &strtok_pos)) && !strcasecmp(ptr, string)) {
 	    fclose(fp);
 	    return 1;
 	}

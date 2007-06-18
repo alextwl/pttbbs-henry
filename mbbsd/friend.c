@@ -1,4 +1,4 @@
-/* $Id: friend.c 3357 2006-05-17 11:46:57Z victor $ */
+/* $Id: friend.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #include "bbs.h"
 
 /* ------------------------------------- */
@@ -291,10 +291,11 @@ inline void friend_load_real(int tosort, int maxf,
 	    *destn = 0;
     }
     else{
+	char *strtok_pos;
 	tarray = (int *)malloc(sizeof(int) * maxf);
 	--maxf; /* 因為最後一個要填 0, 所以先扣一個回來 */
 	while( fgets(genbuf, STRLEN, fp) && nFriends < maxf )
-	    if( (p = strtok(genbuf, str_space)) &&
+	    if( (p = strtok_r(genbuf, str_space, &strtok_pos)) &&
 		(uid = searchuser(p, NULL)) )
 		tarray[nFriends++] = uid;
 	fclose(fp);
@@ -379,9 +380,11 @@ friend_edit(int type)
 	    move(3, 0);
 	    column = 0;
 	    while (fgets(genbuf, STRLEN, fp)) {
+		char *space;
 		if (genbuf[0] <= ' ')
 		    continue;
-		strtok(genbuf, str_space);
+		space = strpbrk(genbuf, str_space);
+		if (space) *space = '\0';
 		AddNameList(genbuf);
 		prints("%-13s", genbuf);
 		count++;

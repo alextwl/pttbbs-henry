@@ -1,4 +1,4 @@
-/* $Id: chat.c 3513 2007-05-08 17:01:45Z kcwu $ */
+/* $Id: chat.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #include "bbs.h"
 
 #ifndef DBCSAWARE
@@ -217,10 +217,11 @@ chat_query(char *arg)
     char           *uid;
     int             tuid;
     userec_t        xuser;
+    char *strtok_pos;
 
     printchatline("");
-    strtok(arg, str_space);
-    if ((uid = strtok(NULL, str_space)) && (tuid = getuser(uid, &xuser))) {
+    strtok_r(arg, str_space, &strtok_pos);
+    if ((uid = strtok_r(NULL, str_space, &strtok_pos)) && (tuid = getuser(uid, &xuser))) {
 	char            buf[128], *ptr;
 	FILE           *fp;
 

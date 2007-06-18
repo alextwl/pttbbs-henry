@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3538 2007-06-09 19:32:29Z kcwu $ */
+/* $Id: mbbsd.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -1779,8 +1779,9 @@ static int check_banip(char *host)
 {
     unsigned int thisip = 0;
     char *ptr, *myhost = strdup(host);
+    char *strtok_pos;
 
-    for( ptr = strtok(myhost, ".") ; ptr != NULL ; ptr = strtok(NULL, ".") )
+    for( ptr = strtok_r(myhost, ".", &strtok_pos) ; ptr != NULL ; ptr = strtok_r(NULL, ".", &strtok_pos) )
 	thisip = thisip * 256 + atoi(ptr);
     free(myhost);
 
