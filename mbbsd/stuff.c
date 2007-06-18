@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3459 2006-12-26 06:35:16Z victor $ */
+/* $Id: stuff.c 3547 2007-06-18 17:15:17Z kcwu $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -784,7 +784,7 @@ search_num(int ch, int max)
 }
 
 /**
- * 在瑩幕左上角 show 出 "【title】"
+ * 在螢幕左上角 show 出 "【title】"
  * @param title
  */
 void
