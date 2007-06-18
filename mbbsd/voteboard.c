@@ -1,4 +1,4 @@
-/* $Id: voteboard.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: voteboard.c 3546 2007-06-18 17:14:53Z kcwu $ */
 #include "bbs.h"
 
 #define VOTEBOARD "NewBoard"
@@ -44,7 +44,7 @@ do_voteboardreply(const fileheader_t * fhdr)
     assert(fi);
 
     while (fgets(genbuf, sizeof(genbuf), fi)) {
-	char *newline;
+	char *space;
 
         if (yes>=0)
            {
@@ -67,8 +67,8 @@ do_voteboardreply(const fileheader_t * fhdr)
 	}
         if(yes>=0) continue; 
 
-	newline = strpbrk(genbuf+4, " \n");
-	if(newline) *newline='\0';
+	space = strpbrk(genbuf+4, " \n");
+	if(space) *space='\0';
 	if (!strncmp(genbuf + 4, cuser.userid, IDLEN)) {
 	    move(5, 10);
 	    outs("您已經連署過本篇了");

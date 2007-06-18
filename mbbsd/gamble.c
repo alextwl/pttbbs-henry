@@ -1,4 +1,4 @@
-/* $Id: gamble.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: gamble.c 3546 2007-06-18 17:14:53Z kcwu $ */
 #include "bbs.h"
 
 #define MAX_ITEM	8	//最大 賭項(item) 個數
@@ -50,8 +50,7 @@ show_ticket_data(char betname[MAX_ITEM][MAX_ITEM_LEN],const char *direct, int *p
     fgets(genbuf, MAX_ITEM_LEN, fp);
     *price = atoi(genbuf);
     for (count = 0; fgets(betname[count], MAX_ITEM_LEN, fp) && count < MAX_ITEM; count++) {
-	char *newline = strpbrk(betname[count], "\r\n");
-	if (newline) *newline = '\0';
+	chomp(betname[count]);
     }
     fclose(fp);
 

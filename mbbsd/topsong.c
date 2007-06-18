@@ -1,4 +1,4 @@
-/* $Id: topsong.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: topsong.c 3546 2007-06-18 17:14:53Z kcwu $ */
 #include "bbs.h"
 
 #define MAX_SONGS 300
@@ -53,8 +53,7 @@ sortsong(void)
     totalcount = 0;
     /* XXX: 除了前 MAX_SONGS 首, 剩下不會排序 */
     while (fgets(buf, 200, fp)) {
-	char *newline = strpbrk(buf, "\n\r");
-	if (newline) *newline = '\0';
+	chomp(buf);
 	strip_blank(cbuf, buf);
 	if (!cbuf[0] || !isprint2((int)cbuf[0]))
 	    continue;

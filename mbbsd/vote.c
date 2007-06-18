@@ -1,4 +1,4 @@
-/* $Id: vote.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: vote.c 3546 2007-06-18 17:14:53Z kcwu $ */
 #include "bbs.h"
 
 #define MAX_VOTE_NR	20
@@ -966,8 +966,7 @@ user_vote_one(vote_buffer_t *vbuf, const char *bname, int ind)
 
 	    count = 0;
 	    for (i = 0; i < ITEM_PER_PAGE && fgets(inbuf, sizeof(inbuf), cfp); i++) {
-		char *newline = strpbrk(inbuf, "\r\n");
-		if (newline) *newline = '\0';
+		chomp(inbuf);
 		move((count % 15) + 5, (count / 15) * 40);
 		prints("%c%s", chosen[curr_page * ITEM_PER_PAGE + i] ? '*' : ' ',
 			inbuf);
