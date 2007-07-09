@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3523 2007-05-30 15:42:18Z scw $ */
+/* $Id: pmore.c 3549 2007-07-09 01:47:20Z scw $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -2178,7 +2178,9 @@ pmore(char *fpath, int promptend)
 
 	    case 'E':
 		// admin edit any files other than ve help file
-		if (HasUserPerm(PERM_SYSOP) && strcmp(fpath, "etc/ve.hlp")) {
+		// and posts in Security board
+		if (HasUserPerm(PERM_SYSOP) && strcmp(fpath, "etc/ve.hlp") &&
+			strcmp(currboard, "Security")){
 		    mf_detach();
 		    vedit(fpath, NA, NULL);
 		    REENTRANT_RESTORE();
