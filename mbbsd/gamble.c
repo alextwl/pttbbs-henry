@@ -1,4 +1,4 @@
-/* $Id: gamble.c 3013 2005-08-08 16:41:09Z piaip $ */
+/* $Id: gamble.c 3546 2007-06-18 17:14:53Z kcwu $ */
 #include "bbs.h"
 
 #define MAX_ITEM	8	//最大 賭項(item) 個數
@@ -49,8 +49,9 @@ show_ticket_data(char betname[MAX_ITEM][MAX_ITEM_LEN],const char *direct, int *p
     }
     fgets(genbuf, MAX_ITEM_LEN, fp);
     *price = atoi(genbuf);
-    for (count = 0; fgets(betname[count], MAX_ITEM_LEN, fp) && count < MAX_ITEM; count++)
-	strtok(betname[count], "\r\n");
+    for (count = 0; fgets(betname[count], MAX_ITEM_LEN, fp) && count < MAX_ITEM; count++) {
+	chomp(betname[count]);
+    }
     fclose(fp);
 
     prints(ANSI_COLOR(32) "站規:" ANSI_RESET " 1.可購買以下不同類型的彩票。每張要花 " ANSI_COLOR(32) "%d" ANSI_RESET " 元。\n"

@@ -1,4 +1,4 @@
-/* $Id: talk.c 3420 2006-09-16 18:46:36Z kcwu $ */
+/* $Id: talk.c 3543 2007-06-17 09:58:21Z scw $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -7,10 +7,10 @@ static char    * const IdleTypeTable[] = {
     "偶在花呆啦", "情人來電", "覓食中", "拜見周公", "假死狀態", "我在思考"
 };
 static char    * const sig_des[] = {
-    "鬥雞", "聊天", "", "下棋", "象棋", "暗棋", "下圍棋",
+    "鬥雞", "聊天", "", "下棋", "象棋", "暗棋", "下圍棋", "下黑白棋",
 };
 static char    * const withme_str[] = {
-  "談天", "下五子棋", "鬥寵物", "下象棋", "下暗棋", "下圍棋", NULL
+  "談天", "下五子棋", "鬥寵物", "下象棋", "下暗棋", "下圍棋", "下黑白棋", NULL
 };
 
 #define MAX_SHOW_MODE 6
@@ -223,20 +223,6 @@ reverse_friend_stat(int stat)
     return stat1;
 }
 
-void verbose_progress(int em, int *i, int *dir, int max)
-{
-    *i += *dir;
-    if (*dir > 0)
-    {
-	write(1, (em ? "=>\b" : ".>\b") , 3);
-    } else {
-	write(1, (em ? "-\b\b<\b" : "'\b\b<\b"), 5);
-    }
-
-    if (*i >= max || *i <= 0)
-	*dir *= -1;
-}
-
 #ifdef OUTTACACHE
 int sync_outta_server(int sfd)
 {
@@ -247,9 +233,6 @@ int sync_outta_server(int sfd)
     int nfs;
     ocfs_t  fs[MAX_FRIEND*2];
 
-    int iBar = 0, barMax = t_columns/2, dir = 1;
-
-    verbose_progress(0, &iBar, &dir, barMax);
     cmd = -2;
     if(towrite(sfd, &cmd, sizeof(cmd))<0 ||
 	    towrite(sfd, &offset, sizeof(offset))<0 ||
@@ -258,7 +241,6 @@ int sync_outta_server(int sfd)
 	    towrite(sfd, currutmp->reject, sizeof(currutmp->reject))<0)
 	return -1;
 
-    verbose_progress(0, &iBar, &dir, barMax);
     if(toread(sfd, &res, sizeof(res))<0)
 	return -1;
 
@@ -274,7 +256,6 @@ int sync_outta_server(int sfd)
 	exit(0);
     }
 
-    verbose_progress(0, &iBar, &dir, barMax);
     if(toread(sfd, &nfs, sizeof(nfs))<0)
 	return -1;
     if(nfs<0 || nfs>MAX_FRIEND*2) {
@@ -287,7 +268,6 @@ int sync_outta_server(int sfd)
 
     close(sfd);
 
-    verbose_progress(0, &iBar, &dir, barMax);
     for(i=0; i<nfs; i++) {
 	if( SHM->uinfo[fs[i].index].uid != fs[i].uid )
 	    continue; // double check, server may not know user have logout
@@ -297,7 +277,6 @@ int sync_outta_server(int sfd)
 	if( SHM->uinfo[fs[i].index].friendtotal < MAX_FRIEND )
 	    SHM->uinfo[fs[i].index].friend_online[ SHM->uinfo[fs[i].index].friendtotal++ ] = fs[i].rfriendstat;
     }
-    verbose_progress(1, &iBar, &dir, barMax);
 
     if(res==1) {
 	vmsg("請勿頻繁登入以免造成系統過度負荷");
@@ -476,6 +455,7 @@ my_query(const char *uident)
 	prints("《ＩＤ暱稱》%s(%s)%*s《經濟狀況》%s",
 	       muser.userid,
 	       muser.nickname,
+	       strlen(muser.userid) + strlen(muser.nickname) >= 26 ? 0 :
 	       (int)(26 - strlen(muser.userid) - strlen(muser.nickname)), "",
 	       money_level(muser.money));
 	if (uentp && ((fri_stat & HFM && !uentp->invisible) || strcmp(muser.userid,cuser.userid) == 0))
@@ -659,6 +639,9 @@ my_write2(void)
 
 	case KEY_LEFT:
 	    done = 1;
+	    break;
+
+	case KEY_UNKNOWN:
 	    break;
 
 	default:
@@ -1366,6 +1349,8 @@ do_talk(int fd)
 		break;
 	    for (i = 0; i < datac; i++)
 		do_talk_char(&itswin, data[i], flog);
+	} else if (ch == KEY_UNKNOWN) {
+	  // skip
 	} else {
 	    if (ch == Ctrl('C')) {
 		if (im_leaving)
@@ -1560,10 +1545,11 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 
     if (ch == EDITING || ch == TALK || ch == CHATING || ch == PAGE ||
 	ch == MAILALL || ch == MONITOR || ch == M_FIVE || ch == CHC ||
-	ch == DARK || ch == UMODE_GO || ch == CHESSWATCHING ||
+	ch == DARK || ch == UMODE_GO || ch == CHESSWATCHING || ch == REVERSI ||
 	(!ch && (uin->chatid[0] == 1 || uin->chatid[0] == 3)) ||
 	uin->lockmode == M_FIVE || uin->lockmode == CHC) {
-	if (ch == CHC || ch == M_FIVE || ch == UMODE_GO || ch == CHESSWATCHING) {
+	if (ch == CHC || ch == M_FIVE || ch == UMODE_GO ||
+		ch == CHESSWATCHING || ch == REVERSI) {
 	    sock = make_connection_to_somebody(uin, 20);
 	    if (sock < 0)
 		vmsg("無法建立連線");
@@ -1592,6 +1578,10 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 
 		    case SIG_GO:
 			gochess(msgsock, CHESS_MODE_WATCH);
+			break;
+
+		    case SIG_REVERSI:
+			reversi(msgsock, CHESS_MODE_WATCH);
 			break;
 		}
 	    }
@@ -1632,7 +1622,8 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 		    outc('\n');
 		}
 	    }
-	    outs("要和他(她) (T)談天(F)下五子棋(P)鬥寵物(C)下象棋(D)下暗棋(G)下圍棋\n");
+	    move(4, 0);
+	    outs("要和他(她) (T)談天(F)下五子棋(P)鬥寵物(C)下象棋(D)下暗棋(G)下圍棋(R)下黑白棋");
 	    getdata(5, 0, "           (N)沒事找錯人了?[N] ", genbuf, 4, LCECHO);
 	}
 
@@ -1654,6 +1645,9 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 	    break;
 	case 'g':
 	    uin->sig = SIG_GO;
+	    break;
+	case 'r':
+	    uin->sig = SIG_REVERSI;
 	    break;
 	case 'p':
 	    reload_chicken();
@@ -1699,7 +1693,8 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 	close(sock);
 	currutmp->sockactive = NA;
 
-	if (uin->sig == SIG_CHC || uin->sig == SIG_GOMO || uin->sig == SIG_GO)
+	if (uin->sig == SIG_CHC || uin->sig == SIG_GOMO ||
+		uin->sig == SIG_GO || uin->sig == SIG_REVERSI)
 	    ChessEstablishRequest(msgsock);
 
 	add_io(msgsock, 0);
@@ -1719,7 +1714,6 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 	if (c == 'y') {
 	    snprintf(save_page_requestor, sizeof(save_page_requestor),
 		     "%s (%s)", uin->userid, uin->nickname);
-	    /* gomo */
 	    switch (uin->sig) {
 	    case SIG_DARK:
 		main_dark(msgsock, uin);
@@ -1735,6 +1729,9 @@ my_talk(userinfo_t * uin, int fri_stat, char defact)
 		break;
 	    case SIG_GO:
 		gochess(msgsock, CHESS_MODE_VERSUS);
+		break;
+	    case SIG_REVERSI:
+		reversi(msgsock, CHESS_MODE_VERSUS);
 		break;
 	    case SIG_TALK:
 	    default:
@@ -2835,8 +2832,11 @@ userlist(void)
 		if (HasUserPerm(PERM_LOGINOK) &&
 		    strcmp(uentp->userid, cuser.userid) != 0) {
                     char genbuf[10];
+		    char userid[IDLEN + 1];
+		    int touid=uentp->uid;
+		    strlcpy(userid, uentp->userid, sizeof(userid));
 		    move(b_lines - 2, 0);
-		    prints("要給 %s 多少錢呢?  ", uentp->userid);
+		    prints("要給 %s 多少錢呢?  ", userid);
 		    if (getdata(b_lines - 1, 0, "[銀行轉帳]: ",
 				genbuf, 7, LCECHO)) {
 			clrtoeol();
@@ -2845,11 +2845,11 @@ userlist(void)
 			    break;
 			}
 			if (getans("確定要給 %s %d 新山城幣嗎? [N/y]",
-                             uentp->userid, ch) != 'y'){
+                             userid, ch) != 'y'){
 			    redrawall = redraw = 1;
 			    break;
 			}
-			if (do_give_money(uentp->userid, uentp->uid, ch) < 0)
+			if (do_give_money(userid, touid, ch) < 0)
 			    vmsgf("交易失敗，還剩下 %d 錢", SHM->money[usernum - 1]);
 			else
 			    vmsgf("交易成功\，還剩下 %d 錢", SHM->money[usernum - 1]);
@@ -3158,7 +3158,7 @@ talkreply(void)
     currutmp->destuid = uip->uid;
     currstat = REPLY;		/* 避免出現動畫 */
 
-    is_chess = (sig == SIG_CHC || sig == SIG_GOMO || sig == SIG_GO);
+    is_chess = (sig == SIG_CHC || sig == SIG_GOMO || sig == SIG_GO || sig == SIG_REVERSI);
 
     a = reply_connection_request(uip);
     if (a < 0) {
@@ -3248,6 +3248,9 @@ talkreply(void)
 	case SIG_GO:
 	    gochess(a, CHESS_MODE_VERSUS);
 	    break;
+	case SIG_REVERSI:
+	    reversi(a, CHESS_MODE_VERSUS);
+	    break;
 	case SIG_TALK:
 	default:
 	    do_talk(a);
@@ -3271,6 +3274,12 @@ t_changeangel(){
 	    "更換小天使後就無法換回了喔！ 是否要更換小天使？ [y/N]",
 	    buf, 3, LCECHO);
     if (buf[0] == 'y' || buf[0] == 'Y') {
+	char buf[100];
+	snprintf(buf, sizeof(buf), "%s小主人 %s 換掉 %s 小天使\n",
+		ctime4(&now), cuser.userid, cuser.myangel);
+	buf[24] = ' '; // replace '\n'
+	log_file(BBSHOME "/log/changeangel.log", LOG_CREAT, buf);
+
 	cuser.myangel[0] = 0;
 	outs("小天使更新完成，下次呼叫時會選出新的小天使");
     }
@@ -3279,16 +3288,32 @@ t_changeangel(){
 
 int t_angelmsg(){
     char msg[3][74] = { "", "", "" };
+    char nick[10] = "";
     char buf[512];
     int i;
     FILE* fp;
 
     setuserfile(buf, "angelmsg");
     fp = fopen(buf, "r");
-    if(fp){
+    if (fp) {
+	i = 0;
+	if (fgets(msg[0], sizeof(msg[0]), fp)) {
+	    chomp(msg[0]);
+	    if (strncmp(msg[0], "%%[", 3) == 0) {
+		strlcpy(nick, msg[0] + 3, 7);
+		move(4, 0);
+		prints("原有暱稱：%s", nick);
+		msg[0][0] = 0;
+	    } else
+		i = 1;
+	} else
+	    msg[0][0] = 0;
+
 	move(5, 0);
 	outs("原有留言：\n");
-	for (i = 0; i < 3; ++i) {
+	if(msg[0][0])
+	    outs(msg[0]);
+	for (; i < 3; ++i) {
 	    if(fgets(msg[i], sizeof(msg[0]), fp)) {
 		outs(msg[i]);
 		chomp(msg[i]);
@@ -3298,6 +3323,7 @@ int t_angelmsg(){
 	fclose(fp);
     }
 
+    getdata_buf(11, 0, "暱稱：", nick, 7, 1);
     do {
 	move(12, 0);
 	clrtobot();
@@ -3316,6 +3342,8 @@ int t_angelmsg(){
 	unlink(buf);
     else {
 	FILE* fp = fopen(buf, "w");
+	if(nick[0])
+	    fprintf(fp, "%%%%[%s\n", nick);
 	for (i = 0; i < 3 && msg[i][0]; ++i) {
 	    fputs(msg[i], fp);
 	    fputc('\n', fp);
@@ -3410,23 +3438,37 @@ AngelNotOnline(){
 	showtitle("小天使留言", BBSNAME);
 	move(4, 0);
 	clrtobot();
-	outs(not_online_message);
+
+	buf[0] = 0;
+	fgets(buf, sizeof(buf), fp);
+	if (strncmp(buf, "%%[", 3) == 0) {
+	    chomp(buf);
+	    prints("您的%s小天使現在不在線上", buf + 3);
+	    fgets(buf, sizeof(buf), fp);
+	} else
+	    outs(not_online_message);
+
 	outs("\n祂留言給你：\n");
 	outs(ANSI_COLOR(1;31;44) "⊙┬──────────────┤" ANSI_COLOR(37) ""
 	     "小天使留言" ANSI_COLOR(31) "├──────────────┬⊙" ANSI_RESET "\n");
 	outs(ANSI_COLOR(1;31) "╭┤" ANSI_COLOR(32) " 小天使                          "
 	     "                                     " ANSI_COLOR(31) "├╮" ANSI_RESET "\n");
-	while (fgets(buf, sizeof(buf), fp)) {
+
+	do {
 	    chomp(buf);
 	    prints(ANSI_COLOR(1;31) "│" ANSI_RESET "%-74.74s" ANSI_COLOR(1;31) "│" ANSI_RESET "\n", buf);
-	}
+	} while (fgets(buf, sizeof(buf), fp));
+
 	outs(ANSI_COLOR(1;31) "╰┬──────────────────────"
 		"─────────────┬╯" ANSI_RESET "\n");
 	outs(ANSI_COLOR(1;31;44) "⊙┴─────────────────────"
 		"──────────────┴⊙" ANSI_RESET "\n");
 
-	move(b_lines - 1, 0);
-	outs("請先在新手板上尋找答案或按 Ctrl-P 發問");
+	move(b_lines - 4, 0);
+	outs("小主人使用上問題找不到小天使請到新手版(PttNewhand)\n"
+	     "              想留言給小天使請到許\願版(AngelPray)\n"
+	     "                  想找看板在哪的話可到(AskBoard)\n"
+	     "請先在各板上尋找答案或按 Ctrl-P 發問");
 	pressanykey();
 
 	GotoNewHand();

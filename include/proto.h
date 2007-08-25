@@ -1,4 +1,4 @@
-/* $Id: proto.h 3437 2006-10-01 14:12:06Z wens $ */
+/* $Id: proto.h 3542 2007-06-12 14:59:46Z kcwu $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -60,6 +60,7 @@ int inc_badsale(const char *, int num);
 //void set_assess(int uid, unsigned char num, int type);
 
 /* bbs */
+void delete_allpost(char *userid);
 int invalid_brdname(const char *brd);
 void chomp(char *src);
 int del_range(int ent, const fileheader_t *fhdr, const char *direct);
@@ -99,14 +100,15 @@ void sigfree(int);
 /* brc */
 int brc_initialize(void);
 void brc_finalize(void);
-int brc_unread(const char *fname, int bnum, const time4_t *blist);
-int brc_unread_time(time4_t ftime, int bnum, const time4_t *blist);
+
+int brc_unread(int bid, const char *fname);
+int brc_unread_time(int bid, time4_t ftime);
 int brc_initial_board(const char *boardname);
-void brc_update(void);
-int brc_read_record(int bid, int *num, time4_t *list);
-time4_t * brc_find_record(int bid, int *num);
-void brc_trunc(int bid, time4_t ftime);
 void brc_addlist(const char* fname);
+
+void brc_update(void);
+
+void brc_toggle_all_read(int bid, int is_all_read);
 
 /* cache */
 #define demoney(money) deumoney(usernum, money)
@@ -335,7 +337,7 @@ int Copy(const char *src, const char *dst);
 int CopyN(const char *src, const char *dst, int n);
 int AppendTail(const char *src, const char *dst, int off);
 int Link(const char* src, const char* dst);
-char *Ptt_prints(char *str, int mode);
+char *Ptt_prints(char *str, size_t size, int mode);
 char *my_ctime(const time4_t *t, char *ans, int len);
 
 /* lovepaper */
@@ -411,6 +413,12 @@ int pmore(char *fpath, int promptend);
 typedef int (*gnc_comp_func)(int, const char*, int);
 typedef int (*gnc_perm_func)(int);
 typedef char* (*gnc_getname_func)(int);
+
+extern void NameList_init(struct NameList *self);
+extern void NameList_delete(struct NameList *self);
+extern void NameList_clear(struct NameList *self);
+extern void NameList_add(struct NameList *self, const char *name);
+extern void namecomplete2(struct NameList *namelist, const char *prompt, char *data);
 
 void usercomplete(const char *prompt, char *data);
 void namecomplete(const char *prompt, char *data);
@@ -500,11 +508,14 @@ int substitute_record(const char *fpath, const void *rptr, int size, int id);
 int lock_substitute_record(const char *fpath, void *rptr, int size, int id, int);
 int get_record(const char *fpath, void *rptr, int size, int id);
 int get_record_keep(const char *fpath, void *rptr, int size, int id, int *fd);
+int get_record_keep_seek(const char *fpath, void *rptr, int size, int id, int *fd, int toseek);
 int append_record(const char *fpath, const fileheader_t *record, int size);
-int stampfile(char *fpath, fileheader_t *fh);
+int stampfile_u(char *fpath, fileheader_t *fh);
+inline int stampfile(char *fpath, fileheader_t *fh);
 void stampdir(char *fpath, fileheader_t *fh);
 int get_num_records(const char *fpath, int size);
 int get_records(const char *fpath, void *rptr, int size, int id, int number);
+int get_records_fd(const char *fpath, void *rptr, int size, int id, int number, int *use_fd);
 void stamplink(char *fpath, fileheader_t *fh);
 int delete_record(const char fpath[], int size, int id);
 int delete_files(const char* dirname, int (*filecheck)(), int record);
@@ -522,6 +533,7 @@ int search_rec(const char* dirname, int (*filecheck)());
 int append_record_forward(char *fpath, fileheader_t *record, int size, const char *origid);
 int get_sum_records(const char* fpath, int size);
 int substitute_ref_record(const char* direct, fileheader_t *fhdr, int ent);
+inline
 int getindex(const char *fpath, fileheader_t *fh, int start);
 
 /* register */
@@ -533,6 +545,12 @@ void check_register(void);
 char *genpasswd(char *pw);
 int setupnewuser(const userec_t *user);
 
+/* reversi */
+void reversi(int s, ChessGameMode mode);
+int reversi_main(void);
+int reversi_personal(void);
+int reversi_watch(void);
+ChessInfo* reversi_replay(FILE* fp);
 
 /* screen */
 void mouts(int y, int x, const char *str);
@@ -714,7 +732,7 @@ void sortsong(void);
 int topsong(void);
 
 /* user */
-int kill_user(int num, const char *userid);
+int kill_user(int num, char *userid);
 int u_editcalendar(void);
 void user_display(const userec_t *u, int real);
 void uinfo_query(userec_t *u, int real, int unum);
@@ -797,6 +815,7 @@ int freecuser(void);
 /* calendar */
 int calendar(void);
 int ParseDate(const char *date, int *year, int *month, int *day);
+int getHoroscope(int m, int d);
 
 /* util */
 void touchbtotal(int bid);

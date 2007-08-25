@@ -1,4 +1,4 @@
-# $Id: Makefile 3374 2006-06-18 06:36:46Z wens $
+# $Id: Makefile 3523 2007-05-30 15:42:18Z scw $
 
 .include "../pttbbs.mk"
 
@@ -15,10 +15,10 @@ OBJS=	admin.o announce.o args.o assess.o bbs.o board.o cache.o cal.o card.o\
 	more.o name.o osdep.o othello.o read.o record.o register.o\
 	screen.o stuff.o talk.o term.o topsong.o user.o brc.o vice.o vote.o\
 	xyz.o voteboard.o syspost.o var.o passwd.o calendar.o go.o file.o \
-	pmore.o chess.o
+	pmore.o chess.o reversi.o
 
 .if defined(DIET)
-OBJS+=	random.o time.o
+OBJS+=	random.o time.o alloc.o
 DIETCC=	diet -Os
 .endif
 #CFLAGS+=-g

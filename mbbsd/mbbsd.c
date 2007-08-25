@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3441 2006-10-07 15:12:36Z wens $ */
+/* $Id: mbbsd.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -182,9 +182,13 @@ u_exit(const char *mode)
     cuser.pager = currutmp->pager;
     memcpy(cuser.mind, currutmp->mind, 4);
     setutmpbid(0);
-    if (!(HasUserPerm(PERM_SYSOP) && HasUserPerm(PERM_SYSOPHIDE)) &&
-	!currutmp->invisible)
-	do_aloha("<<下站通知>> -- 我走囉！");
+
+    if (!SHM->GV2.e.shutdown) {
+	if (!(HasUserPerm(PERM_SYSOP) && HasUserPerm(PERM_SYSOPHIDE)) &&
+		!currutmp->invisible)
+	    do_aloha("<<下站通知>> -- 我走囉！");
+    }
+
 
     if ((cuser.uflag != enter_uflag) || dirty || diff) {
 	if (!diff && cuser.numlogins)
@@ -600,7 +604,7 @@ multi_user_check(void)
 	}
     } else {
 	/* allow multiple guest user */
-	if (search_ulistn(usernum, 100) != NULL) {
+	if (search_ulistn(usernum, MAX_GUEST) != NULL) {
 	    vmsg("抱歉，目前已有太多 guest 在站上, 請用new註冊。");
 	    exit(1);
 	}
@@ -814,7 +818,6 @@ add_distinct(const char *fname, const char *line)
 	}
 	fclose(fp);
 	fclose(fptmp);
-	unlink(fname);
 	rename(tmpname, fname);
     }
 }
@@ -861,7 +864,6 @@ del_distinct(const char *fname, const char *line, int casesensitive)
 	    }
 	fclose(fp);
 	fclose(fptmp);
-	unlink(fname);
 	rename(tmpname, fname);
     }
 }
@@ -1120,7 +1122,9 @@ user_login(void)
     /* show welcome_login */
     if( (ifbirth = (ptime.tm_mday == cuser.day &&
 		    ptime.tm_mon + 1 == cuser.month)) ){
-	more("etc/Welcome_birth", NA);
+	char buf[PATHLEN];
+	snprintf(buf, sizeof(buf), "etc/Welcome_birth.%d", getHoroscope(cuser.month, cuser.day));
+	more(buf, NA);
     }
     else {
 #ifndef MULTI_WELCOME_LOGIN
@@ -1247,12 +1251,11 @@ do_aloha(const char *hello)
 
     setuserfile(genbuf, "aloha");
     if ((fp = fopen(genbuf, "r"))) {
-	snprintf(genbuf, sizeof(genbuf), hello);
 	while (fgets(userid, 80, fp)) {
 	    userinfo_t     *uentp;
 	    if ((uentp = (userinfo_t *) search_ulist_userid(userid)) && 
 		    isvisible(uentp, currutmp)) {
-		my_write(uentp->pid, genbuf, uentp->userid, WATERBALL_ALOHA, uentp);
+		my_write(uentp->pid, hello, uentp->userid, WATERBALL_ALOHA, uentp);
 	    }
 	}
 	fclose(fp);
@@ -1782,8 +1785,9 @@ static int check_banip(char *host)
 {
     unsigned int thisip = 0;
     char *ptr, *myhost = strdup(host);
+    char *strtok_pos;
 
-    for( ptr = strtok(myhost, ".") ; ptr != NULL ; ptr = strtok(NULL, ".") )
+    for( ptr = strtok_r(myhost, ".", &strtok_pos) ; ptr != NULL ; ptr = strtok_r(NULL, ".", &strtok_pos) )
 	thisip = thisip * 256 + atoi(ptr);
     free(myhost);
 

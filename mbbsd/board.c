@@ -1,4 +1,4 @@
-/* $Id: board.c 3418 2006-09-16 18:45:51Z kcwu $ */
+/* $Id: board.c 3542 2007-06-12 14:59:46Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -133,9 +133,7 @@ HasBoardPerm(boardheader_t *bptr)
 static int
 check_newpost(boardstat_t * ptr)
 {				/* Ptt зя */
-    int             tbrc_num;
     time4_t         ftime;
-    time4_t        *tbrc_list;
 
     ptr->myattr &= ~NBRD_UNREAD;
     if (B_BH(ptr)->brdattr & (BRD_GROUPBOARD | BRD_SYMBOLIC))
@@ -155,8 +153,7 @@ check_newpost(boardstat_t * ptr)
     if (ftime > now + 10) 
 	ftime = B_LASTPOSTTIME(ptr) = now - 1;
 
-    tbrc_list = brc_find_record(ptr->bid, &tbrc_num);
-    if ( brc_unread_time(ftime, tbrc_num, tbrc_list) )
+    if ( brc_unread_time(ptr->bid, ftime) )
 	ptr->myattr |= NBRD_UNREAD;
     
     return 1;
@@ -410,17 +407,18 @@ search_board(void)
 {
     int             num;
     char            genbuf[IDLEN + 2];
+    struct NameList namelist;
+
     move(0, 0);
     clrtoeol();
-    CreateNameList();
+    NameList_init(&namelist);
     assert(brdnum<=nbrdsize);
     for (num = 0; num < brdnum; num++)
 	if (!IS_LISTING_FAV() ||
 	    (nbrd[num].myattr & NBRD_BOARD && HasBoardPerm(B_BH(&nbrd[num]))) )
-	    AddNameList(B_BH(&nbrd[num])->brdname);
-    namecomplete(MSG_SELECT_BOARD, genbuf);
-    FreeNameList();
-    toplev = NULL;
+	    NameList_add(&namelist, B_BH(&nbrd[num])->brdname);
+    namecomplete2(&namelist, MSG_SELECT_BOARD, genbuf);
+    NameList_delete(&namelist);
 
 #ifdef DEBUG
     vmsg(genbuf);
@@ -450,7 +448,7 @@ unread_position(char *dirfile, boardstat_t * ptr)
 	    while (num > 0) {
 		lseek(fd, (off_t) (num * sizeof(fh)), SEEK_SET);
 		if (read(fd, fname, FNLEN) <= 0 ||
-		    !brc_unread(fname, brc_num, brc_list))
+		    !brc_unread(ptr->bid, fname))
 		    break;
 		num -= step;
 		if (step < 32)
@@ -461,7 +459,7 @@ unread_position(char *dirfile, boardstat_t * ptr)
 	    while (num < total) {
 		lseek(fd, (off_t) (num * sizeof(fh)), SEEK_SET);
 		if (read(fd, fname, FNLEN) <= 0 ||
-		    brc_unread(fname, brc_num, brc_list))
+		    brc_unread(ptr->bid, fname))
 		    break;
 		num++;
 	    }
@@ -1133,9 +1131,9 @@ choose_board(int newflag)
 		break;
 	    if (ch == 'v') {
 		ptr->myattr &= ~NBRD_UNREAD;
-		brc_trunc(ptr->bid, now);
+		brc_toggle_all_read(ptr->bid, 1);
 	    } else {
-		brc_trunc(ptr->bid, 1);
+		brc_toggle_all_read(ptr->bid, 0);
 		ptr->myattr |= NBRD_UNREAD;
 	    }
 	    show_brdlist(head, 0, newflag);

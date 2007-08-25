@@ -1,6 +1,7 @@
-/* $Id: chess.c 3442 2006-10-08 13:51:52Z kcwu $ */
+/* $Id: chess.c 3525 2007-06-01 13:47:00Z scw $ */
 #include "bbs.h"
 #include "chess.h"
+#include <setjmp.h>
 
 #define assert_not_reached() assert(!"Should never be here!!!")
 #define dim(x)               (sizeof(x) / sizeof(x[0]))
@@ -25,6 +26,21 @@
 #define CONNECT_PEER() add_io(info->sock, 0)
 #define IGNORE_PEER()  add_io(0, 0)
 
+#define DO_WITHOUT_PEER(TIMEOUT,ACT,ELSE) \
+    do {                                  \
+	void (*orig_alarm_handler)(int) = \
+	    Signal(SIGALRM, &SigjmpEnv);  \
+	IGNORE_PEER();                    \
+	if(sigsetjmp(sigjmpEnv, 1))       \
+	    ELSE;                         \
+	else {                            \
+	    alarm(TIMEOUT);               \
+	    ACT;                          \
+	}                                 \
+	CONNECT_PEER();                   \
+	Signal(SIGALRM, orig_alarm_handler); \
+    } while(0)
+
 static const char * const ChessHintStr[] = {
     "  q      認輸離開",
     "  p      要求和棋",
@@ -40,15 +56,19 @@ static const struct {
     { "gomoku", 6, &gomoku_replay },
     { "chc",    3, &chc_replay },
     { "go",     2, &gochess_replay },
+    { "reversi",7, &reversi_replay },
     { NULL }
 };
 
 static ChessInfo * CurrentPlayingGameInfo;
+static sigjmp_buf sigjmpEnv;
 
 /* XXX: This is a BAD way to pass information.
  *      Fix this by handling chess request ourselves.
  */
 static ChessTimeLimit * _current_time_limit;
+
+static void SigjmpEnv(int sig) { siglongjmp(sigjmpEnv, 1); }
 
 #define CHESS_HISTORY_ENTRY(INFO,N) \
     ((INFO)->history.body + (N) * (INFO)->constants->step_entry_size)
@@ -367,6 +387,9 @@ ChessReplayUntil(ChessInfo* info, int n)
 
     /* spcial for last one to maintian information correct */
     step = ChessHistoryRetrieve(info, info->current_step);
+
+    if (info->mode == CHESS_MODE_WATCH || info->mode == CHESS_MODE_REPLAY)
+	info->turn = info->current_step & 1;
     info->actions->prepare_step(info, step);
     info->actions->apply_step(info->board, step);
     info->current_step++;
@@ -385,9 +408,9 @@ ChessAnswerRequest(ChessInfo* info, const char* req_name)
 
     snprintf(msg, sizeof(msg),
 	    "對方要求%s，是否接受?(y/N)", req_name);
-    IGNORE_PEER();
-    getdata(b_lines, 0, msg, buf, sizeof(buf), DOECHO);
-    CONNECT_PEER();
+    DO_WITHOUT_PEER(30,
+    getdata(b_lines, 0, msg, buf, sizeof(buf), DOECHO),
+    buf[0] = 'n');
     ChessDrawHelpLine(info);
 
     info->warnmsg[0] = 0;
@@ -514,13 +537,14 @@ ChessPlayFuncMy(ChessInfo* info)
 	    case 'q':
 		{
 		    char buf[4];
-		    IGNORE_PEER();
+
+		    DO_WITHOUT_PEER(30,
 		    getdata(b_lines, 0,
 			    info->mode == CHESS_MODE_PERSONAL ?
 			    "是否真的要離開?(y/N)" :
 			    "是否真的要認輸?(y/N)",
-			    buf, sizeof(buf), DOECHO);
-		    CONNECT_PEER();
+			    buf, sizeof(buf), DOECHO),
+		    buf[0] = 'n');
 		    ChessDrawHelpLine(info);
 
 		    if (buf[0] == 'y' || buf[0] == 'Y') {
@@ -541,10 +565,11 @@ ChessPlayFuncMy(ChessInfo* info)
 		    endturn = 1;
 		} else if (info->mode != CHESS_MODE_PERSONAL) {
 		    char buf[4];
-		    IGNORE_PEER();
+
+		    DO_WITHOUT_PEER(30,
 		    getdata(b_lines, 0, "是否真的要和棋?(y/N)",
-			    buf, sizeof(buf), DOECHO);
-		    CONNECT_PEER();
+			    buf, sizeof(buf), DOECHO),
+		    buf[0] = 'n');
 		    ChessDrawHelpLine(info);
 
 		    if (buf[0] == 'y' || buf[1] == 'Y') {
@@ -582,12 +607,15 @@ ChessPlayFuncMy(ChessInfo* info)
 	    case I_TIMEOUT:
 		break;
 
+	    case KEY_UNKNOWN:
+		break;
+
 	    default:
 		if (info->actions->process_key) {
-		    IGNORE_PEER();
+		    DO_WITHOUT_PEER(30,
 		    endturn =
-			info->actions->process_key(info, ch, &game_result);
-		    CONNECT_PEER();
+			info->actions->process_key(info, ch, &game_result),
+		    );
 		}
 	}
     }
@@ -625,10 +653,10 @@ ChessPlayFuncHis(ChessInfo* info)
 	    case 'q':
 		{
 		    char buf[4];
-		    IGNORE_PEER();
+		    DO_WITHOUT_PEER(30,
 		    getdata(b_lines, 0, "是否真的要認輸?(y/N)",
-			    buf, sizeof(buf), DOECHO);
-		    CONNECT_PEER();
+			    buf, sizeof(buf), DOECHO),
+		    buf[0] = 'n');
 		    ChessDrawHelpLine(info);
 
 		    if (buf[0] == 'y' || buf[0] == 'Y') {
@@ -706,12 +734,15 @@ ChessPlayFuncHis(ChessInfo* info)
 	    case I_TIMEOUT:
 		break;
 
+	    case KEY_UNKNOWN:
+		break;
+
 	    default:
 		if (info->actions->process_key) {
-		    IGNORE_PEER();
+		    DO_WITHOUT_PEER(30,
 		    endturn =
-			info->actions->process_key(info, ch, &game_result);
-		    CONNECT_PEER();
+			info->actions->process_key(info, ch, &game_result),
+		    );
 		}
 	}
     }
@@ -759,10 +790,10 @@ ChessPlayFuncWatch(ChessInfo* info)
 			result == CHESS_STEP_SPECIAL) {
 		    if (info->current_step == info->history.used - 1) {
 			/* was watching up-to-date board */
+			info->turn = info->current_step++ & 1;
 			info->actions->prepare_step(info, &info->step_tmp);
 			info->actions->apply_step(info->board, &info->step_tmp);
 			info->actions->drawstep(info, &info->step_tmp);
-			info->current_step++;
 		    }
 		} else if (result == CHESS_STEP_PASS)
 		    strcpy(info->last_movestr, "虛手");
@@ -790,10 +821,10 @@ ChessPlayFuncWatch(ChessInfo* info)
 		else {
 		    const void* step =
 			ChessHistoryRetrieve(info, info->current_step);
+		    info->turn = info->current_step++ & 1;
 		    info->actions->prepare_step(info, step);
 		    info->actions->apply_step(info->board, step);
 		    info->actions->drawstep(info, step);
-		    info->current_step++;
 		}
 		break;
 
@@ -988,6 +1019,7 @@ ChessPlay(ChessInfo* info)
     ChessGameResult game_result;
     void          (*old_handler)(int);
     const char*     game_result_str = 0;
+    sigset_t        old_sigset;
 
     if (info == NULL)
 	return;
@@ -1007,12 +1039,19 @@ ChessPlay(ChessInfo* info)
     CurrentPlayingGameInfo = info;
 
     {
+	char buf[4] = "";
 	sigset_t sigset;
-	old_handler = Signal(SIGUSR1, &ChessWatchRequest);
+
+	if(info->mode == CHESS_MODE_VERSUS)
+	    getdata(b_lines, 0, "是否接受觀棋? (Y/n)", buf, sizeof(buf), DOECHO);
+	if(buf[0] == 'n' || buf[0] == 'N')
+	    old_handler = Signal(SIGUSR1, SIG_IGN);
+	else
+	    old_handler = Signal(SIGUSR1, &ChessWatchRequest);
 
 	sigemptyset(&sigset);
 	sigaddset(&sigset, SIGUSR1);
-	sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+	sigprocmask(SIG_UNBLOCK, &sigset, &old_sigset);
     }
 
     if (info->mode == CHESS_MODE_WATCH) {
@@ -1035,13 +1074,15 @@ ChessPlay(ChessInfo* info)
     for (game_result = CHESS_RESULT_CONTINUE;
 	 game_result == CHESS_RESULT_CONTINUE;
 	 info->turn ^= 1) {
-	info->actions->prepare_play(info);
-	ChessDrawLine(info, CHESS_DRAWING_TURN_ROW);
-	ChessDrawLine(info, CHESS_DRAWING_WARN_ROW);
-	game_result = info->play_func[(int) info->turn](info);
+	if (info->actions->prepare_play(info))
+	    info->pass[(int) info->turn] = 1;
+	else {
+	    ChessDrawLine(info, CHESS_DRAWING_TURN_ROW);
+	    ChessDrawLine(info, CHESS_DRAWING_WARN_ROW);
+	    game_result = info->play_func[(int) info->turn](info);
+	}
 
-	if (info->constants->pass_is_step &&
-		info->pass[0] && info->pass[1])
+	if (info->pass[0] && info->pass[1])
 	    game_result = CHESS_RESULT_END;
     }
 
@@ -1091,8 +1132,10 @@ ChessPlay(ChessInfo* info)
     if (info->mode != CHESS_MODE_REPLAY)
 	ChessGenLog(info, game_result);
 
-    currutmp->sig = -1;
+    // currutmp->sig = -1;
+    sigprocmask(SIG_SETMASK, &old_sigset, NULL);
     Signal(SIGUSR1, old_handler);
+
     CurrentPlayingGameInfo = NULL;
 }
 
@@ -1413,8 +1456,8 @@ ChessPhotoInitial(ChessInfo* info)
 	    info->constants->turn_str[(int) info->myturn ^ 1]);
     strcpy(PHOTO(7), "           Ｖ.Ｓ           ");
     sprintf(PHOTO(8), "                               %s%2.2s棋" ANSI_RESET,
-	    info->constants->turn_color[info->myturn],
-	    info->constants->turn_str[info->myturn]);
+	    info->constants->turn_color[(int) info->myturn],
+	    info->constants->turn_str[(int) info->myturn]);
 
     fp = NULL;
     if(getuser(info->user1.userid, &xuser)) {;

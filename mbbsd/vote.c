@@ -1,4 +1,4 @@
-/* $Id: vote.c 3381 2006-07-22 04:46:30Z wens $ */
+/* $Id: vote.c 3546 2007-06-18 17:14:53Z kcwu $ */
 #include "bbs.h"
 
 #define MAX_VOTE_NR	20
@@ -909,7 +909,7 @@ user_vote_one(vote_buffer_t *vbuf, const char *bname, int ind)
 	fclose(lfp);
 	if (cuser.firstlogin > closetime || cuser.numposts < limits_posts ||
 		cuser.numlogins < limits_logins) {
-	    vmsg("你不夠資深喔！");
+	    vmsg("你不夠資深喔！ (可在看板內按大寫 I 查看限制)");
 	    return FULLUPDATE;
 	}
     }
@@ -966,9 +966,10 @@ user_vote_one(vote_buffer_t *vbuf, const char *bname, int ind)
 
 	    count = 0;
 	    for (i = 0; i < ITEM_PER_PAGE && fgets(inbuf, sizeof(inbuf), cfp); i++) {
+		chomp(inbuf);
 		move((count % 15) + 5, (count / 15) * 40);
 		prints("%c%s", chosen[curr_page * ITEM_PER_PAGE + i] ? '*' : ' ',
-			strtok(inbuf, "\n\0"));
+			inbuf);
 		choices[count % ITEM_PER_PAGE] = inbuf[0];
 		count++;
 	    }

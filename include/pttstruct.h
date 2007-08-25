@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3428 2006-09-24 09:15:01Z ptt $ */
+/* $Id: pttstruct.h 3517 2007-05-27 14:08:24Z kcwu $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -62,6 +62,7 @@ typedef struct userec_t {
     char    realname[20];	/* 真實姓名 */
     char    nickname[24];	/* 暱稱 */
     char    passwd[PASSLEN];	/* 密碼 */
+    char    padx;
     unsigned int    uflag;	/* 習慣1 */
     unsigned int    uflag2;	/* 習慣2 */
     unsigned int    userlevel;	/* 權限 */
@@ -83,11 +84,13 @@ typedef struct userec_t {
     unsigned char   state;	/* TODO unknown (unused ?) */
     unsigned char   pager;	/* 呼叫器狀態 */
     unsigned char   invisible;	/* 隱形狀態 */
+    char    padxx[2];
     unsigned int    exmailbox;	/* 購買信箱數 TODO short 就夠了 */
     chicken_t       mychicken;	/* 寵物 */
     time4_t lastsong;		/* 上次點歌時間 */
     unsigned int    loginview;	/* 進站畫面 */
     unsigned char   channel;	/* TODO unused */
+    char    padxxx;
     unsigned short  vl_count;	/* 違法記錄 ViolateLaw counter */
     unsigned short  five_win;	/* 五子棋戰績 勝 */
     unsigned short  five_lose;	/* 五子棋戰績 敗 */
@@ -97,9 +100,9 @@ typedef struct userec_t {
     unsigned short  chc_tie;	/* 象棋戰績 和 */
     int     mobile;		/* 手機號碼 */
     char    mind[4];		/* 心情 not a null-terminate string */
-    unsigned short  go_win;	/* 圍祺戰績 勝 */
-    unsigned short  go_lose;	/* 圍祺戰績 敗 */
-    unsigned short  go_tie;	/* 圍祺戰績 和 */
+    unsigned short  go_win;	/* 圍棋戰績 勝 */
+    unsigned short  go_lose;	/* 圍棋戰績 敗 */
+    unsigned short  go_tie;	/* 圍棋戰績 和 */
     char    pad0[5];		/* 從前放 ident 身份證字號，現在可以拿來做別的事了，
 				   不過最好記得要先清成 0 */
     unsigned char   signature;	/* 慣用簽名檔 */
@@ -109,11 +112,12 @@ typedef struct userec_t {
     unsigned char   goodsale;	/* 競標 好的評價  */
     unsigned char   badsale;	/* 競標 壞的評價  */
     char    myangel[IDLEN+1];	/* 我的小天使 */
+    char    pad2;
     unsigned short  chess_elo_rating;	/* 象棋等級分 */
     unsigned int    withme;	/* 我想找人下棋，聊天.... */
     time4_t timeremovebadpost;  /* 上次刪除劣文時間 */
     time4_t timeviolatelaw; /* 被開罰單時間 */
-    char    pad[26];
+    char    pad[28];
 } userec_t;
 /* these are flags in userec_t.uflag */
 #define PAGER_FLAG      0x4     /* true if pager was OFF last session */
@@ -176,6 +180,7 @@ typedef struct boardheader_t {
     char    brdname[IDLEN + 1];          /* bid */
     char    title[BTLEN + 1];
     char    BM[IDLEN * 3 + 3];           /* BMs' userid, token '/' */
+    char    pad1[3];
     unsigned int    brdattr;             /* board的屬性 */
     char    chesscountry;
     unsigned char   vote_limit_posts;    /* 連署 : 文章篇數下限 */
@@ -257,6 +262,7 @@ typedef struct fileheader_t {
     char    date[6];                 /* [02/02] or space(5) */
     char    title[TTLEN + 1];
     /* TODO this multi is a mess now. */
+    char    pad2;
     union {
 	/* TODO: MOVE money to outside multi!!!!!! */
 	int money;
@@ -276,6 +282,7 @@ typedef struct fileheader_t {
     }	    multi;		    /* rocker: if bit32 on ==> reference */
     /* XXX dirty, split into flag and money if money of each file is less than 16bit? */
     unsigned char   filemode;        /* must be last field @ boards.c */
+    char    pad3[3];
 } fileheader_t;
 
 #define FILE_LOCAL      0x1     /* local saved,  non-mail */
@@ -559,16 +566,19 @@ typedef struct {
     time4_t close_vote_time;
 
     /* pttcache */
-    char    notes[MAX_MOVIE][200*11];
+    char    notes[MAX_MOVIE][256*11];
     char    gap_18[sizeof(int)];
     char    today_is[20];
-    int     n_notes[MAX_MOVIE_SECTION];      /* 一節中有幾個 看板 */
+    // FIXME remove it
+    int     __never_used__n_notes[MAX_MOVIE_SECTION];      /* 一節中有幾個 看板 */
     char    gap_19[sizeof(int)];
-    int     next_refresh[MAX_MOVIE_SECTION]; /* 下一次要refresh的 看板 */
+    // FIXME remove it
+    int     __never_used__next_refresh[MAX_MOVIE_SECTION]; /* 下一次要refresh的 看板 */
     char    gap_20[sizeof(int)];
     msgque_t loginmsg;  /* 進站水球 */
-    int     max_film;
-    int     max_history;
+    int     last_film;
+    // FIXME remove it
+    int     __never_used__max_history;
     time4_t Puptime;
     time4_t Ptouchtime;
     int     Pbusystate;
@@ -584,6 +594,7 @@ typedef struct {
 	    time4_t now;
 #endif
 	    int     nWelcomes;
+	    int     shutdown;     /* shutdown flag */
 
 	    /* 注意, 應保持 align sizeof(int) */
 	} e;
@@ -640,6 +651,12 @@ typedef struct word_t {
     char    *word;
     struct  word_t  *next;
 } word_t;
+
+struct NameList {
+    int size;
+    int capacity;
+    char (*base)[IDLEN+1];
+};
 
 typedef struct commands_t {
     int     (*cmdfunc)();

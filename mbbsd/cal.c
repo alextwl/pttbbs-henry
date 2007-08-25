@@ -1,4 +1,4 @@
-/* $Id: cal.c 3298 2006-03-22 17:58:52Z kcwu $ */
+/* $Id: cal.c 3495 2007-03-26 02:47:21Z victor $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -209,7 +209,7 @@ osong(void)
 	}
 	while ((po = strstr(buf, "<~Src~>"))) {
 	    const char *dot = "";
-	    if (strcmp(sender, cuser.userid) != 0)
+	    if (is_validuserid(sender) && strcmp(sender, cuser.userid) != 0)
 		dot = ".";
 	    po[0] = 0;
 	    snprintf(genbuf, sizeof(genbuf), "%s%s%s%s", buf, sender, dot, po + 7);
@@ -233,13 +233,15 @@ osong(void)
     fclose(fp1);
     fclose(fp);
 
+    log_file("etc/osong.log",  LOG_CREAT | LOG_VF, "id: %-12s ◇ %s 點給 %s : \"%s\", 轉寄至 %s\n", cuser.userid, sender, receiver, say, address, ctime4(&now));
 
     if (append_record(OSONGPATH "/.DIR", &mail, sizeof(mail)) != -1) {
 	cuser.lastsong = now;
-	/* Jaky 超過 500 首歌就開始砍 */
+	/* Jaky 超過 MAX_MOVIE 首歌就開始砍 */
 	nsongs = get_num_records(OSONGPATH "/.DIR", sizeof(mail));
-	if (nsongs > 500) {
-	    delete_range(OSONGPATH "/.DIR", 1, nsongs - 500);
+	if (nsongs > MAX_MOVIE) {
+	    // XXX race condition
+	    delete_range(OSONGPATH "/.DIR", 1, nsongs - MAX_MOVIE);
 	}
 	snprintf(genbuf, sizeof(genbuf), "%s says \"%s\" to %s.", sender, say, receiver);
 	log_usies("OSONG", genbuf);

@@ -1,4 +1,4 @@
-/* $Id: config.h 3056 2005-08-17 16:42:57Z piaip $ */
+/* $Id: config.h 3455 2006-12-19 08:17:21Z scw $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -31,6 +31,10 @@
 
 #ifndef MAX_ACTIVE
 #define MAX_ACTIVE        (1024)         /* 程计 */
+#endif
+
+#ifndef MAX_GUEST
+#define MAX_GUEST         (100)          /* 程 guest 计 */
 #endif
 
 #ifndef MAX_CPULOAD
@@ -138,7 +142,7 @@
 #endif
 
 #ifndef INNTIMEZONE
-#define INNTIMEZONE       "+0800 (CST)"
+#define INNTIMEZONE       "+0000 (UTC)"
 #endif
 
 #ifndef ADD_EXMAILBOX
@@ -156,7 +160,7 @@
 #define MAX_FRIEND        (256)          /* 更 cache ぇ程狟ね计ヘ */
 #define MAX_REJECT        (32)           /* 更 cache ぇ程胊计ヘ */
 #define MAX_MSGS          (10)           /* 瞴(荐癟)г瑻 */
-#define MAX_MOVIE         (999)          /* 程笆篈狾计 */
+#define MAX_MOVIE         (500)          /* 程笆篈狾计 */
 #define MAX_MOVIE_SECTION (10)		 /* 程笆篈狾摸 */
 #define MAX_ITEMS         (1000)         /* ヘ魁程Τ碭兜 */
 #define MAX_HISTORY       (12)           /* 笆篈狾玂 12 掸菌癘魁 */

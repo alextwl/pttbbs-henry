@@ -1,4 +1,4 @@
-/* $Id: account.c 2993 2005-08-05 16:54:29Z piaip $ */
+/* $Id: account.c 3511 2007-05-04 04:21:34Z victor $ */
 #include "bbs.h"
 
 // test
@@ -14,13 +14,13 @@ reset_garbage(void)
 	    SHM->Ptouchtime = 1;
     }
     /*
-     * 不整個reload? for(n=0;n<=SHM->max_film;n++) printf("\n**%d**\n %s
+     * 不整個reload? for(n=0;n<=SHM->last_film;n++) printf("\n**%d**\n %s
      * \n",n,SHM->notes[n]);
      */
     SHM->Puptime = 0;
     reload_pttcache();
 
-    printf("\n動態看板數[%d]\n", SHM->max_film);
+    printf("\n動態看板數[%d]\n", SHM->last_film);
     /*
      * for(n=0; n<MAX_MOVIE_SECTION; n++) printf("sec%d=> 起點:%d
      * 下次要換的:%d\n ",n,SHM->n_notes[n], SHM->next_refresh[n]);
@@ -155,6 +155,7 @@ main(int argc, char **argv)
 	keeplog("etc/today", "Record", "上站人次統計", NULL);
 	keeplog(FN_MONEY, "Security", "本日金錢往來記錄", NULL);
 	keeplog("etc/illegal_money", "Security", "本日違法賺錢記錄", NULL);
+	keeplog("etc/osong.log", "Security", "本日點歌記錄", NULL);
 	keeplog("etc/chicken", "Record", "雞場報告", NULL);
     }
     printf("上站人次統計\n");

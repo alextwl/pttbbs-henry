@@ -1,4 +1,4 @@
-# $Id: Makefile 3399 2006-08-21 15:58:46Z wens $
+# $Id: Makefile 3537 2007-06-09 19:32:19Z kcwu $
 
 .include "../pttbbs.mk"
 
@@ -9,35 +9,33 @@ BBSBASE=	../include/var.h
 UTIL_OBJS=	\
 	util_cache.o	util_record.o	util_passwd.o	util_var.o	\
 	util_stuff.o	util_osdep.o	util_args.o	util_file.o	\
-	util_crypt.o
+	util_crypt.o	util_calendar.o
 
 MBBSD_OBJS= \
 	cache		record		passwd		var		\
 	stuff		osdep		args		file		\
-	crypt
+	crypt		calendar
 
 # 下面這些程式, 會被 compile 並且和 $(UTIL_OBJS) 聯結
 CPROG_WITH_UTIL= \
 	boardlist	BM_money	post		poststat	\
 	jungo		account		birth		deluserfile	\
 	expire		mandex		horoscope	broadcast	\
-	openvice	parse_news	openticket	topusr		\
+	openvice	openticket	topusr		\
 	yearsold	toplazyBM	toplazyBBM	writemoney	\
 	reaper		buildAnnounce	inndBM		mailangel	\
-	outmail		chkhbf		checkmoney      merge_dir       \
-	transman	angel		gamblegive	checkdir	\
+	outmail		chkhbf		merge_dir	\
+	transman	angel		gamblegive	wretch_man	\
 	chesscountry	tunepasswd	buildir		xchatd
 
 # 下面這些程式, 會直接被 compile
 CPROG_WITHOUT_UTIL= \
-	uhash_loader	showboard	\
-	countalldice	bbsrf		initbbs		\
-	userlist	merge_passwd	\
-	merge_board	bbsmail         gamble_fix
+	uhash_loader	showboard	countalldice	bbsrf		\
+	initbbs		userlist	merge_board	bbsmail
 
 # 下面這些程式會被 install
 PROGS=	${CPROG_WITH_UTIL}		${CPROG_WITHOUT_UTIL}		\
-	shmctl \
+	shmctl	\
 	BM_money.sh	backpasswd.sh	mailog.sh	opendice.sh	\
 	openticket.sh	stock.sh	topsong.sh	weather.sh	\
 	stock.perl	weather.perl	toplazyBM.sh	toplazyBBM.sh	\

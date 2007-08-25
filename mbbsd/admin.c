@@ -1,4 +1,4 @@
-/* $Id: admin.c 3395 2006-07-30 13:02:46Z scw $ */
+/* $Id: admin.c 3508 2007-05-02 03:39:36Z victor $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -138,7 +138,9 @@ search_key_user(const char *passwdfile, int mode)
 	    refresh();
 
 	    user_display(&user, 1);
-	    uinfo_query(&user, 1, coun);
+	    if (HasUserPerm(PERM_ACCOUNTS))
+		uinfo_query(&user, 1, coun);
+
 	    outs(ANSI_COLOR(44) "               空白鍵" \
 		 ANSI_COLOR(37) ":搜尋下一個          " \
 		 ANSI_COLOR(33)" Q" ANSI_COLOR(37)": 離開");
@@ -682,8 +684,8 @@ m_board(void)
 int
 x_file(void)
 {
-    int             aborted;
-    char            ans[4], *fpath;
+    int             aborted, num;
+    char            ans[4], *fpath, buf[256];
 
     move(b_lines - 7, 0);
     /* Ptt */
@@ -789,7 +791,14 @@ x_file(void)
 	fpath = "etc/Logout";
 	break;
     case 'k':
-	fpath = "etc/Welcome_birth";
+	mouts(b_lines - 3, 0, "1.摩羯  2.水瓶  3.雙魚  4.牡羊  5.金牛  6.雙子");
+	mouts(b_lines - 2, 0, "7.巨蟹  8.獅子  9.處女 10.天秤 11.天蠍 12.射手");
+	getdata(b_lines - 1, 0, "請選擇 [1-12]", ans, sizeof(ans), LCECHO);
+	num = atoi(ans);
+	if (num <= 0 || num > 12)
+	    return FULLUPDATE;
+	snprintf(buf, sizeof(buf), "etc/Welcome_birth.%d", num);
+	fpath = buf;
 	break;
     case 'l':
 	fpath = "etc/feast";

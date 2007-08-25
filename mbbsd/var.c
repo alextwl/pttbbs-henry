@@ -1,4 +1,4 @@
-/* $Id: var.c 3420 2006-09-16 18:46:36Z kcwu $ */
+/* $Id: var.c 3542 2007-06-12 14:59:46Z kcwu $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -35,7 +35,7 @@ const char * const str_permid[] = {
     "程式組",			/* PERM_PRG */
     "活動組",			/* PERM_ACTION */
     "美工組",			/* PERM_PAINT */
-    "立法組",			/* PERM_LAW */
+    "警察總管",			/* PERM_POLICE_MAN */
     "小組長",			/* PERM_SYSSUBOP */
     "退休站長",			/* PERM_OLDSYSOP */
     "警察"			/* PERM_POLICE */
@@ -363,10 +363,6 @@ SHM_t          *SHM;
 boardheader_t  *bcache;
 userinfo_t     *currutmp;
 
-/* brc.c */
-int             brc_num;
-time4_t         brc_list[BRC_MAXNUM];
-
 /* read.c */
 int             TagNum;			/* tag's number */
 int		TagBoard = -1;		/* TagBoard = 0 : user's mailbox */
@@ -606,7 +602,7 @@ word_t         *toplev;
 #ifndef _BBS_UTIL_C_
 /* menu.c */
 const commands_t      cmdlist[] = {
-    {admin, PERM_SYSOP|PERM_ACCOUNTS|PERM_BOARD|PERM_VIEWSYSOP|PERM_ACCTREG, 
+    {admin, PERM_SYSOP|PERM_ACCOUNTS|PERM_BOARD|PERM_VIEWSYSOP|PERM_ACCTREG|PERM_POLICE_MAN, 
 				"00Admin       【 系統維護區 】"},
     {Announce,	0,		"AAnnounce     【 精華公佈欄 】"},
 #ifdef DEBUG

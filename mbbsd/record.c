@@ -1,4 +1,4 @@
-/* $Id: record.c 3427 2006-09-24 09:13:19Z ptt $ */
+/* $Id: record.c 3475 2007-01-18 09:13:53Z ptt $ */
 
 #include "bbs.h"
 
@@ -132,41 +132,13 @@ substitute_record(const char *fpath, const void *rptr, int size, int id)
     return 0;
 }
 
-int
-substitute_ref_record(const char *direct, fileheader_t * fhdr, int ent)
-{
-    fileheader_t    hdr;
-    char            fname[PATHLEN];
-    int             num = 0;
-
-    /* rocker.011018: 串接模式用reference增進效率 */
-    if (!(fhdr->filemode & FILE_BOTTOM) &&  (fhdr->multi.refer.flag) &&
-	    (num = fhdr->multi.refer.ref)){
-	setdirpath(fname, direct, ".DIR");
-	get_record(fname, &hdr, sizeof(hdr), num);
-	if (strcmp(hdr.filename, fhdr->filename)) {
-	    if((num = getindex(fname, fhdr, num))>0) {
-		substitute_record(fname, fhdr, sizeof(*fhdr), num);
-	    }
-	}
-	else if(num>0) {
-	    fhdr->multi.money = hdr.multi.money;
-	    substitute_record(fname, fhdr, sizeof(*fhdr), num);
-	}
-	fhdr->multi.refer.flag = 1;
-	fhdr->multi.refer.ref = num; // Ptt: update now!
-    }
-    substitute_record(direct, fhdr, sizeof(*fhdr), ent);
-    return num;
-}
-
 /* return index>0 if thisstamp==stamp[index], 
  * return -index<0 if stamp[index-1]<thisstamp<stamp[index+1], XXX thisstamp ?<>? stamp[index]
  * 			or XXX filename[index]=""
  * return 0 if error
  */
 int
-getindex(const char *direct, fileheader_t *fhdr, int end)
+getindex_m(const char *direct, fileheader_t *fhdr, int end, int isloadmoney)
 { // Ptt: 從前面找很費力 太暴力
     int             fd = -1, begin = 1, i, s, times, stamp;
     fileheader_t    fh;
@@ -186,7 +158,8 @@ getindex(const char *direct, fileheader_t *fhdr, int end)
 	    end = i - 1;
 	else if( s == stamp ){
 	    close(fd);
-	    fhdr->multi.money = fh.multi.money; 
+	    if(isloadmoney)
+ 	       fhdr->multi.money = fh.multi.money; 
 	    return i;
 	}
         else
@@ -201,6 +174,40 @@ getindex(const char *direct, fileheader_t *fhdr, int end)
     if( fd != -1 )
 	close(fd);
     return 0;
+}
+
+inline int
+getindex(const char *direct, fileheader_t *fhdr, int end)
+{
+  return getindex_m(direct, fhdr, end, 0);
+}
+
+int
+substitute_ref_record(const char *direct, fileheader_t * fhdr, int ent)
+{
+    fileheader_t    hdr;
+    char            fname[PATHLEN];
+    int             num = 0;
+
+    /* rocker.011018: 串接模式用reference增進效率 */
+    if (!(fhdr->filemode & FILE_BOTTOM) &&  (fhdr->multi.refer.flag) &&
+	    (num = fhdr->multi.refer.ref)){
+	setdirpath(fname, direct, ".DIR");
+	get_record(fname, &hdr, sizeof(hdr), num);
+	if (strcmp(hdr.filename, fhdr->filename)) {
+	    if((num = getindex_m(fname, fhdr, num, 1))>0) {
+		substitute_record(fname, fhdr, sizeof(*fhdr), num);
+	    }
+	}
+	else if(num>0) {
+	    fhdr->multi.money = hdr.multi.money;
+	    substitute_record(fname, fhdr, sizeof(*fhdr), num);
+	}
+	fhdr->multi.refer.flag = 1;
+	fhdr->multi.refer.ref = num; // Ptt: update now!
+    }
+    substitute_record(direct, fhdr, sizeof(*fhdr), ent);
+    return num;
 }
 
 
@@ -463,7 +470,9 @@ apply_record(const char *fpath, int (*fptr) (void *item, void *optarg), int size
 
 /* mail / post 時，依據時間建立檔案，加上郵戳 */
 int
-stampfile(char *fpath, fileheader_t * fh)
+stampfile_u(char *fpath, fileheader_t * fh) 
+  // Ptt: stampfile_u: won't clear fileheader
+  //      stampfile: will clear fileheader
 {
     register char  *ip = fpath;
     time4_t          dtime = COMMON_TIME;
@@ -488,12 +497,18 @@ stampfile(char *fpath, fileheader_t * fh)
    } while ((fp = open(fpath, O_CREAT | O_EXCL | O_WRONLY, 0644)) == -1);
     close(fp);
 #endif
-    memset(fh, 0, sizeof(fileheader_t));
     strlcpy(fh->filename, ip, sizeof(fh->filename));
     ptime = localtime4(&dtime);
     snprintf(fh->date, sizeof(fh->date),
 	     "%2d/%02d", ptime->tm_mon + 1, ptime->tm_mday);
     return 0;
+}
+
+inline int
+stampfile(char *fpath, fileheader_t * fh)
+{
+  memset(fh, 0, sizeof(fileheader_t));
+  return stampfile_u(fpath, fh);
 }
 
 void

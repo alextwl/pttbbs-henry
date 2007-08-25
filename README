@@ -1,5 +1,5 @@
 文章的版號及最後編修時間是:
-$Id: README 2724 2005-05-16 18:19:30Z kcwu $
+$Id: README 3539 2007-06-10 15:27:48Z kcwu $
 
 快速安裝請參考 docs/INSTALL 以及 docs/FAQ
 詳細文件請見 docs/
@@ -28,5 +28,3 @@ $Id: README 2724 2005-05-16 18:19:30Z kcwu $
 	include/		include 檔
 	innbbsd/		轉信
 	mbbsd/			bbs 主程式
-	mbbsd.icc/		提供使用 icc來編譯所須要的 Makefile
-	pttpi/			Ptt Programming Interface

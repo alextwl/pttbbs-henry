@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3404 2006-08-31 06:38:40Z wens $ */
+/* $Id: stuff.c 3547 2007-06-18 17:15:17Z kcwu $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -708,14 +708,14 @@ int
 show_file(const char *filename, int y, int lines, int mode)
 {
     FILE           *fp;
-    char            buf[256];
+    char            buf[1024];
 
     if (y >= 0)
 	move(y, 0);
     clrtoline(lines + y);
     if ((fp = fopen(filename, "r"))) {
 	while (fgets(buf, sizeof(buf), fp) && lines--)
-	    outs(Ptt_prints(buf, mode));
+	    outs(Ptt_prints(buf, sizeof(buf), mode));
 	fclose(fp);
     } else
 	return 0;
@@ -784,7 +784,7 @@ search_num(int ch, int max)
 }
 
 /**
- * 在瑩幕左上角 show 出 "【title】"
+ * 在螢幕左上角 show 出 "【title】"
  * @param title
  */
 void

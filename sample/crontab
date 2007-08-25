@@ -12,7 +12,6 @@
 1	*	*	*	*	bin/account
 
 # 每個小時 10 分執行熱門話題統計
-#50	*	*	*	*	bin/parse_news
 10	*	*	*	*	bin/poststat /home/bbs
 
 # 每天 5:30 執行使用者排行榜更新
@@ -115,3 +114,6 @@
 20	21	*	*	*	bin/shmctl utmpfix -t 3600
 30,40,50 21	*	*	*	bin/shmctl utmpfix -t 1800
 */20 22,23,0,1	*	*	*	bin/shmctl utmpfix -t 1200
+
+# 如果開啟 LOGPOST 的話需順便開這個, 每天 rotate log
+#0	6	*	*	*	/bin/mv log/post log/post.old

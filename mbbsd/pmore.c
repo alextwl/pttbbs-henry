@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3414 2006-09-16 18:41:55Z kcwu $ */
+/* $Id: pmore.c 3549 2007-07-09 01:47:20Z scw $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -809,7 +809,16 @@ mf_parseHeaders()
 
 	// p is pointing at a new line. (\n)
 	l = (int)(p - pb);
+#ifdef CRITICAL_MEMORY
+	// kcwu: dirty hack, avoid 64byte slot. use 128byte slot instead.
+	if (l<100) {
+	    p = (unsigned char*) malloc (100+1);
+	} else {
+	    p = (unsigned char*) malloc (l+1);
+	}
+#else
 	p = (unsigned char*) malloc (l+1);
+#endif
 	fh.headers[i] = p;
 	memcpy(p, pb, l);
 	p[l] = 0;
@@ -1248,7 +1257,7 @@ mf_display()
 				override_msg = " 注意: 此頁有控制碼,"
 				    "原內容並不一定有您真實個人資訊";
 			    }
-			    Ptt_prints(buf, NO_RELOAD); // result in buf
+			    Ptt_prints(buf, sizeof(buf), NO_RELOAD); // result in buf
 			}
 			i = strlen(buf);
 
@@ -1514,7 +1523,7 @@ static const char    * const pmore_help[] = {
     "(t/[-/]+)             主題式閱\讀:循序/前/後篇",
     "(\\/|)                 切換顯示原始內容", // this IS already aligned!
     "(w/W/l)               切換自動斷行/斷行符號/分隔線顯示方式",
-    "(p/o)                 播放動畫/切換傳統模式(狀態列與斷行方式)",
+    "(p/z/o)               播放動畫/棋局打譜/切換傳統模式(狀態列與斷行方式)",
     "(q/←) (h/H/?/F1)     結束/本說明畫面",
 #ifdef DEBUG
     "(d)                   切換除錯(debug)模式",
@@ -2169,7 +2178,9 @@ pmore(char *fpath, int promptend)
 
 	    case 'E':
 		// admin edit any files other than ve help file
-		if (HasUserPerm(PERM_SYSOP) && strcmp(fpath, "etc/ve.hlp")) {
+		// and posts in Security board
+		if (HasUserPerm(PERM_SYSOP) && strcmp(fpath, "etc/ve.hlp") &&
+			strcmp(currboard, "Security")){
 		    mf_detach();
 		    vedit(fpath, NA, NULL);
 		    REENTRANT_RESTORE();

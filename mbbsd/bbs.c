@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3436 2006-10-01 14:10:36Z wens $ */
+/* $Id: bbs.c 3542 2007-06-12 14:59:46Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -68,13 +68,15 @@ anticrosspost(void)
              ANSI_COLOR(37;45) "cross post 文章 "
              ANSI_COLOR(37) " %s" ANSI_RESET "\n", 
              cuser.userid, ctime4(&now));
-    kick_all(cuser.userid);
     post_violatelaw(cuser.userid, "山城系統警察", "Cross-post", "罰單處份");
     cuser.userlevel |= PERM_VIOLATELAW;
     cuser.timeviolatelaw = now;
     cuser.vl_count++;
     mail_id(cuser.userid, "Cross-Post罰單",
 	    "etc/crosspost.txt", "山城警察部隊");
+    if ((now - cuser.firstlogin) / 86400 < 14)
+	delete_allpost(cuser.userid);
+    kick_all(cuser.userid); // XXX: in2: wait for testing
     u_exit("Cross Post");
     exit(0);
 }
@@ -153,7 +155,6 @@ set_board(void)
 {
     boardheader_t  *bp;
 
-    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
     bp = getbcache(currbid);
     if( !HasBoardPerm(bp) ){
 	vmsg("access control violation, exit");
@@ -212,7 +213,9 @@ set_board(void)
     }
 }
 
-/* check post perm on demand, no double checks in current board */
+/* check post perm on demand, no double checks in current board
+ * currboard MUST be defined!
+ * XXX can we replace currboard with currbid ? */
 int
 CheckPostPerm(void)
 {
@@ -242,7 +245,6 @@ CheckPostPerm(void)
 	if(!valid_index)
 	{
 	    last_board_index = getbnum(currboard);
-	    assert(0<=last_board_index-1 && last_board_index-1<MAX_BOARD);
 	    bp = getbcache(last_board_index);
 	}
 	last_chk_time = bp->perm_reload;
@@ -301,7 +303,7 @@ readdoent(int num, fileheader_t * ent)
     char           *mark, *title,
                     color, special = 0, isonline = 0, recom[8];
     userinfo_t     *uentp;
-    type = brc_unread(ent->filename, brc_num, brc_list) ? '+' : ' ';
+    type = brc_unread(currbid, ent->filename) ? '+' : ' ';
     if ((currmode & MODE_BOARD) && (ent->filemode & FILE_DIGEST))
 	type = (type == ' ') ? '*' : '#';
     else if (currmode & MODE_BOARD || HasUserPerm(PERM_LOGINOK)) {
@@ -510,10 +512,10 @@ cancelpost(const fileheader_t *fh, int by_BM, char *newpath)
     if ((fin = fopen(fn1, "r"))) {
 	brd = by_BM ? "deleted" : "junk";
 
+        memcpy(&postfile, fh, sizeof(fileheader_t));
 	setbpath(newpath, brd);
-	stampfile(newpath, &postfile);
-	memcpy(postfile.owner, fh->owner, IDLEN + TTLEN + 10);
-
+	stampfile_u(newpath, &postfile);
+	
 	nick[0] = '\0';
 	while (fgets(genbuf, sizeof(genbuf), fin)) {
 	    if (!strncmp(genbuf, str_author1, LEN_AUTHOR1) ||
@@ -541,6 +543,90 @@ cancelpost(const fileheader_t *fh, int by_BM, char *newpath)
 	setbdir(genbuf, brd);
 	setbtotal(getbnum(brd));
 	append_record(genbuf, &postfile, sizeof(postfile));
+    }
+}
+
+static void
+do_deleteCrossPost(const fileheader_t *fh, char bname[])
+{
+    char bdir[MAXPATHLEN]="", file[MAXPATHLEN]="";
+    fileheader_t newfh;
+    if(!bname || !fh) return;
+
+    int i, bid = getbnum(bname);
+    if(bid <=0 || !fh->filename[0]) return;
+
+    boardheader_t  *bp = getbcache(bid);
+    if(!bp) return;
+
+    setbdir(bdir, bname);
+    setbfile(file, bname, fh->filename);
+    memcpy(&newfh, fh, sizeof(fileheader_t)); 
+    // Ptt: protect original fh 
+    // because getindex safe_article_delete will change fh in some case
+    if( (i=getindex(bdir, &newfh, 0))>0)
+    {
+#ifdef SAFE_ARTICLE_DELETE
+        if(bp && !(currmode & MODE_DIGEST) && bp->nuser > 30 )
+	        safe_article_delete(i, &newfh, bdir);
+        else
+#endif
+                delete_record(bdir, sizeof(fileheader_t), i);
+	unlink(file);
+	setbtotal(bid);
+    }
+}
+
+static void
+deleteCrossPost(const fileheader_t *fh, char *bname)
+{
+    if(!fh || !fh->filename[0]) return;
+
+    if(!strcmp(bname, ALLPOST) || !strcmp(bname, "NEWIDPOST") ||
+       !strcmp(bname, ALLHIDPOST) || !strcmp(bname, "UnAnonymous"))
+    {
+        int len=0;
+	char xbname[TTLEN + 1], *po = strrchr(fh->title, '.');
+	if(!po) return;
+	po++;
+        len = (int) strlen(po)-2;
+
+	if(len > TTLEN) return;
+	sprintf(xbname, "%.*s", len, po);
+	do_deleteCrossPost(fh, xbname);
+    }
+    else
+    {
+	do_deleteCrossPost(fh, ALLPOST);
+    }
+}
+
+void
+delete_allpost(char *userid)
+{
+    fileheader_t fhdr;
+    int     fd, i;
+    char    bdir[MAXPATHLEN]="", file[MAXPATHLEN]="";
+
+    if(!userid) return;
+
+    setbdir(bdir, ALLPOST);
+    if( (fd = open(bdir, O_RDWR)) != -1) 
+    {
+       for(i=0; read(fd, &fhdr, sizeof(fileheader_t)) >0; i++){
+           if(strcmp(fhdr.owner, userid))
+             continue;
+           deleteCrossPost(&fhdr, ALLPOST);
+	   setbfile(file, ALLPOST, fhdr.filename);
+	   unlink(file);
+
+           sprintf(fhdr.title, "(本文已被刪除)");
+           strcpy(fhdr.filename, ".deleted");
+           strcpy(fhdr.owner, "-");
+           lseek(fd, sizeof(fileheader_t) * i, SEEK_SET);
+           write(fd, &fhdr, sizeof(fileheader_t));
+       }
+       close(fd);
     }
 }
 
@@ -593,9 +679,12 @@ do_crosspost(const char *brd, fileheader_t *postfile, const char *fpath,
     char            genbuf[200];
     int             len = 42-strlen(currboard);
     fileheader_t    fh;
+    int bid = getbnum(brd);
+
+    if(bid <= 0 || bid > MAX_BOARD) return;
+
     if(!strncasecmp(postfile->title, str_reply, 3))
         len=len+4;
-
 
     memcpy(&fh, postfile, sizeof(fileheader_t));
     if(isstamp) 
@@ -615,8 +704,6 @@ do_crosspost(const char *brd, fileheader_t *postfile, const char *fpath,
     postfile->filemode = FILE_LOCAL;
     setbdir(genbuf, brd);
     if (append_record(genbuf, &fh, sizeof(fileheader_t)) != -1) {
-	int bid = getbnum(brd);
-	assert(0<=bid-1 && bid-1<MAX_BOARD);
 	SHM->lastposttime[bid - 1] = now;
 	touchbpostnum(bid, 1);
     }
@@ -714,7 +801,7 @@ do_general(int isbid)
 	    cuser.numlogins < ((unsigned int)(bcache[currbid - 1].post_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[currbid - 1].post_limit_posts) * 10)) ) {
 	move(5, 10);
-	vmsg("你不夠資深喔！");
+	vmsg("你不夠資深喔！ (可按大寫 I 查看限制)");
 	return FULLUPDATE;
     }
 #ifdef USE_COOLDOWN
@@ -773,6 +860,11 @@ do_general(int isbid)
 	}
 	getdata_buf(22, 0, "標題：", save_title, TTLEN, DOECHO);
 	strip_ansi(save_title, save_title, STRIP_ALL);
+	if( strcmp(save_title, "[711iB] 增加上站次數程式") == 0 ){
+	    cuser.userlevel |= PERM_VIOLATELAW;
+	    sleep(60);
+	    u_exit("bad program");
+	}
     }
     if (save_title[0] == '\0')
 	return FULLUPDATE;
@@ -861,7 +953,28 @@ do_general(int isbid)
 	append_record(genbuf,(void*) &bidinfo, sizeof(bidinfo));
 	postfile.filemode |= FILE_BID ;
     }
-    if (append_record(buf, &postfile, sizeof(postfile)) != -1) {
+    strcpy(genbuf, fpath);
+    setbpath(fpath, currboard);
+    stampfile_u(fpath, &postfile);   
+    // Ptt: stamp file again to make it order
+    //      fix the bug that search failure in getindex
+    //      stampfile_u is used when you don't want to clear other fields
+    if (append_record(buf, &postfile, sizeof(postfile)) == -1)
+    {
+        unlink(genbuf);
+    }
+    else
+    {
+        rename(genbuf, fpath);
+#ifdef LOGPOST
+	{
+            FILE    *fp = fopen("log/post", "a");
+            fprintf(fp, "%d %s boards/%c/%s/%s\n",
+                    now, cuser.userid, currboard[0], currboard,
+                    postfile.filename);
+            fclose(fp);
+        }
+#endif
 	setbtotal(currbid);
 
 	if( currmode & MODE_SELECT )
@@ -892,19 +1005,18 @@ do_general(int isbid)
 	if (aborted > MAX_POST_MONEY)
 	    aborted = MAX_POST_MONEY;
 #endif
-	if (strcmp(currboard, "Test") && !ifuseanony) {
+	if (strcmp(currboard, "Test") && !ifuseanony &&
+	    !(currbrdattr&BRD_BAD)) {
 	    prints("這是您的第 %d 篇文章。",++cuser.numposts);
             if(postfile.filemode&FILE_BID)
                 outs("招標文章沒有稿酬。");
-            else if(currbrdattr&BRD_BAD)
-                outs("違法改進中看板沒有稿酬。");
             else
               {
                 prints(" 稿酬 %d 銀。",aborted);
                 demoney(aborted);    
               }
 	} else
-	    outs("測試信件不列入紀錄，敬請包涵。");
+	    outs("不列入紀錄，敬請包涵。");
 
 	/* 回應到原作者信箱 */
 
@@ -941,11 +1053,11 @@ do_general(int isbid)
             do_crosspost("UnAnonymous", &postfile, fpath, 0);
 #ifdef USE_COOLDOWN
         if(bp->nuser>30)
-          {
-	   if (cooldowntimeof(usernum)<now)
-	      add_cooldowntime(usernum, 5);
-           add_posttimes(usernum, 1);
-          }
+	{
+	    if (cooldowntimeof(usernum)<now)
+		add_cooldowntime(usernum, 5);
+	}
+	add_posttimes(usernum, 1);
 #endif
     }
     pressanykey();
@@ -1322,10 +1434,6 @@ cross_post(int ent, fileheader_t * fhdr, const char *direct)
     int             author;
     boardheader_t  *bp;
 
-    if (!CheckPostPerm()) {
-	vmsg("對不起，您目前無法轉錄文章！");
-	return FULLUPDATE;
-    }
     move(2, 0);
     clrtoeol();
     move(1, 0);
@@ -1365,7 +1473,7 @@ cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	    cuser.badpost > (255 - (unsigned int)(bcache[author - 1].post_limit_badpost)) ||
 	    cuser.numlogins < ((unsigned int)(bcache[author - 1].post_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[author - 1].post_limit_posts) * 10)) ) {
-	vmsg("你不夠資深喔！");
+	vmsg("你不夠資深喔！ (可在目的看板內按大寫 I 查看限制)");
 	return FULLUPDATE;
     }
 
@@ -1504,14 +1612,19 @@ cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	    outgo_post(&xfile, xboard, cuser.userid, cuser.nickname);
 #ifdef USE_COOLDOWN
         if(bp->nuser>30)
-          {
-           if (cooldowntimeof(usernum)<now)
-              add_cooldowntime(usernum, 5);
-           add_posttimes(usernum, 1);
-          }
+	{
+	    if (cooldowntimeof(usernum)<now)
+		add_cooldowntime(usernum, 5);
+	}
+	add_posttimes(usernum, 1);
 #endif
 	setbtotal(getbnum(xboard));
-	cuser.numposts++;
+
+	if (strcmp(xboard, "Test") == 0)
+	    outs("測試信件不列入紀錄，敬請包涵。");
+	else
+	    cuser.numposts++;
+
 	UPDATE_USEREC;
 	outs("文章轉錄完成");
 	pressanykey();
@@ -2227,7 +2340,7 @@ recommend(int ent, fileheader_t * fhdr, const char *direct)
 	    cuser.numlogins < ((unsigned int)(bcache[currbid - 1].post_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[currbid - 1].post_limit_posts) * 10)) ) {
 	move(5, 10);
-	vmsg("你不夠資深喔！");
+	vmsg("你不夠資深喔！ (可按大寫 I 查看限制)");
 	return FULLUPDATE;
     }
 #endif
@@ -2246,6 +2359,7 @@ recommend(int ent, fileheader_t * fhdr, const char *direct)
 	}
     }
     {
+	// kcwu
 	static unsigned char lastrecommend_minute = 0;
 	static unsigned short recommend_in_minute = 0;
 	unsigned char now_in_minute = (unsigned char)(now / 60);
@@ -2405,7 +2519,6 @@ recommend(int ent, fileheader_t * fhdr, const char *direct)
 	inc_goodpost(fhdr->owner, 1);
 #endif
     lastrecommend = now;
-    assert(0<=currbid-1 && currbid-1<MAX_BOARD);
     lastrecommend_bid = currbid;
     strlcpy(lastrecommend_fname, fhdr->filename, sizeof(lastrecommend_fname));
     return FULLUPDATE;
@@ -2452,7 +2565,6 @@ del_range(int ent, const fileheader_t *fhdr, const char *direct)
 
     /* 有三種情況會進這裡, 信件, 看板, 精華區 */
     if( !(direct[0] == 'h') ){ /* 信件不用 check */
-	assert(0<=currbid-1 && currbid-1<MAX_BOARD);
         bp = getbcache(currbid);
 	if (strcmp(bp->brdname, "Security") == 0)
 	    return DONOTHING;
@@ -2533,13 +2645,13 @@ del_post(int ent, fileheader_t * fhdr, char *direct)
 	(fhdr->owner[0] == '-'))
 	return DONOTHING;
 
-    if (fhdr->filename[0]=='L') fhdr->filename[0]='M';
-
     not_owned = (tusernum == usernum ? 0: 1);
     if ((!(currmode & MODE_BOARD) && not_owned) ||
 	((bp->brdattr & BRD_VOTEBOARD) && !HasUserPerm(PERM_SYSOP)) ||
 	!strcmp(cuser.userid, STR_GUEST))
 	return DONOTHING;
+
+    if (fhdr->filename[0]=='L') fhdr->filename[0]='M';
 
     getdata(1, 0, msg_del_ny, genbuf, 3, LCECHO);
     if (genbuf[0] == 'y') {
@@ -2552,6 +2664,7 @@ del_post(int ent, fileheader_t * fhdr, char *direct)
 	   ) {
 
 	    cancelpost(fhdr, not_owned, newpath);
+            deleteCrossPost(fhdr, bp->brdname);
 #ifdef ASSESS
 #define SIZE	sizeof(badpost_reason) / sizeof(char *)
 
@@ -2948,14 +3061,8 @@ b_notes(void)
 int
 board_select(void)
 {
-    char            fpath[80];
-    char            genbuf[100];
-
     currmode &= ~MODE_SELECT;
     currsrmode = 0;
-    snprintf(fpath, sizeof(fpath), "SR.%s", cuser.userid);
-    setbfile(genbuf, currboard, fpath);
-    unlink(genbuf);
     if (currstat == RMAIL)
 	sethomedir(currdirect, cuser.userid);
     else
@@ -3173,15 +3280,15 @@ b_config(void)
 		" 回文 (群組長以上才可設定此項)",
 		(bp->brdattr & BRD_NOREPLY) ? "不可以" : "可以" );
 
-	move(b_lines - 10, 56);
+	move(b_lines - 10, 62);
 	prints("發文限制");
-	move(b_lines - 9, 58);
+	move(b_lines - 9, 64);
 	prints("上站次數 %d 次以上", (int)bp->post_limit_logins * 10);
-	move(b_lines - 8, 58);
+	move(b_lines - 8, 64);
 	prints("文章篇數 %d 篇以上", (int)bp->post_limit_posts * 10);
-	move(b_lines - 7, 58);
+	move(b_lines - 7, 64);
 	prints("註冊時間 %d 個月以上", (int)bp->post_limit_regtime);
-	move(b_lines - 6, 58);
+	move(b_lines - 6, 64);
 	prints("劣文篇數 %d 篇以下", 255 - (int)bp->post_limit_badpost);
 	move(b_lines, 0);
 
@@ -3416,7 +3523,7 @@ change_localsave(void)
 int check_cooldown(boardheader_t *bp)
 {
     int diff = cooldowntimeof(usernum) - now; 
-    int i, limit[8] = {4000,1,2000,2,1000,3,30,10};
+    int i, limit[8] = {4000,1,2000,2,1000,3,-1,10};
 
     if(diff<0)
 	SHM->cooldowntime[usernum - 1] &= 0xFFFFFFF0;

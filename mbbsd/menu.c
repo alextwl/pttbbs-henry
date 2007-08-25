@@ -1,4 +1,4 @@
-/* $Id: menu.c 3341 2006-04-08 14:58:06Z kcwu $ */
+/* $Id: menu.c 3510 2007-05-02 05:24:37Z victor $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -156,36 +156,36 @@ show_status(void)
     outs(ANSI_RESET);
 }
 
+/*
+ * current callee of movie:
+ *   board.c: movie(0);    // called when IN_CLASSROOT()
+ *                         // with currstat = CLASS -> don't show movies
+ *   xyz.c:   movie(999999);  // logout
+ *   menu.c:  movie(cmdmode); // ...
+ */
 void
-movie(int i)
+movie(int cmdmode)
 {
-    static short    history[MAX_HISTORY];
-    int             j;
+    // movie 前幾筆是 Note 板精華區「<系統> 動態看板」(SYS) 目錄下的文章
+    // movie_map 是用來依 cmdmode 挑出特定的動態看板，index 跟 mode_map 一樣。
+    const int movie_map[] = {
+	2, 10, 11, -1, 3, -1, 12,
+	7, 9, 8, 4, 5, 6,
+    };
 
+#define N_SYSMOVIE (sizeof(movie_map) / sizeof(movie_map[0]))
+    int i;
     if ((currstat != CLASS) && (cuser.uflag & MOVIE_FLAG) &&
-	!SHM->Pbusystate && SHM->max_film > 0) {
-	if (currstat == PSALE) {
-	    i = PSALE;
-	    reload_money();
-	} else {
-	    do {
-		if (!i)
-		    i = 1 + (int)(((float)SHM->max_film *
-				   random()) / (RAND_MAX + 1.0));
-
-		for (j = SHM->max_history; j >= 0; j--)
-		    if (i == history[j]) {
-			i = 0;
-			break;
-		    }
-	    } while (i == 0);
-	}
-
-	memmove(history, &history[1], SHM->max_history * sizeof(short));
-	history[SHM->max_history] = j = i;
-
-	if (i == 999)		/* Goodbye my friend */
+	!SHM->Pbusystate && SHM->last_film > 0) {
+	if (cmdmode < N_SYSMOVIE &&
+	    0 < movie_map[cmdmode] && movie_map[cmdmode] <= SHM->last_film) {
+	    i = movie_map[cmdmode];
+	} else if (cmdmode == 999999) {	/* Goodbye my friend */
 	    i = 0;
+	} else {
+	    i = N_SYSMOVIE + (int)(((float)SHM->last_film - N_SYSMOVIE + 1) * (random() / (RAND_MAX + 1.0)));
+	}
+#undef N_SYSMOVIE
 
 	move(1, 0);
 	clrtoline(1 + FILMROW);	/* 清掉上次的 */
@@ -197,12 +197,12 @@ movie(int i)
 }
 
 static int
-show_menu(const commands_t * p)
+show_menu(int moviemode, const commands_t * p)
 {
     register int    n = 0;
     register char  *s;
 
-    movie(currstat);
+    movie(moviemode);
 
     move(menu_row, 0);
     while ((s = p[n].desc)) {
@@ -229,12 +229,13 @@ static const int mode_map[] = {
 static void
 domenu(int cmdmode, const char *cmdtitle, int cmd, const commands_t cmdtable[])
 {
-    int             lastcmdptr;
+    int             lastcmdptr, moviemode;
     int             n, pos, total, i;
     int             err;
 
     static char cursor_position[sizeof(mode_map) / sizeof(mode_map[0])] = { 0 };
 
+    moviemode = cmdmode;
     cmdmode = mode_map[cmdmode];
 
     if (cursor_position[cmdmode])
@@ -244,7 +245,7 @@ domenu(int cmdmode, const char *cmdtitle, int cmd, const commands_t cmdtable[])
 
     showtitle(cmdtitle, BBSName);
 
-    total = show_menu(cmdtable);
+    total = show_menu(moviemode, cmdtable);
 
     show_status();
     lastcmdptr = pos = 0;
@@ -354,7 +355,7 @@ domenu(int cmdmode, const char *cmdtitle, int cmd, const commands_t cmdtable[])
 	if (refscreen) {
 	    showtitle(cmdtitle, BBSName);
 
-	    show_menu(cmdtable);
+	    show_menu(moviemode, cmdtable);
 
 	    show_status();
 	    refscreen = NA;
@@ -375,7 +376,8 @@ domenu(int cmdmode, const char *cmdtitle, int cmd, const commands_t cmdtable[])
 /* administrator's maintain menu */
 static const commands_t adminlist[] = {
     {m_user, PERM_SYSOP,              "UUser          使用者資料"},
-    {search_user_bypwd, PERM_ACCOUNTS,"SSearch User   特殊搜尋使用者"},
+    {search_user_bypwd, PERM_ACCOUNTS|PERM_POLICE_MAN,
+                                      "SSearch User   特殊搜尋使用者"},
     {search_user_bybakpwd,PERM_ACCOUNTS,"OOld User data 查閱\備份使用者資料"},
     {m_board, PERM_SYSOP,             "BBoard         設定看板"},
     {m_register, PERM_ACCOUNTS|PERM_ACCTREG,

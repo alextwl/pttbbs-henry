@@ -1,4 +1,4 @@
-/* $Id: xyz.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: xyz.c 3508 2007-05-02 03:39:36Z victor $ */
 #include "bbs.h"
 
 #if 0
@@ -345,7 +345,7 @@ Goodbye(void)
     if (*genbuf != 'y')
 	return 0;
 
-    movie(999);
+    movie(999999);
     if (cuser.userlevel) {
 	getdata(b_lines - 1, 0,
 		"(G)隨風而逝 (M)托夢站長 (N)酸甜苦辣流言板？[G] ",

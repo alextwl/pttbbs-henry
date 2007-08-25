@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: waterball.pl 2822 2005-06-10 17:25:25Z in2 $
+# $Id: waterball.pl 3451 2006-12-05 09:19:48Z scw $
 use lib '/home/bbs/bin/';
 use Time::Local;
 use LocalVars;
@@ -70,8 +70,8 @@ sub parse($)
     $cmode = ($str =~ /^To/) ? 0 : 1;
     ($who, $say, $month, $day, $year, $hour, $min, $sec) =
 	$cmode ?
-	$str =~ m|¡¹(\w+?)\[37;45m\s*(.*).*?\[(\w+)/(\w+)/(\w+) (\w+):(\w+):(\w+)\]| :
-	$str =~ m|^To (\w+):\s*(.*)\[(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)\]|;
+	$str =~ m|¡¹(.+?)\[37;45m\s*(.*).*?\[(\w+)/(\w+)/(\w+) (\w+):(\w+):(\w+)\]| :
+	$str =~ m|^To (.+?):\s*(.*)\[(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)\]|;
     return ( !(1 <= $month && $month <= 12 &&
 	       1 <= $day   && $day   <= 31 &&
 	       0 <= $hour  && $hour  <= 23 &&

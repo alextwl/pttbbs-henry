@@ -1,5 +1,7 @@
-/* $Id: calendar.c 3353 2006-05-04 06:35:06Z victor $ */
+/* $Id: calendar.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #include "bbs.h"
+
+#if !defined(PTTBBS_UTIL)
 
 typedef struct event_t {
     int             year, month, day, days;
@@ -42,11 +44,12 @@ int ParseDate(const char *date, int *year, int *month, int *day)
 {
     char           *y, *m, *d;
     char           buf[128];
+    char *strtok_pos;
 
     strlcpy(buf, date, sizeof(buf));
-    y = strtok(buf, "/");
-    m = strtok(NULL, "/");
-    d = strtok(NULL, "");
+    y = strtok_r(buf, "/", &strtok_pos);
+    m = strtok_r(NULL, "/", &strtok_pos);
+    d = strtok_r(NULL, "", &strtok_pos);
     if (!y || !m || !d)
 	return 1;
 
@@ -144,13 +147,14 @@ ReadEvent(int today)
 	while (fgets(buf, sizeof(buf), fp)) {
 	    char           *date, *color, *content;
 	    event_t        *t;
+	    char *strtok_pos;
 
 	    if (buf[0] == '#')
 		continue;
 
-	    date = strtok(buf, " \t\n");
-	    color = strtok(NULL, " \t\n");
-	    content = strtok(NULL, "\n");
+	    date = strtok_r(buf, " \t\n", &strtok_pos);
+	    color = strtok_r(NULL, " \t\n", &strtok_pos);
+	    content = strtok_r(NULL, "\n", &strtok_pos);
 	    if (!date || !color || !content)
 		continue;
 
@@ -322,4 +326,26 @@ calendar(void)
     FreeCalBuffer(buf);
     pressanykey();
     return 0;
+}
+
+#endif
+
+int getHoroscope(int m, int d)
+{
+    if (m > 12 || m < 1)
+	return 1;
+
+    // Return: 1 .. 12
+    // ¼¯½~ ¤ô²~ Âù³½ ¨d¦Ï ª÷¤û Âù¤l ¥¨ÃÉ ·à¤l ³B¤k ¤Ñ¯¯ ¤ÑÃÈ ®g¤â
+    const int firstday[12] = {
+	/* Jan. */ 20, 19, 21, 20, 21, 21, 23, 23, 23, 23, 22, 22
+    };
+    if (d >= firstday[m - 1]) {
+	if (m == 12)
+	    return 1;
+	else
+	    return m + 1;
+    }
+    else
+	return m;
 }

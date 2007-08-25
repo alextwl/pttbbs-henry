@@ -1,4 +1,4 @@
-/* $Id: mail.c 3414 2006-09-16 18:41:55Z kcwu $ */
+/* $Id: mail.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -542,14 +542,17 @@ multi_send(char *title)
 		    break;
 	    } else {
 		if (listing) {
-		    strtok(ptr = genbuf + 3, " \n\r");
-		    do {
+		    char *strtok_pos;
+		    ptr = genbuf + 3;
+		    for (ptr = strtok_r(ptr, " \n\r", &strtok_pos);
+			    ptr;
+			    ptr = strtok_r(NULL, " \n\r", &strtok_pos)) {
 			if (searchuser(ptr, ptr) && !InNameList(ptr) &&
 			    strcmp(cuser.userid, ptr)) {
 			    AddNameList(ptr);
 			    reciper++;
 			}
-		    } while ((ptr = (char *)strtok(NULL, " \n\r")));
+		    }
 		} else if (!strncmp(genbuf + 3, "[通告]", 6))
 		    listing = 1;
 	    }
@@ -1128,7 +1131,6 @@ int
 mail_reply(int ent, fileheader_t * fhdr, const char *direct)
 {
     char            uid[STRLEN];
-    char           *t;
     FILE           *fp;
     char            genbuf[512];
     int		    oent = ent;
@@ -1144,14 +1146,17 @@ mail_reply(int ent, fileheader_t * fhdr, const char *direct)
     /* find the author */
     strlcpy(quote_user, fhdr->owner, sizeof(quote_user));
     if (strchr(quote_user, '.')) {
+	char           *t;
+	char *strtok_pos;
 	genbuf[0] = '\0';
 	if ((fp = fopen(quote_file, "r"))) {
 	    fgets(genbuf, sizeof(genbuf), fp);
 	    fclose(fp);
 	}
-	t = strtok(genbuf, str_space);
-	if (t && (!strcmp(t, str_author1) || !strcmp(t, str_author2)))
-	    strlcpy(uid, strtok(NULL, str_space), sizeof(uid)); // XXX if strtok return NULL
+	t = strtok_r(genbuf, str_space, &strtok_pos);
+	if (t && (strcmp(t, str_author1)==0 || strcmp(t, str_author2)==0)
+		&& (t=strtok_r(NULL, str_space, &strtok_pos)) != NULL)
+	    strlcpy(uid, t, sizeof(uid));
 	else {
 	    vmsg("錯誤: 找不到作者。");
 	    quote_user[0]='\0';
@@ -1203,9 +1208,7 @@ mail_edit(int ent, fileheader_t * fhdr, const char *direct)
 {
     char            genbuf[200];
 
-    if (!HasUserPerm(PERM_SYSOP) &&
-	strcmp(cuser.userid, fhdr->owner) &&
-	strcmp("[備.忘.錄]", fhdr->owner))
+    if (!HasUserPerm(PERM_SYSOP))
 	return DONOTHING;
 
     setdirpath(genbuf, direct, fhdr->filename);
@@ -1307,7 +1310,7 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	    cuser.numlogins < ((unsigned int)(bcache[ent - 1].post_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[ent - 1].post_limit_posts) * 10)) ) {
 	move(5, 10);
-	vmsg("你不夠資深喔！");
+	vmsg("你不夠資深喔！ (可在看板內按大寫 I 查看限制)");
 	return FULLUPDATE;
     }
 
@@ -1354,7 +1357,7 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	    xfile.filemode = FILE_LOCAL;
 	}
 	setuserfile(fname, fhdr->filename);
-	if (ent) {
+	{
 	    const char *save_currboard;
 	    xptr = fopen(xfpath, "w");
 	    assert(xptr);
@@ -1370,9 +1373,6 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	    b_suckinfile(xptr, fname);
 	    addsignature(xptr, 0);
 	    fclose(xptr);
-	} else {
-	    unlink(xfpath);
-	    Copy(fname, xfpath);
 	}
 
 	setbdir(fname, xboard);
@@ -1383,8 +1383,14 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 #ifdef USE_COOLDOWN
 	if (bcache[getbnum(xboard) - 1].brdattr & BRD_COOLDOWN)
 	    add_cooldowntime(usernum, 5);
+	add_posttimes(usernum, 1);
 #endif
-	cuser.numposts++;
+
+	if (strcmp(xboard, "Test") == 0)
+	    outs("測試信件不列入紀錄，敬請包涵。");
+	else
+	    cuser.numposts++;
+
 	vmsg("文章轉錄完成");
 	currmode = currmode0;
     }
@@ -1706,7 +1712,9 @@ send_inner_mail(const char *fpath, const char *title, const char *receiver)
     unlink(fname);
     Copy(fpath, fname);
     sethomedir(fname, rightid);
-    return append_record_forward(fname, &mymail, sizeof(mymail), rightid);
+    append_record_forward(fname, &mymail, sizeof(mymail), rightid);
+    sendalert(receiver, ALERT_NEW_MAIL);
+    return 0;
 }
 
 #include <netdb.h>

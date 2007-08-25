@@ -1,4 +1,4 @@
-/* $Id: voteboard.c 3387 2006-07-25 15:56:32Z wens $ */
+/* $Id: voteboard.c 3546 2007-06-18 17:14:53Z kcwu $ */
 #include "bbs.h"
 
 #define VOTEBOARD "NewBoard"
@@ -29,7 +29,7 @@ do_voteboardreply(const fileheader_t * fhdr)
 	    cuser.numlogins < ((unsigned int)(fhdr->multi.vote_limits.logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(fhdr->multi.vote_limits.posts) * 10) ) {
 	move(5, 10);
-	vmsg("你不夠資深喔！");
+	vmsg("你不夠資深喔！ (可按大寫 I 查看限制)");
 	return;
     }
     setbpath(fpath, currboard);
@@ -44,6 +44,7 @@ do_voteboardreply(const fileheader_t * fhdr)
     assert(fi);
 
     while (fgets(genbuf, sizeof(genbuf), fi)) {
+	char *space;
 
         if (yes>=0)
            {
@@ -66,7 +67,8 @@ do_voteboardreply(const fileheader_t * fhdr)
 	}
         if(yes>=0) continue; 
 
-        strtok(genbuf+4," \n");
+	space = strpbrk(genbuf+4, " \n");
+	if(space) *space='\0';
 	if (!strncmp(genbuf + 4, cuser.userid, IDLEN)) {
 	    move(5, 10);
 	    outs("您已經連署過本篇了");
@@ -172,7 +174,7 @@ do_voteboard(int type)
 	    cuser.numlogins < ((unsigned int)(bcache[currbid - 1].vote_limit_logins) * 10) ||
 	    cuser.numposts < ((unsigned int)(bcache[currbid - 1].vote_limit_posts) * 10) ) {
 	move(5, 10);
-	vmsg("你不夠資深喔！");
+	vmsg("你不夠資深喔！ (可按大寫 I 查看限制)");
 	return FULLUPDATE;
     }
     move(0, 0);

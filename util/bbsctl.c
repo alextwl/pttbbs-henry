@@ -1,4 +1,4 @@
-/* $Id: bbsctl.c 3228 2005-10-20 20:03:13Z in2 $ */
+/* $Id: bbsctl.c 3487 2007-03-13 08:49:20Z wens $ */
 #include "bbs.h"
 
 #ifdef __FreeBSD__
@@ -225,7 +225,7 @@ int permreport(int argc, char **argv)
                  {PERM_PRG,      "PERM_PRG"},
                  {PERM_ACTION,   "PERM_ACTION"},
                  {PERM_PAINT,    "PERM_PAINT"},
-                 {PERM_LAW,      "PERM_LAW"},
+                 {PERM_POLICE_MAN, "PERM_POLICE_MAN"},
                  {PERM_MSYSOP,   "PERM_MSYSOP"},
                  {PERM_PTT,      "PERM_PTT"},
 #endif

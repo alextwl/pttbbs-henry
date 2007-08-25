@@ -1,4 +1,4 @@
-/* $Id: user.c 3443 2006-10-12 06:52:25Z timerover $ */
+/* $Id: user.c 3545 2007-06-18 17:14:32Z kcwu $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -16,14 +16,16 @@ static const char * const chess_type[3] = {
 #endif
 
 int
-kill_user(int num, const char *userid)
+kill_user(int num, char *userid)
 {
     userec_t u;
     char src[256], dst[256];
 
+    if(!userid || num<=0 ) return -1;
     sethomepath(src, userid);
     snprintf(dst, sizeof(dst), "tmp/%s", userid);
     friend_delete_all(userid, FRIEND_ALOHA);
+    delete_allpost(userid);
     if (dashd(src) && Rename(src, dst) == 0) {
 	snprintf(src, sizeof(src), "/bin/rm -fr home/%c/%s >/dev/null 2>&1", userid[0], userid);
 	system(src);
@@ -298,6 +300,9 @@ violate_law(userec_t * u, int unum)
     if (*ans2 != 'y')
 	return;
     if (ans[0] == '9') {
+	if (HasUserPerm(PERM_POLICE) && (u->numlogins > 100 || u->numposts > 100))
+	    return;
+
         kill_user(unum, u->userid);
 	post_violatelaw(u->userid, cuser.userid, reason, "砍除 ID");
     } else {
@@ -643,13 +648,13 @@ uinfo_query(userec_t *u, int adminmode, int unum)
     memcpy(&x, u, sizeof(userec_t));
     ans = getans(adminmode ?
 	    "(1)改資料(2)設密碼(3)設權限(4)砍帳號(5)改ID"
-	    "(6)殺/復活寵物(7)審判 [0]結束 " :
-	    "請選擇 (1)修改資料 (2)設定密碼 (C) 個人化設定 ==> [0]結束 ");
+	    "(6)殺/復活寵物(7)審判(M)改信箱 [0]結束 " :
+	    "請選擇 (1)修改資料 (2)設定密碼 (M)修改信箱 (C) 個人化設定 ==> [0]結束 ");
 
-    if (ans > '2' && ans != 'C' && ans != 'c' && !adminmode)
+    if (ans > '2' && ans != 'm' && ans != 'c' && !adminmode)
 	ans = '0';
 
-    if (ans == '1' || ans == '3') {
+    if (ans == '1' || ans == '3' || ans == 'm') {
 	clear();
 	i = 1;
 	move(i++, 0);
@@ -657,10 +662,20 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	outs(x.userid);
     }
     switch (ans) {
-    case 'C':
     case 'c':
 	Customize();
 	return;
+    case 'm':
+	do {
+	    getdata_str(i, 0, "電子信箱[變動要重新認證]：", buf, 50, DOECHO,
+		    x.email);
+	} while (!isvalidemail(buf) && vmsg("認證信箱不能用使用免費信箱"));
+	i++;
+	if (strcmp(buf, x.email) && strchr(buf, '@')) {
+	    strlcpy(x.email, buf, sizeof(x.email));
+	    mail_changed = 1 - adminmode;
+	}
+	break;
     case '7':
 	violate_law(&x, unum);
 	return;
@@ -679,12 +694,6 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	snprintf(buf, sizeof(buf), "%010d", x.mobile);
 	getdata_buf(i++, 0, "手機號碼：", buf, 11, LCECHO);
 	x.mobile = atoi(buf);
-	getdata_str(i++, 0, "電子信箱[變動要重新認證]：", buf, 50, DOECHO,
-		    x.email);
-	if (strcmp(buf, x.email) && strchr(buf, '@')) {
-	    strlcpy(x.email, buf, sizeof(x.email));
-	    mail_changed = 1 - adminmode;
-	}
 	snprintf(genbuf, sizeof(genbuf), "%i", (u->sex + 1) % 8);
 	getdata_str(i++, 0, "性別 (1)葛格 (2)姐接 (3)底迪 (4)美眉 (5)薯叔 "
 		    "(6)阿姨 (7)植物 (8)礦物：",
@@ -838,15 +847,16 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	    if (getdata_str(i++, 0, "五子棋戰績 勝/敗/和：", buf, 16, DOECHO,
 			    genbuf))
 		while (1) {
-		    p = strtok(buf, "/\r\n");
+		    char *strtok_pos;
+		    p = strtok_r(buf, "/\r\n", &strtok_pos);
 		    if (!p)
 			break;
 		    x.five_win = atoi(p);
-		    p = strtok(NULL, "/\r\n");
+		    p = strtok_r(NULL, "/\r\n", &strtok_pos);
 		    if (!p)
 			break;
 		    x.five_lose = atoi(p);
-		    p = strtok(NULL, "/\r\n");
+		    p = strtok_r(NULL, "/\r\n", &strtok_pos);
 		    if (!p)
 			break;
 		    x.five_tie = atoi(p);
@@ -857,15 +867,16 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	    if (getdata_str(i++, 0, "象棋戰績 勝/敗/和：", buf, 16, DOECHO,
 			    genbuf))
 		while (1) {
-		    p = strtok(buf, "/\r\n");
+		    char *strtok_pos;
+		    p = strtok_r(buf, "/\r\n", &strtok_pos);
 		    if (!p)
 			break;
 		    x.chc_win = atoi(p);
-		    p = strtok(NULL, "/\r\n");
+		    p = strtok_r(NULL, "/\r\n", &strtok_pos);
 		    if (!p)
 			break;
 		    x.chc_lose = atoi(p);
-		    p = strtok(NULL, "/\r\n");
+		    p = strtok_r(NULL, "/\r\n", &strtok_pos);
 		    if (!p)
 			break;
 		    x.chc_tie = atoi(p);
@@ -1028,12 +1039,13 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	if (mail_changed) {
 	    char justify_tmp[REGLEN + 1];
 	    char *phone, *career;
+	    char *strtok_pos;
 	    strlcpy(justify_tmp, u->justify, sizeof(justify_tmp));
 
 	    x.userlevel &= ~(PERM_LOGINOK | PERM_POST);
 
-	    phone  = strtok(justify_tmp, ":");
-	    career = strtok(NULL, ":");
+	    phone  = strtok_r(justify_tmp, ":", &strtok_pos);
+	    career = strtok_r(NULL, ":", &strtok_pos);
 
 	    if (phone  == NULL) phone  = "";
 	    if (career == NULL) career = "";
@@ -1346,7 +1358,7 @@ removespace(char *s)
 
 
 
-static int
+int
 isvalidemail(const char *email)
 {
     FILE           *fp;

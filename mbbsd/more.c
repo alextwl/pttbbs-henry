@@ -1,4 +1,4 @@
-/* $Id: more.c 3140 2005-09-08 05:33:38Z piaip $ */
+/* $Id: more.c 3459 2006-12-26 06:35:16Z victor $ */
 #include "bbs.h"
 
 #ifndef USE_TRADITIONAL_MORE
@@ -268,9 +268,9 @@ more(char *fpath, int promptend)
 			strlcat(msg, buf1, sizeof(msg));
 		    }
 		    strlcat(msg, pos1, sizeof(msg));
-		    outs(Ptt_prints(msg, NO_RELOAD));
+		    outs(Ptt_prints(msg, sizeof(msg), NO_RELOAD));
 		} else
-		    outs(Ptt_prints(buf, NO_RELOAD));
+		    outs(Ptt_prints(buf, sizeof(buf), NO_RELOAD));
 	    }
 	    if (word) {
 		outs(ANSI_RESET);

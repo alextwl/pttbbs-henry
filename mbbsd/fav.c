@@ -1,4 +1,4 @@
-/* $Id: fav.c 3445 2006-11-08 09:52:45Z victor $ */
+/* $Id: fav.c 3541 2007-06-10 16:13:55Z kcwu $ */
 #include "bbs.h"
 
 /**
@@ -52,6 +52,8 @@ static fav_t   *fav_tmp;
 #if 1 // DEPRECATED
 static void fav4_read_favrec(FILE *frp, fav_t *fp);
 #endif
+
+static void fav_free_branch(fav_t *fp);
 
 /**
  * cast_(board|line|folder) 一族用於將 base class 作轉型
@@ -271,6 +273,32 @@ inline int valid_item(fav_type_t *ft){
     return ft->attr & FAVH_FAV;
 }
 
+static int is_need_rebuild_fav(fav_t *fp)
+{
+    int i, nData;
+    fav_type_t *ft;
+
+    nData = fp->DataTail;
+
+    for (i = 0; i < nData; i++){
+	if (!valid_item(&fp->favh[i]))
+	    return 1;
+
+	ft = &fp->favh[i];
+	switch (get_item_type(ft)){
+	    case FAVT_BOARD:
+	    case FAVT_LINE:
+		break;
+	    case FAVT_FOLDER:
+		if(is_need_rebuild_fav(get_fav_folder(&fp->favh[i])))
+		  return 1;
+		break;
+	    default:
+		return 1;
+	}
+    }
+    return 0;
+}
 /**
  * 清除 fp(dir) 中無效的 entry/dir。「無效」指的是沒有 FAVH_FAV flag，所以
  * 不包含不存在的看板。
@@ -311,7 +339,8 @@ static void rebuild_fav(fav_t *fp)
 
 inline void fav_cleanup(void)
 {
-    rebuild_fav(get_fav_root());
+    if (is_need_rebuild_fav(get_fav_root()))
+      rebuild_fav(get_fav_root());
 }
 
 /* sort the fav */
@@ -407,8 +436,23 @@ void fav_folder_out(void)
     fav_stack_pop();
 }
 
-static void read_favrec(FILE *frp, fav_t *fp)
+static int is_valid_favtype(int type)
 {
+    switch (type){
+	case FAVT_BOARD:
+	case FAVT_FOLDER:
+	case FAVT_LINE:
+	    return 1;
+    }
+    return 0;
+}
+
+/**
+ * @return 0 if success, -1 if failed
+ */
+static int read_favrec(FILE *frp, fav_t *fp)
+{
+    /* TODO handle read errors */
     int i;
     fav_type_t *ft;
 
@@ -424,6 +468,10 @@ static void read_favrec(FILE *frp, fav_t *fp)
     for(i = 0; i < fp->DataTail; i++){
 	ft = &fp->favh[i];
 	fread(&ft->type, sizeof(ft->type), 1, frp);
+	if(!is_valid_favtype(ft->type)) {
+	    ft->type = 0;
+	    return -1;
+	}
 	fread(&ft->attr, sizeof(ft->attr), 1, frp);
 	ft->fp = (void *)fav_malloc(get_type_size(ft->type));
 
@@ -444,7 +492,10 @@ static void read_favrec(FILE *frp, fav_t *fp)
 	switch (ft->type) {
 	    case FAVT_FOLDER: {
 		fav_t *p = (fav_t *)fav_malloc(sizeof(fav_t));
-		read_favrec(frp, p);
+		if(read_favrec(frp, p)<0) {
+		    fav_free_branch(p);
+		    return -1;
+		}
 		cast_folder(ft)->this_folder = p;
 		cast_folder(ft)->fid = ++(fp->folderID);
 	    	break;
@@ -454,6 +505,7 @@ static void read_favrec(FILE *frp, fav_t *fp)
 		break;
 	}
     }
+    return 0;
 }
 
 /**
@@ -497,13 +549,24 @@ int fav_load(void)
 
     if ((frp = fopen(buf, "r")) == NULL)
 	return -1;
+#ifdef CRITICAL_MEMORY
+    // kcwu: dirty hack, avoid 64byte slot. use 128 instead.
+    fp = (fav_t *)fav_malloc(sizeof(fav_t)+64);
+#else
     fp = (fav_t *)fav_malloc(sizeof(fav_t));
+#endif
     fav_number = 0;
     fread(&version, sizeof(version), 1, frp);
     // if (version != FAV_VERSION) { ... }
-    read_favrec(frp, fp);
+    if(read_favrec(frp, fp)<0) {
+	// load fail
+	fav_free_branch(fp);
+	fav_number = 0;
+	fp = (fav_t *)fav_malloc(sizeof(fav_t));
+    }
     fav_stack_push_fav(fp);
     fclose(frp);
+    dirty = 0;
     return 0;
 }
 
