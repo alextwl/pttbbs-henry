@@ -24,7 +24,7 @@ const char * const str_permid[] = {
 #ifdef PLAY_ANGEL
     "可擔任小天使",		/* PERM_ANGEL */
 #else
-    "未使用",
+    "封印ID",   		/* PERM_NOLOGIN */
 #endif
     "不允許\認證碼註冊",	/* PERM_NOREGCODE */
     "視覺站長",			/* PERM_VIEWSYSOP */

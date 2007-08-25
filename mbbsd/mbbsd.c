@@ -1111,6 +1111,12 @@ user_login(void)
     enter_uflag = cuser.uflag;
     lasttime = *localtime4(&cuser.lastlogin);
 
+    /* XUE's DENY LOGIN 08252007 */
+    if (HasUserPerm(PERM_NOLOGIN)){
+        vmsg("§AªºID¾D«Ê¦L¡C");
+        exit(1);
+    }
+
     /* show welcome_login */
     if( (ifbirth = (ptime.tm_mday == cuser.day &&
 		    ptime.tm_mon + 1 == cuser.month)) ){

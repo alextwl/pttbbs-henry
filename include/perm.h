@@ -23,7 +23,7 @@
 #ifdef PLAY_ANGEL
 #define PERM_ANGEL        000001000000 /* 有資格擔任小天使 */
 #endif
-#define OLD_PERM_NOOUTMAIL    000001000000 /* 不接受站外的信 */
+#define PERM_NOLOGIN      000001000000 /* 封印ID */
 #define PERM_NOREGCODE    000002000000 /*不允許認證碼註冊*/
 #define PERM_VIEWSYSOP    000004000000 /* 視覺站長       */
 #define PERM_LOGUSER      000010000000 /* 觀察使用者行蹤 */
