@@ -1,7 +1,9 @@
-/* $Id: io.c 3513 2007-05-08 17:01:45Z kcwu $ */
+/* $Id: io.c 3560 2007-09-19 17:24:00Z kcwu $ */
 #include "bbs.h"
 
-#define OBUFSIZE  2048
+//kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
+// 一般文章推文頁約 2590 bytes
+#define OBUFSIZE  3072
 #define IBUFSIZE  128
 
 #ifdef DEBUG
