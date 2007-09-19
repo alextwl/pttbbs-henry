@@ -1,4 +1,4 @@
-/* $Id: passwd.c 3265 2006-01-04 21:51:58Z ptt $ */
+/* $Id: passwd.c 3557 2007-09-19 16:10:22Z kcwu $ */
 #include "bbs.h"
 
 static int      semid = -1;
@@ -76,7 +76,7 @@ passwd_update(int num, userec_t * buf)
     if (num < 1 || num > MAX_USERS)
 	return -1;
     buf->money = moneyof(num);
-    if(usernum == num && ((pwdfd = currutmp->alerts)  & ALERT_PWD))
+    if(usernum == num && currutmp && ((pwdfd = currutmp->alerts)  & ALERT_PWD))
     {
 	userec_t u;
 	passwd_query(num, &u);
