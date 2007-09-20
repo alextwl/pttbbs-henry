@@ -1,4 +1,4 @@
-/* $Id: talk.c 3563 2007-09-20 17:11:04Z kcwu $ */
+/* $Id: talk.c 3564 2007-09-20 17:18:53Z kcwu $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -2911,8 +2911,10 @@ userlist(void)
 
 	    case 'N':
 		if (HasUserPerm(PERM_LOGINOK)) {
+		    char tmp_nick[sizeof(cuser.nickname)];
 		    oldgetdata(1, 0, "·sªº¼ÊºÙ: ",
-			    cuser.nickname, sizeof(cuser.nickname), DOECHO);
+			    tmp_nick, sizeof(tmp_nick), DOECHO);
+		    strlcpy(cuser.nickname, tmp_nick, sizeof(cuser.nickname));
 		    strcpy(currutmp->nickname, cuser.nickname);
 		    redrawall = redraw = 1;
 		}
