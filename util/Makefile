@@ -1,4 +1,4 @@
-# $Id: Makefile 3559 2007-09-19 17:21:55Z kcwu $
+# $Id: Makefile 3567 2007-09-21 13:12:24Z mhsin $
 
 SRCROOT=	..
 .include "$(SRCROOT)/pttbbs.mk"
@@ -97,7 +97,7 @@ installdiskstat: diskstat
 
 # for bbsctl. bbsctl should be compiled with bbs and installed with root
 bbsctl:	bbsctl.c util_osdep.o
-	$(CCACHE) $(CC) $(CFLAGS) -o $@ $@.c util_osdep.o
+	$(CCACHE) $(CC) $(CFLAGS) ${LDFLAGS} -o $@ $@.c util_osdep.o
 
 installbbsctl: bbsctl
 	rm -f /home/bbs/bin/bbsctl
