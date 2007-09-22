@@ -1,4 +1,4 @@
-/* $Id: cal.c 3564 2007-09-20 17:18:53Z kcwu $ */
+/* $Id: cal.c 3570 2007-09-22 21:06:04Z kcwu $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -413,6 +413,13 @@ int do_give_money(char *id, int uid, int money)
 #endif
 	mail_redenvelop(cuser.userid, id, money - tax,
 		getans("要自行書寫紅包袋嗎？[y/N]"));
+	if (money < 50) {
+	    usleep(2000000);
+	} else if (money < 200) {
+	    usleep(500000);
+	} else {
+	    usleep(100000);
+	}
 	return 0;
     }
     return -1;
