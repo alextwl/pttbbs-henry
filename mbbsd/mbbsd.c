@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3562 2007-09-20 15:34:36Z kcwu $ */
+/* $Id: mbbsd.c 3571 2007-09-23 08:02:39Z kcwu $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -1005,9 +1005,9 @@ inline static void birthday_make_a_wish(const struct tm *ptime, const struct tm 
 {
     if (tmp->tm_mday != ptime->tm_mday) {
 	more("etc/birth.post", YEA);
-	brc_initial_board("WhoAmI");
-	set_board();
-	do_post();
+	if (enter_board("WhoAmI")==0) {
+	    do_post();
+	}
     }
 }
 

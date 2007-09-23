@@ -1,4 +1,4 @@
-/* $Id: proto.h 3542 2007-06-12 14:59:46Z kcwu $ */
+/* $Id: proto.h 3571 2007-09-23 08:02:39Z kcwu $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -87,6 +87,7 @@ int check_cooldown(boardheader_t *bp);
 
 /* board */
 #define setutmpbid(bid) currutmp->brc_id=bid;
+int enter_board(const char *boardname);
 int HasBoardPerm(boardheader_t *bptr);
 int New(void);
 int Favorite(void);
