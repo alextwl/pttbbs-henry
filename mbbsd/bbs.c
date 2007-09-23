@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3572 2007-09-23 08:04:34Z kcwu $ */
+/* $Id: bbs.c 3573 2007-09-23 08:13:30Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -3735,7 +3735,7 @@ Read(void)
 	else if (mr != READ_NEXT)
 	    pressanykey();
     }
-    i_read(READING, buf, readtitle, readdoent, read_comms,
+    i_read(READING, currdirect, readtitle, readdoent, read_comms,
 	   currbid);
     currmode &= ~MODE_POSTCHECKED;
 #ifdef LOG_BOARD
