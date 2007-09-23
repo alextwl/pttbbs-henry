@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3571 2007-09-23 08:02:39Z kcwu $ */
+/* $Id: bbs.c 3572 2007-09-23 08:04:34Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -3719,7 +3719,7 @@ Read(void)
     time4_t         usetime = now;
 #endif
 
-    char *bname = currboard[0] ? currboard : DEFAULT_BOARD;
+    const char *bname = currboard[0] ? currboard : DEFAULT_BOARD;
     if (enter_board(bname) < 0)
 	return 0;
 
