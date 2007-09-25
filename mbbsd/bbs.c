@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3573 2007-09-23 08:13:30Z kcwu $ */
+/* $Id: bbs.c 3576 2007-09-25 07:59:00Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -2607,7 +2607,7 @@ del_range(int ent, const fileheader_t *fhdr, const char *direct)
 #endif
 	    fixkeep(direct, inum1);
 
-	    if (currmode & MODE_BOARD) // Ptt:update cache
+	    if ((curredit & EDIT_MAIL)==0 && (currmode & MODE_BOARD)) // Ptt:update cache
 		setbtotal(currbid);
             else if(currstat == RMAIL)
                 setupmailusage();
