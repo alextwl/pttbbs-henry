@@ -1,4 +1,4 @@
-/* $Id: talk.c 3571 2007-09-23 08:02:39Z kcwu $ */
+/* $Id: talk.c 3575 2007-09-25 07:57:50Z kcwu $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -2903,8 +2903,13 @@ userlist(void)
 
 	    case 'r':
 		if (HasUserPerm(PERM_LOGINOK)) {
-		    m_read();
-		    setutmpmode(LUSERS);
+		    if (curredit & EDIT_MAIL) {
+			/* deny reentrance, which may cause many problems */
+			vmsg("你進入使用者列表前就已經在閱\讀信件了");
+		    } else {
+			m_read();
+			setutmpmode(LUSERS);
+		    }
 		    redrawall = redraw = 1;
 		}
 		break;
