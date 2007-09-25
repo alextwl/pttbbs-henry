@@ -1,4 +1,4 @@
-/* $Id: board.c 3571 2007-09-23 08:02:39Z kcwu $ */
+/* $Id: board.c 3578 2007-09-25 13:17:21Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -131,7 +131,6 @@ init_brdbuf(void)
 {
     if (brc_initialize())
 	return;
-    enter_board(DEFAULT_BOARD);
 }
 
 void
