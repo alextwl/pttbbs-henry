@@ -1,4 +1,4 @@
-/* $Id: common.h 3172 2005-09-15 09:00:55Z piaip $ */
+/* $Id: common.h 3581 2007-10-01 14:42:57Z kcwu $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -117,10 +117,6 @@
 	ANSI_COLOR(31) "(z)" 	ANSI_COLOR(30) "信件夾 " \
 	ANSI_COLOR(31) "←[q]" 	ANSI_COLOR(30) "離開 " \
 	""
-
-#define MSG_SHORTULIST  ANSI_COLOR(7) \
-    "使用者代號    目前狀態   │使用者代號    目前狀態   │"\
-    "使用者代號    目前狀態  " ANSI_RESET ANSI_CLRTOEND
 
 #define MSG_SEPERATOR   "\
 ───────────────────────────────────────"

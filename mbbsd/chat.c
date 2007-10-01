@@ -1,4 +1,4 @@
-/* $Id: chat.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: chat.c 3581 2007-10-01 14:42:57Z kcwu $ */
 #include "bbs.h"
 
 #ifndef DBCSAWARE
@@ -116,37 +116,6 @@ chat_recv(struct ChatBuf *cb, int fd, char *chatroom, char *chatid, size_t chati
     return 0;
 }
 
-static int
-printuserent(const userinfo_t * uentp)
-{
-    static char     uline[80];
-    static int      cnt;
-    char            pline[30];
-
-    if (!uentp) {
-	if (cnt)
-	    printchatline(uline);
-	bzero(uline, sizeof(uline));
-	cnt = 0;
-	return 0;
-    }
-    if (!HasUserPerm(PERM_SYSOP) && !HasUserPerm(PERM_SEECLOAK) && uentp->invisible)
-	return 0;
-
-    snprintf(pline, sizeof(pline), "%-13s%c%-10s ", uentp->userid,
-	     uentp->invisible ? '#' : ' ',
-	     modestring(uentp, 1));
-    if (cnt < 2)
-	strlcat(pline, "│", sizeof(pline));
-    strlcat(uline, pline, sizeof(uline));
-    if (++cnt == 3) {
-	printchatline(uline);
-	memset(uline, 0, 80);
-	cnt = 0;
-    }
-    return 0;
-}
-
 static void
 chathelp(const char *cmd, const char *desc)
 {
@@ -247,18 +216,6 @@ chat_query(char *arg)
 	}
     } else
 	printchatline(err_uid);
-}
-
-static void
-chat_users(char* unused)
-{
-    printchatline("");
-    printchatline("【 " BBSNAME "的遊客列表 】");
-    printchatline(msg_shortulist);
-
-    if (apply_ulist(printuserent) == -1)
-	printchatline("空無一人");
-    printuserent(NULL);
 }
 
 typedef struct chat_command_t {

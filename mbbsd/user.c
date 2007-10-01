@@ -1,4 +1,4 @@
-/* $Id: user.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: user.c 3581 2007-10-01 14:42:57Z kcwu $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -16,7 +16,7 @@ static const char * const chess_type[3] = {
 #endif
 
 int
-kill_user(int num, char *userid)
+kill_user(int num, const char *userid)
 {
     userec_t u;
     char src[256], dst[256];

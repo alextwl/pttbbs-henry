@@ -1,4 +1,4 @@
-/* $Id: var.c 3542 2007-06-12 14:59:46Z kcwu $ */
+/* $Id: var.c 3581 2007-10-01 14:42:57Z kcwu $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -147,7 +147,6 @@ char           * const loginview_file[NUMVIEWFILE][2] = {
 
 /* message */
 char           * const msg_seperator = MSG_SEPERATOR;
-char           * const msg_shortulist = MSG_SHORTULIST;
 
 char           * const msg_cancel = MSG_CANCEL;
 char           * const msg_usr_left = MSG_USR_LEFT;

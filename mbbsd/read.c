@@ -1,4 +1,4 @@
-/* $Id: read.c 3320 2006-04-01 14:30:31Z kcwu $ */
+/* $Id: read.c 3581 2007-10-01 14:42:57Z kcwu $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -537,6 +537,7 @@ select_read(const keeploc_t * locmem, int sr_mode)
    } else {
        /* use cached data */
        reload = 0;
+       inc = 0;
    }
 
    /* mark and recommend shouldn't incremental select */
@@ -616,9 +617,9 @@ select_read(const keeploc_t * locmem, int sr_mode)
 	       }
 	   } // end while
            close(fr);
+	   ftruncate(fd, count*sizeof(fileheader_t));
+	   close(fd);
        }
-       ftruncate(fd, count*sizeof(fileheader_t));
-       close(fd);
    }
 
    if(count) {

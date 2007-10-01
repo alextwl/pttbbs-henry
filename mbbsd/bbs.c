@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3576 2007-09-25 07:59:00Z kcwu $ */
+/* $Id: bbs.c 3581 2007-10-01 14:42:57Z kcwu $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -581,7 +581,7 @@ deleteCrossPost(const fileheader_t *fh, char *bname)
 }
 
 void
-delete_allpost(char *userid)
+delete_allpost(const char *userid)
 {
     fileheader_t fhdr;
     int     fd, i;
