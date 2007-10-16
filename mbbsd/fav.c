@@ -1,4 +1,4 @@
-/* $Id: fav.c 3541 2007-06-10 16:13:55Z kcwu $ */
+/* $Id: fav.c 3585 2007-10-16 17:08:50Z kcwu $ */
 #include "bbs.h"
 
 /**
@@ -542,6 +542,7 @@ int fav_load(void)
 #endif
 	{
 	    fp = (fav_t *)fav_malloc(sizeof(fav_t));
+	    fav_number = 0;
 	    fav_stack_push_fav(fp);
 	}
 	return 0;

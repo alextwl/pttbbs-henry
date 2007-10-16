@@ -1,4 +1,4 @@
-/* $Id: edit.c 3483 2007-02-05 09:47:59Z mhsin $ */
+/* $Id: edit.c 3585 2007-10-16 17:08:50Z kcwu $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -1588,6 +1588,9 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
 	msg = "[S]儲存 (L)站內信件 (A)放棄 (T)改標題 (E)繼續 "
 	    "(R/W/D)讀寫刪暫存檔？";
     getdata(1, 0, msg, ans, 2, LCECHO);
+
+    // avoid lots pots
+    sleep(1);
 
     switch (ans[0]) {
     case 'a':
