@@ -1,4 +1,4 @@
-/* $Id: xchatd.c 2887 2005-07-04 06:52:14Z victor $ */
+/* $Id: xchatd.c 3584 2007-10-16 17:05:46Z kcwu $ */
 #include "bbs.h"
 #include "xchatd.h"
 
@@ -294,7 +294,7 @@ static int valid_chatid(register char *id) {
 
 
 static int
-str_equal(unsigned char *s1, unsigned char *s2)
+str_equal(const char *s1, const char *s2)
 {
     return strcasecmp(s1, s2)==0;
 }
@@ -312,7 +312,7 @@ str_equal(unsigned char *s1, unsigned char *s2)
 
 
 static int
-str_match(unsigned char *s1, unsigned char *s2)
+str_match(const char *s1, const char *s2)
 {
     register int c1, c2;
 
@@ -1491,7 +1491,7 @@ login_user(ChatUser *cu, char *msg)
     char *userid;
     char *chatid;
     struct sockaddr_in from;
-    int fromlen;
+    unsigned int fromlen;
     struct hostent *hp;
 
 
