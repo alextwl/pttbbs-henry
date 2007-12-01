@@ -1,4 +1,4 @@
-/* $Id: io.c 3602 2007-12-01 10:01:51Z piaip $ */
+/* $Id: io.c 3603 2007-12-01 12:42:33Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -642,9 +642,9 @@ wait_input(float f, int flDoRefresh)
  * @param buf
  * @param str
  * @param mode enum {STRIP_ALL = 0, ONLY_COLOR, NO_RELOAD};
- *             STRIP_ALL: ??
- *             ONLY_COLOR: ??
- *             NO_RELOAD: 不 strip (?)
+ *             STRIP_ALL:  全部吃掉
+ *             ONLY_COLOR: 只吃掉跟顏色有關的 (ESC[*m)
+ *             NO_RELOAD:  不 strip (?)
  */
 static const char EscapeFlag[] = {
     /*  0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -664,7 +664,7 @@ static const char EscapeFlag[] = {
     /* E0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     /* F0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
-#define isEscapeParam(X) (EscapeFlag[(int)(X)] & 1)
+#define isEscapeParam(X)   (EscapeFlag[(int)(X)] & 1)
 #define isEscapeCommand(X) (EscapeFlag[(int)(X)] & 2)
 
 int
@@ -705,6 +705,8 @@ strip_ansi(char *buf, const char *str, int mode)
 int  
 strlen_noansi(const char *s)
 {
+    // XXX this is almost identical to
+    // strip_ansi(NULL, s, STRIP_ALL)
     register int count = 0, mode = 0;
 
     if (!s || !*s)

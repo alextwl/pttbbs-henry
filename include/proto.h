@@ -1,4 +1,4 @@
-/* $Id: proto.h 3602 2007-12-01 10:01:51Z piaip $ */
+/* $Id: proto.h 3603 2007-12-01 12:42:33Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -68,6 +68,7 @@ int cmpfowner(fileheader_t *fhdr);
 int b_note_edit_bname(int bid);
 int Read(void);
 int CheckPostPerm(void);
+int CheckPostRestriction(int);
 void anticrosspost(void);
 int Select(void);
 void do_reply_title(int row, const char *title);
