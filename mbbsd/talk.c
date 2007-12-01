@@ -1,4 +1,4 @@
-/* $Id: talk.c 3599 2007-12-01 07:58:43Z piaip $ */
+/* $Id: talk.c 3602 2007-12-01 10:01:51Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -86,7 +86,10 @@ int query_online(const char *userid)
 {
     userinfo_t *uentp;
 
-    if (!userid || !*userid || *userid == '-')
+    if (!userid || !*userid)
+	return 0;
+
+    if (!isalnum(*userid))
 	return 0;
 
     if (strchr(userid, '.') || SHM->GV2.e.noonlineuser)

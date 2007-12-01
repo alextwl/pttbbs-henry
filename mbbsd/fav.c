@@ -1,4 +1,4 @@
-/* $Id: fav.c 3585 2007-10-16 17:08:50Z kcwu $ */
+/* $Id: fav.c 3602 2007-12-01 10:01:51Z piaip $ */
 #include "bbs.h"
 
 /**
@@ -510,6 +510,7 @@ static int read_favrec(FILE *frp, fav_t *fp)
 
 /**
  * 從記錄檔中 load 出我的最愛。
+ * TODO create default fav, and add SYSOP/PttNewHand
  */
 int fav_load(void)
 {
