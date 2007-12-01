@@ -1,4 +1,4 @@
-/* $Id: proto.h 3585 2007-10-16 17:08:50Z kcwu $ */
+/* $Id: proto.h 3599 2007-12-01 07:58:43Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -704,6 +704,7 @@ int isvisible_uid(int tuid);
 int friend_stat(const userinfo_t *me, const userinfo_t * ui);
 int call_in(const userinfo_t *uentp, int fri_stat);
 int make_connection_to_somebody(userinfo_t *uin, int timeout);
+int query_online(const char *userid);
 #ifdef PLAY_ANGEL
 int t_changeangel(void);
 int t_angelmsg(void);

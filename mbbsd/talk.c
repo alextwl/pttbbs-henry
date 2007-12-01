@@ -1,4 +1,4 @@
-/* $Id: talk.c 3585 2007-10-16 17:08:50Z kcwu $ */
+/* $Id: talk.c 3599 2007-12-01 07:58:43Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -80,6 +80,24 @@ isvisible_stat(const userinfo_t * me, const userinfo_t * uentp, int fri_stat)
 	return 0;
 
     return !(fri_stat & HRM);
+}
+
+int query_online(const char *userid)
+{
+    userinfo_t *uentp;
+
+    if (!userid || !*userid || *userid == '-')
+	return 0;
+
+    if (strchr(userid, '.') || SHM->GV2.e.noonlineuser)
+	return 0;
+
+    uentp = search_ulist_userid(userid);
+
+    if (!uentp ||!isvisible(currutmp, uentp))
+	return 0;
+
+    return 1;
 }
 
 const char           *
