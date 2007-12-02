@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3586 2007-10-17 15:07:57Z kcwu $ */
+/* $Id: pttstruct.h 3608 2007-12-02 04:02:48Z piaip $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -253,8 +253,8 @@ typedef struct boardheader_t {
 #define FNLEN      28             /* Length of filename */
 
 typedef struct fileheader_t {
-    char    filename[FNLEN];         /* M.1120582370.A.1EA [19+1] */
-    int	    textlen;		     /* main text length in post */
+    char    filename[FNLEN];         /* M.1120582370.A.1EA [19+1], create time */
+    time4_t modified;		     /* last modified time */
     char    pad;		     /* padding, not used */
     char    recommend;               /* important level */
     char    owner[IDLEN + 2];        /* uid[.] */
