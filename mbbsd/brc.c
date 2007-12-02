@@ -1,4 +1,4 @@
-/* $Id: brc.c 3611 2007-12-02 09:24:13Z piaip $ */
+/* $Id: brc.c 3612 2007-12-02 09:56:01Z piaip $ */
 #include "bbs.h"
 
 /**
@@ -279,6 +279,7 @@ read_brc2(void)
     sz3 = sz2 * 2; // max double size
 
     cvthead = cvt = malloc (sz3);
+    memset(cvthead, 0, sz3);
     // now calculate real sz3
 
     while (read(fd, &bid2, sizeof(bid2)) > 0)
@@ -289,14 +290,24 @@ read_brc2(void)
 	bid = bid2;
 	num = num2;
 
+	// some brc v2 contains bad structure.
+	// check pointer here.
+	if (cvt + sizeof(brcbid_t) + sizeof(brcnbrd_t) - cvthead >= sz3)
+	    break;
+
 	*(brcbid_t*) cvt = bid; cvt += sizeof(brcbid_t);
 	*(brcnbrd_t*)cvt = num; cvt += sizeof(brcnbrd_t);
 
-	for (; num > 0; num--)
+	// some brc v2 contains bad structure.
+	// check pointer here.
+	for (; num > 0 && (cvt + sizeof(brc_rec) - cvthead) <= sz3 ; num--)
 	{
-	    read(fd, &create, sizeof(create));
+	    if (read(fd, &create, sizeof(create)) < 1)
+		break;
+
 	    rec.create = create;
 	    rec.modified = create;
+
 	    *(brc_rec*)cvt = rec; cvt += sizeof(brc_rec);
 	}
     }
