@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3599 2007-12-01 07:58:43Z piaip $ */
+/* $Id: mbbsd.c 3613 2007-12-02 10:51:00Z piaip $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -689,15 +689,18 @@ login_query(void)
 	    exit(1);
 	}
 	bzero(&cuser, sizeof(cuser));
+
 #ifdef DEBUG
 	move(19, 0);
 	prints("current pid: %d ", getpid());
 #endif
-	while (getdata(20, 0, "請輸入代號，或以[guest]參觀，以[new]註冊：",
+
+	if (getdata(20, 0, "請輸入代號，或以[guest]參觀，以[new]註冊：",
 		uid, sizeof(uid), DOECHO) < 1)
 	{
 	    // got nothing 
 	    outs("請重新輸入。\n");
+	    continue;
 	}
 
 #ifdef CONVERT
