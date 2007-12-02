@@ -1,4 +1,4 @@
-/* $Id: kaede.c 3459 2006-12-26 06:35:16Z victor $ */
+/* $Id: kaede.c 3607 2007-12-02 03:48:42Z piaip $ */
 #include "bbs.h"
 
 char           *
@@ -89,10 +89,15 @@ Rename(const char *src, const char *dst)
     if (!strchr(src, ';') && !strchr(dst, ';'))
 	// Ptt 防不正常指令 // XXX 這樣是不夠的
     {
-	snprintf(buf, sizeof(buf), "/bin/mv %s %s", src, dst);
-	system(buf);
+	pid_t pid = fork();
+	if (pid == 0)
+	    execl("/bin/mv", "mv", "-f", src, dst, (char *)NULL);
+	else if (pid > 0)
+	    waitpid(pid, NULL, 0);
+	else
+	    return -1;
     }
-    return -1;
+    return 0;
 }
 
 int
