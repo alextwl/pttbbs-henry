@@ -1,4 +1,4 @@
-/* $Id: proto.h 3603 2007-12-01 12:42:33Z piaip $ */
+/* $Id: proto.h 3615 2007-12-02 12:23:57Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -102,11 +102,12 @@ void sigfree(int);
 /* brc */
 int brc_initialize(void);
 void brc_finalize(void);
-
-int brc_unread(int bid, const char *fname);
-int brc_unread_time(int bid, time4_t ftime);
 int brc_initial_board(const char *boardname);
-void brc_addlist(const char* fname);
+
+// v3 api: add 'modified' tag
+int brc_unread(int bid, const char *fname, time4_t modified);
+int brc_unread_time(int bid, time4_t ftime,time4_t modified);
+void brc_addlist(const char* fname, time4_t modified);
 
 void brc_update(void);
 
