@@ -1,4 +1,4 @@
-/* $Id: convert.c 3569 2007-09-22 18:38:13Z kcwu $ */
+/* $Id: convert.c 3623 2007-12-03 16:50:26Z piaip $ */
 #include "bbs.h"
 
 #ifdef CONVERT
@@ -94,6 +94,7 @@ norm_input(void *buf, ssize_t icount)
 read_write_type write_type = (read_write_type)write;
 read_write_type read_type = read;
 convert_type    input_type = norm_input;
+int		bbs_convert_type = CONV_NORMAL;
 
 void set_converting_type(int which)
 {
@@ -113,6 +114,7 @@ void set_converting_type(int which)
 	write_type = utf8_write;
 	input_type = utf8_input;
     }
+    bbs_convert_type = which;
 }
 
 #endif

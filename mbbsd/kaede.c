@@ -1,4 +1,4 @@
-/* $Id: kaede.c 3607 2007-12-02 03:48:42Z piaip $ */
+/* $Id: kaede.c 3623 2007-12-03 16:50:26Z piaip $ */
 #include "bbs.h"
 
 char           *
@@ -83,7 +83,6 @@ Ptt_prints(char *str, size_t size, int mode)
 int
 Rename(const char *src, const char *dst)
 {
-    char            buf[256];
     if (rename(src, dst) == 0)
 	return 0;
     if (!strchr(src, ';') && !strchr(dst, ';'))
