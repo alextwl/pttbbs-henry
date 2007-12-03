@@ -1,4 +1,4 @@
-/* $Id: user.c 3623 2007-12-03 16:50:26Z piaip $ */
+/* $Id: user.c 3625 2007-12-03 19:37:23Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -326,6 +326,8 @@ void Customize(void)
     /* cuser.uflag settings */
     static const unsigned int masks1[] = {
 	MOVIE_FLAG,
+	NO_MODMARK_FLAG	,
+	COLORED_MODMARK,
 #ifdef DBCSAWARE
 	DBCSAWARE_FLAG,
 #endif
@@ -334,6 +336,8 @@ void Customize(void)
 
     static const char* desc1[] = {
 	"動態看板",
+	"隱藏文章修改符號(推文/修文) (~)",
+	"改用彩色修改符號 (+)",
 #ifdef DBCSAWARE
 	"自動偵測雙位元字集(如全型中文)",
 #endif
