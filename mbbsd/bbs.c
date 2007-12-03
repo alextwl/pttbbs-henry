@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3619 2007-12-03 05:57:02Z piaip $ */
+/* $Id: bbs.c 3621 2007-12-03 12:01:16Z piaip $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -330,8 +330,10 @@ readdoent(int num, fileheader_t * ent)
 	    type = '+';
 	    break;
 	case 2: // unread (modified)
-	    type = '+';
-	    typeattr = ANSI_COLOR(1;30);
+	    // why not use +? because some terminals may not easily
+	    // see highlights easily
+	    type = '~'; 
+	    // typeattr = ANSI_COLOR(1;30);
 	    break;
 	default:
 	    break;
@@ -417,7 +419,7 @@ readdoent(int num, fileheader_t * ent)
 	 */
 	prints("%7d", num);
 
-    prints(" %s%c" ESC_STR " [0;1;3%4.4s" ANSI_RESET, 
+    prints(" %s%c" ESC_STR "[0;1;3%4.4s" ANSI_RESET, 
 	    typeattr, type, recom);
 
     if(IS_LISTING_MONEY)
