@@ -1,4 +1,4 @@
-/* $Id: edit.c 3598 2007-12-01 04:25:56Z piaip $ */
+/* $Id: edit.c 3628 2007-12-04 16:52:47Z wens $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -2793,7 +2793,7 @@ vedit(char *fpath, int saveheader, int *islocal)
              log_file("etc/illegal_money",  LOG_CREAT | LOG_VF,
              ANSI_COLOR(1;33;46) "%s " ANSI_COLOR(37;45) " 用機器人發表文章 " ANSI_COLOR(37) " %s" ANSI_RESET "\n",
              cuser.userid, ctime4(&now));
-             post_violatelaw(cuser.userid, "Ptt系統警察", 
+             post_violatelaw(cuser.userid, BBSMNAME "系統警察", 
                  "用機器人發表文章", "強制離站");
              abort_bbs(0);
 */

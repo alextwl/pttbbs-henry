@@ -1,4 +1,4 @@
-/* $Id: gamble.c 3546 2007-06-18 17:14:53Z kcwu $ */
+/* $Id: gamble.c 3628 2007-12-04 16:52:47Z wens $ */
 #include "bbs.h"
 
 #define MAX_ITEM	8	//最大 賭項(item) 個數
@@ -38,7 +38,7 @@ show_ticket_data(char betname[MAX_ITEM][MAX_ITEM_LEN],const char *direct, int *p
 	} else
 	    showtitle(genbuf, BBSNAME);
     } else
-	showtitle("Ptt賭盤", BBSNAME);
+	showtitle(BBSMNAME "賭盤", BBSNAME);
     move(2, 0);
     snprintf(genbuf, sizeof(genbuf), "%s/" FN_TICKET_ITEMS, direct);
     if (!(fp = fopen(genbuf, "r"))) {
@@ -349,7 +349,7 @@ openticket(int bid)
 	    if ((uid = searchuser(userid, userid)) == 0)
 		continue;
 	    deumoney(uid, money * i);
-	    mail_id(userid, buf, "etc/ticket.win", "Ptt賭場");
+	    mail_id(userid, buf, "etc/ticket.win", BBSMNAME "賭場");
 	}
 	fclose(fp1);
     }

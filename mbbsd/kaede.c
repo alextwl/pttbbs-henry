@@ -1,4 +1,4 @@
-/* $Id: kaede.c 3623 2007-12-03 16:50:26Z piaip $ */
+/* $Id: kaede.c 3628 2007-12-04 16:52:47Z wens $ */
 #include "bbs.h"
 
 char           *
@@ -86,7 +86,6 @@ Rename(const char *src, const char *dst)
     if (rename(src, dst) == 0)
 	return 0;
     if (!strchr(src, ';') && !strchr(dst, ';'))
-	// Ptt 防不正常指令 // XXX 這樣是不夠的
     {
 	pid_t pid = fork();
 	if (pid == 0)

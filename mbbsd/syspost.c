@@ -1,4 +1,4 @@
-/* $Id: syspost.c 3440 2006-10-03 07:06:27Z wens $ */
+/* $Id: syspost.c 3628 2007-12-04 16:52:47Z wens $ */
 #include "bbs.h"
 
 int
@@ -114,7 +114,7 @@ post_violatelaw(const char *crime, const char *police, const char *reason, const
 	    police, crime, reason, result);
 
     if (!strstr(police, "警察")) {
-	post_msg("PoliceLog", title, msg, "[Ptt法院]");
+	post_msg("PoliceLog", title, msg, "[" BBSMNAME "法院]");
 
 	snprintf(msg, sizeof(msg), 
 		ANSI_COLOR(1;32) "%s" ANSI_RESET "判決：\n"
@@ -123,7 +123,7 @@ post_violatelaw(const char *crime, const char *police, const char *reason, const
 		"站務警察", crime, reason, result);
     }
 
-    post_msg("ViolateLaw", title, msg, "[Ptt法院]");
+    post_msg("ViolateLaw", title, msg, "[" BBSMNAME "法院]");
 }
 
 void

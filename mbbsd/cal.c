@@ -1,4 +1,4 @@
-/* $Id: cal.c 3570 2007-09-22 21:06:04Z kcwu $ */
+/* $Id: cal.c 3628 2007-12-04 16:52:47Z wens $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -91,7 +91,7 @@ vice(int money, const char *item)
 	}
     snprintf(buf, sizeof(buf),
 	     "%s 花了$%d 編號[%08d]", item, money, viceserial);
-    mail_id(cuser.userid, buf, "etc/vice.txt", "Ptt經濟部");
+    mail_id(cuser.userid, buf, "etc/vice.txt", BBSMNAME "經濟部");
     return 0;
 }
 

@@ -1,4 +1,4 @@
-/* $Id: screen.c 3602 2007-12-01 10:01:51Z piaip $ */
+/* $Id: screen.c 3628 2007-12-04 16:52:47Z wens $ */
 #include "bbs.h"
 
 #define o_clear()     output(clearbuf,clearbuflen)
@@ -401,7 +401,9 @@ outs_n(const char *str, int n)
 	outc(*str++);
     }
 }
-// 
+
+// XXX left-right (for large term)
+// TODO someday please add ANSI detection version
 void 
 outslr(const char *left, int leftlen, const char *right, int rightlen)
 {

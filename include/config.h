@@ -1,4 +1,4 @@
-/* $Id: config.h 3611 2007-12-02 09:24:13Z piaip $ */
+/* $Id: config.h 3628 2007-12-04 16:52:47Z wens $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -8,6 +8,16 @@
 #define BBSPROG         BBSHOME "/bin/mbbsd"         /* 主程式 */
 #define BAN_FILE        "BAN"                        /* 關站通告檔 */
 #define LOAD_FILE       "/proc/loadavg"              /* for Linux */
+
+/* 系統名(郵件用)，建議別超過 3 個字元。 詳見 sample/pttbbs.conf */
+#ifndef BBSMNAME
+#define BBSMNAME	"Ptt"
+#endif
+
+/* 系統名(選單用)，建議剛好 4 個字元。 詳見 sample/pttbbs.conf */
+#ifndef BBSMNAME2
+#define BBSMNAME2	"Ｐtt"
+#endif
 
 #ifndef BBSUSER
 #define BBSUSER "bbs"

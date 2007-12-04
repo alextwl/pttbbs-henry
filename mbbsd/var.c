@@ -1,4 +1,4 @@
-/* $Id: var.c 3581 2007-10-01 14:42:57Z kcwu $ */
+/* $Id: var.c 3628 2007-12-04 16:52:47Z wens $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -195,7 +195,7 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "分類看板",			/* CLASS */
     "Play選單",			/* PMENU */
     "編特別名單",		/* NMENU */
-    "Ｐtt量販店",		/* PSALE */
+    BBSMNAME2 "量販店",		/* PSALE */
     "發表文章",			/* POSTING */
     "看板列表",			/* READBRD */
     "閱\讀文章",		/* READING */
@@ -263,7 +263,7 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "下象棋",			/* CHC */
     "下暗棋",			/* DARK */
     "NBA大猜測",		/* TMPJACK */
-    "Ｐtt查榜系統",		/* JCEE */
+    BBSMNAME2 "查榜系統",		/* JCEE */
     "重編文章",			/* REEDIT */
     "部落格",                   /* BLOGGING */
     "看棋",			/* CHESSWATCHING */
