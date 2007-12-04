@@ -1,4 +1,4 @@
-/* $Id: mail.c 3603 2007-12-01 12:42:33Z piaip $ */
+/* $Id: mail.c 3629 2007-12-04 17:38:19Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -155,7 +155,7 @@ invalidaddr(const char *addr)
 		"但檢查不出原因，所以我們需要正確的錯誤回報。\n\n"
 		"如果你確實打錯了，請直接略過下面的說明。\n"
 		"如果你認為你輸入的位址確實是對的，請把下面的訊息複製起來\n"
-		"並貼到 SYSOP 或 PttBug 板。本站為造成不便深感抱歉。\n\n"
+		"並貼到 " GLOBAL_BUGREPORT " 板。本站為造成不便深感抱歉。\n\n"
 		ANSI_COLOR(1;33));
 	    sprintf(errmsg, "原始輸入位址: [%s]\n"
 		    "錯誤位置: 第 %d 字元: 0x%02X [ %c ]\n", 

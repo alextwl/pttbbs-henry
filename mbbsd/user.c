@@ -1,4 +1,4 @@
-/* $Id: user.c 3628 2007-12-04 16:52:47Z wens $ */
+/* $Id: user.c 3629 2007-12-04 17:38:19Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -241,7 +241,7 @@ mail_violatelaw(const char *crime, const char *police, const char *reason, const
 	    "時間: %s\n"
 	    ANSI_COLOR(1;32) "%s" ANSI_RESET "判決：\n     " ANSI_COLOR(1;32) "%s" ANSI_RESET
 	    "因" ANSI_COLOR(1;35) "%s" ANSI_RESET "行為，\n違反本站站規，處以" ANSI_COLOR(1;35) "%s" ANSI_RESET "，特此通知"
-	    "\n請到 PttLaw 查詢相關法規資訊，並到 Play-Pay-ViolateLaw 繳交罰單",
+	    "\n請到 " GLOBAL_LAW " 查詢相關法規資訊，並到 Play-Pay-ViolateLaw 繳交罰單",
 	    ctime4(&now), police, crime, reason, result);
     fclose(fp);
     strcpy(fhdr.title, "[報告] 違法判決報告");

@@ -1,4 +1,4 @@
-/* $Id: config.h 3628 2007-12-04 16:52:47Z wens $ */
+/* $Id: config.h 3629 2007-12-04 17:38:19Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -31,6 +31,28 @@
 #define BBSGID (99)
 #endif
 
+/* Default Board Names */
+#ifndef GLOBAL_BUGREPORT
+#define GLOBAL_BUGREPORT "SYSOP"
+#endif
+
+#ifndef GLOBAL_LAW
+#define GLOBAL_LAW  BBSMNAME "Law"
+#endif
+
+#ifndef GLOBAL_NEWBIE
+#define GLOBAL_NEWBIE BBSMNAME "NewHand"
+#endif
+
+#ifndef GLOBAL_NOTE
+#define GLOBAL_NOTE "Note"
+#endif
+
+#ifndef GLOBAL_FOREIGN
+#define GLOBAL_FOREIGN BBSMNAME "Foreign"
+#endif
+
+/* Environment */
 #ifndef RELAY_SERVER_IP                     /* 寄站外信的 mail server */
 #define RELAY_SERVER_IP    "127.0.0.1"
 #endif

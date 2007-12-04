@@ -1,4 +1,4 @@
-/* $Id: gamble.c 3628 2007-12-04 16:52:47Z wens $ */
+/* $Id: gamble.c 3629 2007-12-04 17:38:19Z piaip $ */
 #include "bbs.h"
 
 #define MAX_ITEM	8	//最大 賭項(item) 個數
@@ -249,7 +249,7 @@ openticket(int bid)
     if(rename(buf, outcome) != 0)
     {
 	unlockutmpmode();
-	vmsg("無法準備開獎... 請至 PttBug 報告並附上板名。");
+	vmsg("無法準備開獎... 請至 " GLOBAL_BUGREPORT " 報告並附上板名。");
 	return 0;
 
     }

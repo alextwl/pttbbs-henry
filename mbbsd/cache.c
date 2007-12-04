@@ -1,4 +1,4 @@
-/* $Id: cache.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: cache.c 3629 2007-12-04 17:38:19Z piaip $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -855,7 +855,7 @@ reload_pttcache(void)
 	SHM->Pbusystate = 1;
 	SHM->last_film = 0;
 	bzero(SHM->notes, sizeof(SHM->notes));
-	setapath(pbuf, "Note");
+	setapath(pbuf, GLOBAL_NOTE);
 	setadir(buf, pbuf);
 	id = 0;
 	if ((fp = fopen(buf, "r"))) {

@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3613 2007-12-02 10:51:00Z piaip $ */
+/* $Id: mbbsd.c 3629 2007-12-04 17:38:19Z piaip $ */
 #ifdef DEBUG
 #define TELOPTS
 #define TELCMDS
@@ -257,16 +257,14 @@ abort_bbs_debug(int sig)
     sigaddset(&sigset, SIGXCPU);
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-    // TODO change the PttBug to some other names for non-PTT sites?
-
 #define CRASH_MSG ANSI_COLOR(0) \
     "\r\n程式異常, 立刻斷線. \r\n" \
-    "請洽 PttBug 板詳述問題發生經過。\r\n"
+    "請洽 " GLOBAL_BUGREPORT " 板詳述問題發生經過。\r\n"
 
 #define XCPU_MSG ANSI_COLOR(0) \
     "\r\n程式耗用過多計算資源, 立刻斷線。\r\n" \
     "可能是 (a)執行太多耗用資源的動作 或 (b)程式掉入無窮迴圈. "\
-    "請洽 PttBug 板詳述問題發生經過。\r\n"
+    "請洽 " GLOBAL_BUGREPORT " 板詳述問題發生經過。\r\n"
 
     if(sig==SIGXCPU)
 	write(1, XCPU_MSG, sizeof(XCPU_MSG));
