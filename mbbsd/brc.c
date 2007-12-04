@@ -1,4 +1,4 @@
-/* $Id: brc.c 3616 2007-12-02 15:39:25Z piaip $ */
+/* $Id: brc.c 3630 2007-12-04 18:22:55Z piaip $ */
 #include "bbs.h"
 
 /**
@@ -16,6 +16,8 @@
 
 #define BRC_BLOCKSIZE   1024
 
+// Note: BRC v3 should already support MAX_BOARD > 65535,
+// but not widely tested yet.
 #if MAX_BOARD > 65535 || BRC_MAXSIZE > 65535
 #error Max number of boards or BRC_MAXSIZE cannot fit in unsigned short, \
 please rewrite brc.c
