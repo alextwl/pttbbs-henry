@@ -1,4 +1,4 @@
-/* $Id: config.h 3629 2007-12-04 17:38:19Z piaip $ */
+/* $Id: config.h 3640 2007-12-05 13:06:28Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -295,10 +295,6 @@
 #define ALLHIDPOST "ALLHIDPOST"
 
 #define MAXTAGS	256
-#define BRC_STRLEN      15	/* Length of board name */
-#define BRC_MAXSIZE     49152
-#define BRC_MAXNUM      80
-
 #define WRAPMARGIN (511)
 
 #endif
