@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3547 2007-06-18 17:15:17Z kcwu $ */
+/* $Id: stuff.c 3635 2007-12-05 07:21:53Z piaip $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -591,7 +591,7 @@ char
 getans(const char *fmt,...)
 {
     char   msg[256];
-    char   ans[5];
+    char   ans[3];
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(msg , 128, fmt, ap);
