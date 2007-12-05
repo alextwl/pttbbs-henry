@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3629 2007-12-04 17:38:19Z piaip $ */
+/* $Id: bbs.c 3633 2007-12-05 05:03:28Z piaip $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -1686,7 +1686,8 @@ read_post(int ent, fileheader_t * fhdr, const char *direct)
 	    vmsg("此文章無內容");
 	    return FULLUPDATE;
 	case 999:
-            return do_reply(fhdr);
+	    do_reply(fhdr);
+            return FULLUPDATE;
 	case 998:
             recommend(ent, fhdr, direct);
 	    return FULLUPDATE;
