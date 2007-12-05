@@ -1,4 +1,4 @@
-/* $Id: common.h 3581 2007-10-01 14:42:57Z kcwu $ */
+/* $Id: common.h 3638 2007-12-05 09:45:48Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -100,8 +100,8 @@
 #define MSG_POSTER_LEN (78)
 #define MSG_POSTER      ANSI_COLOR(34;46) " 文章選讀 "\
 	ANSI_COLOR(31;47) " (y)"	ANSI_COLOR(30) "回信"\
-	ANSI_COLOR(31) "(X)" 	ANSI_COLOR(30) "推文"\
-	ANSI_COLOR(31) "(x)" 	ANSI_COLOR(30) "轉錄  "\
+	ANSI_COLOR(31) "(X%)" 	ANSI_COLOR(30) "推文"\
+	ANSI_COLOR(31) "(x)" 	ANSI_COLOR(30) "轉錄 "\
 	ANSI_COLOR(31) "(=[]<>)" 	ANSI_COLOR(30) "相關主題 "\
 	ANSI_COLOR(31) "(/?a)" 	ANSI_COLOR(30) "搜尋標題/作者  "\
 	ANSI_COLOR(31) "(V)" 	ANSI_COLOR(30) "投票 "\

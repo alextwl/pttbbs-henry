@@ -1,4 +1,4 @@
-/* $Id: edit.c 3628 2007-12-04 16:52:47Z wens $ */
+/* $Id: edit.c 3638 2007-12-05 09:45:48Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -2095,6 +2095,7 @@ display_textline_internal(textline_t *p, int i)
 
     if (!p) {
 	outc('~');
+	outs(ANSI_CLRTOEND);
 	return;
     }
 
@@ -3334,6 +3335,7 @@ vedit(char *fpath, int saveheader, int *islocal)
 #endif // PMORE_USE_ASCII_MOVIE
 		    edit_outs_attr(&curr_buf->currline->data[curr_buf->edit_margin], attr);
 		}
+		outs(ANSI_RESET ANSI_CLRTOEND);
 		edit_msg();
 	    }
 	} /* redraw */

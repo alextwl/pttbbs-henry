@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3636 2007-12-05 08:07:51Z piaip $ */
+/* $Id: pmore.c 3638 2007-12-05 09:45:48Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -2464,6 +2464,10 @@ pmore_Preference()
     int i = 0;
     // TODO even better pref navigation, like arrow keys
     // static int lastkey = '\\'; // default key
+
+#ifdef HAVE_SCREEN_GRAYOUT
+    grayout_lines(0, b_lines - 10, 0);
+#endif // HAVE_SCREEN_GRAYOUT
 
     while (1)
     {
