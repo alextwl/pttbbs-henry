@@ -1,4 +1,4 @@
-/* $Id: proto.h 3615 2007-12-02 12:23:57Z piaip $ */
+/* $Id: proto.h 3637 2007-12-05 09:42:10Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -587,6 +587,11 @@ void initscr(void);
 void out_lines(const char *str, int line);
 void screen_backup(screen_backup_t *buf);
 void screen_restore(const screen_backup_t *buf);
+
+#define HAVE_SCREEN_GRAYOUT
+void grayout_line(int y, int level);
+void grayout_lines(int start, int end, int level);
+
 
 /* stuff */
 #define isprint2(ch) ((ch & 0x80) || isprint(ch))

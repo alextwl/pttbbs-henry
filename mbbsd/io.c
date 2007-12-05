@@ -1,4 +1,4 @@
-/* $Id: io.c 3603 2007-12-01 12:42:33Z piaip $ */
+/* $Id: io.c 3637 2007-12-05 09:42:10Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -643,7 +643,7 @@ wait_input(float f, int flDoRefresh)
  * @param str
  * @param mode enum {STRIP_ALL = 0, ONLY_COLOR, NO_RELOAD};
  *             STRIP_ALL:  全部吃掉
- *             ONLY_COLOR: 只吃掉跟顏色有關的 (ESC[*m)
+ *             ONLY_COLOR: 吃掉所有跟顏色無關的 (ESC[*m)
  *             NO_RELOAD:  不 strip (?)
  */
 static const char EscapeFlag[] = {
