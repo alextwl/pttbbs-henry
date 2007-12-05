@@ -1,4 +1,4 @@
-/* $Id: screen.c 3641 2007-12-05 13:10:18Z piaip $ */
+/* $Id: screen.c 3642 2007-12-05 13:53:26Z piaip $ */
 #include "bbs.h"
 
 #define o_clear()     output(clearbuf,clearbuflen)
@@ -568,9 +568,17 @@ grayout_lines(int y, int end, int level)
     if (y < 0) y = 0;
     if (end > b_lines) end = b_lines;
 
+    // loop lines
     for (; y < end; y ++)
     {
-	slp = &big_picture[y];
+	// modify by scroll
+	i = y + roll;
+	if (i < 0)
+	    i += scr_lns;
+	else if (i >= scr_lns)
+	    i %= scr_lns;
+
+	slp = &big_picture[i];
 
 	if (slp->len < 1)
 	    continue;
