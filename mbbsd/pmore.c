@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3642 2007-12-05 13:53:26Z piaip $ */
+/* $Id: pmore.c 3645 2007-12-06 12:59:41Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -2874,6 +2874,11 @@ mf_movieGotoNamedFrame(const unsigned char *name, const unsigned char *end)
 	// got some frame. let's check the name
 	p++;
 	if (mf.end - p < sz)
+	    continue;
+
+	// check: target of p must end.
+	if (mf.end -p > sz &&
+		isalnum(*(p+sz)))
 	    continue;
 
 	if (memcmp(p, name, sz) == 0)
