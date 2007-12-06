@@ -1,4 +1,4 @@
-/* $Id: common.h 3638 2007-12-05 09:45:48Z piaip $ */
+/* $Id: common.h 3644 2007-12-06 12:54:47Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -33,8 +33,6 @@
 #define FN_BOARDHELP	"etc/board.help"
 
 #define MSG_DEL_CANCEL  "取消刪除"
-#define MSG_CLOAKED     "哈哈！我隱形了！看不到勒... :P"
-#define MSG_UNCLOAK     "我要重現江湖了...."
 #define MSG_BIG_BOY     "我是大帥哥! ^o^Y"
 #define MSG_BIG_GIRL    "世紀大美女 *^-^*"
 #define MSG_LITTLE_BOY  "我是底迪啦... =)"
