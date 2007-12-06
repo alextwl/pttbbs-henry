@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3645 2007-12-06 12:59:41Z piaip $ */
+/* $Id: pmore.c 3647 2007-12-06 17:28:51Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -3387,6 +3387,9 @@ mf_movieProcessCommand(unsigned char *p, unsigned char *end)
 
 	    if (igs)
 	    {
+		// make random
+		igs = random() % (igs+1);
+
 		for (pe = p ; igs > 0 && pe < end && *pe && 
 			*pe > ' ' && *pe < 0x80
 			; pe ++)
