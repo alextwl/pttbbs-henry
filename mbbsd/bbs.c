@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3646 2007-12-06 16:02:14Z piaip $ */
+/* $Id: bbs.c 3648 2007-12-07 01:52:26Z piaip $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -224,6 +224,9 @@ CheckPostPerm(void)
     static int last_board_index = 0; /* for speed up */
     int valid_index = 0;
     boardheader_t *bp = NULL;
+    
+    if (currmode & MODE_DIGEST)
+	return 0;
 
     if (currmode & MODE_POSTCHECKED)
     {
@@ -3191,10 +3194,9 @@ board_digest(void)
     if (currmode & MODE_SELECT)
 	board_select();
     currmode ^= MODE_DIGEST;
-    if (currmode & MODE_DIGEST)
-	currmode &= ~MODE_POST;
-    else if (haspostperm(currboard))
-	currmode |= MODE_POST;
+
+    // MODE_POST may be changed if board is modified.
+    // do not change post perm here. use other instead.
 
     setbdir(currdirect, currboard);
     return NEWDIRECT;
