@@ -1,4 +1,4 @@
-/* $Id: config.h 3640 2007-12-05 13:06:28Z piaip $ */
+/* $Id: config.h 3649 2007-12-07 06:04:47Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -46,6 +46,14 @@
 
 #ifndef GLOBAL_NOTE
 #define GLOBAL_NOTE "Note"
+#endif
+
+#ifndef GLOBAL_SECURITY
+#define GLOBAL_SECURITY "Security"
+#endif
+
+#ifndef GLOBAL_RECORD
+#define GLOBAL_RECORD "Record"
 #endif
 
 #ifndef GLOBAL_FOREIGN

@@ -1,4 +1,4 @@
-/* $Id: menu.c 3648 2007-12-07 01:52:26Z piaip $ */
+/* $Id: menu.c 3649 2007-12-07 06:04:47Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -11,9 +11,8 @@ extern char     board_hidden_status;
 
 static const char *title_tail_msgs[] = {
     "看板",
-    "選擇",
+    "系列",
     "文摘",
-    // "系列", // deprecated?
 };
 static const char *title_tail_attrs[] = {
     ANSI_COLOR(37),

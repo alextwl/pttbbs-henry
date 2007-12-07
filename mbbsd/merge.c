@@ -1,4 +1,4 @@
-/* $Id: merge.c 2996 2005-08-06 05:03:41Z piaip $ */
+/* $Id: merge.c 3649 2007-12-07 06:04:47Z piaip $ */
 #define _XOPEN_SOURCE
 #define _ISOC99_SOURCE
 /* this is a interface provided when we merge BBS */ 
@@ -191,7 +191,7 @@ m_sob(void)
        strcat(msg, "匯入好友名單\n");
    }
    sprintf(buf, "帳號匯入報告 %s -> %s ", userid, cuser.userid);
-   post_msg("Security", buf, msg, "[系統安全局]");
+   post_msg(GLOBAL_SECURITY, buf, msg, "[系統安全局]");
 
    vmsg("恭喜您完成帳號變身..");
    return 0;

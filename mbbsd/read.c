@@ -1,4 +1,4 @@
-/* $Id: read.c 3581 2007-10-01 14:42:57Z kcwu $ */
+/* $Id: read.c 3649 2007-12-07 06:04:47Z piaip $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -174,7 +174,7 @@ TagPruner(int bid)
     assert(bid >= 0);   /* bid == 0 means in mailbox */
     if (bid){
 	bp = getbcache(bid);
-	if (strcmp(bp->brdname, "Security") == 0)
+	if (strcmp(bp->brdname, GLOBAL_SECURITY) == 0)
 	    return DONOTHING;
     }
     if (TagNum && ((currstat != READING) || (currmode & MODE_BOARD))) {

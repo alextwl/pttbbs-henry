@@ -1,4 +1,4 @@
-/* $Id: syspost.c 3628 2007-12-04 16:52:47Z wens $ */
+/* $Id: syspost.c 3649 2007-12-07 06:04:47Z piaip $ */
 #include "bbs.h"
 
 int
@@ -62,12 +62,12 @@ post_change_perm(int oldperm, int newperm, const char *sysopid, const char *user
     char            genbuf[200], reason[30];
     int             i, flag = 0;
 
-    setbpath(genbuf, "Security");
+    setbpath(genbuf, GLOBAL_SECURITY);
     stampfile(genbuf, &fhdr);
     if (!(fp = fopen(genbuf, "w")))
 	return;
 
-    fprintf(fp, "作者: [系統安全局] 看板: Security\n"
+    fprintf(fp, "作者: [系統安全局] 看板: " GLOBAL_SECURITY "\n"
 	    "標題: [公安報告] 站長修改權限報告\n"
 	    "時間: %s\n", ctime4(&now));
     for (i = 0; i < NUMPERMS; i++) {

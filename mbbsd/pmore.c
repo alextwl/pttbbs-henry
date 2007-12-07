@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3647 2007-12-06 17:28:51Z piaip $ */
+/* $Id: pmore.c 3649 2007-12-07 06:04:47Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -80,7 +80,7 @@
     "[搜尋]關鍵字:"
 
 #define PMORE_MSG_MOVIE_DETECTED \
-    " ☆ 這份文件是可播放的文字動畫，要開始播放嗎？ [Y/n]"
+    " ★ 這份文件是可播放的文字動畫，要開始播放嗎？ [Y/n]"
 #define PMORE_MSG_MOVIE_PLAYOLD_GETTIME \
     "這可能是傳統動畫檔, 若要直接播放請輸入速度(秒): "
 #define PMORE_MSG_MOVIE_PLAYOLD_AS24L \
@@ -2281,9 +2281,11 @@ pmore(char *fpath, int promptend)
 		// admin edit any files other than ve help file
 		// and posts in Security board
 		if (	HasUserPerm(PERM_SYSOP) && 
-			(strcmp(fpath, "etc/ve.hlp") != 0) &&
-			(strcmp(currboard, "Security") != 0)
-		    )
+#ifdef GLOBAL_SECURITY
+			strcmp(currboard, GLOBAL_SECURITY) != 0 &&
+#endif // GLOBAL_SECURITY
+			strcmp(fpath, "etc/ve.hlp") != 0 &&
+			1)
 		{
 #ifdef PMORE_LOG_SYSOP_EDIT
 		    time4_t t = time4(NULL);
