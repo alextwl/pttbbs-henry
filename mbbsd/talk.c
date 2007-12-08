@@ -1,4 +1,4 @@
-/* $Id: talk.c 3638 2007-12-05 09:45:48Z piaip $ */
+/* $Id: talk.c 3650 2007-12-08 02:37:03Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -2843,7 +2843,7 @@ userlist(void)
 			    redrawall = redraw = 1;
 			    break;
 			}
-			if (getans("確定要給 %s %d Ptt 幣嗎? [N/y]",
+			if (getans("確定要給 %s %d " MONEYNAME " 幣嗎? [N/y]",
                              userid, ch) != 'y'){
 			    redrawall = redraw = 1;
 			    break;

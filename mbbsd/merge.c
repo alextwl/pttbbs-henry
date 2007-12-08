@@ -1,4 +1,4 @@
-/* $Id: merge.c 3649 2007-12-07 06:04:47Z piaip $ */
+/* $Id: merge.c 3650 2007-12-08 02:37:03Z piaip $ */
 #define _XOPEN_SOURCE
 #define _ISOC99_SOURCE
 /* this is a interface provided when we merge BBS */ 
@@ -87,9 +87,9 @@ m_sob(void)
    reload_money(); 
 
    sprintf(buf, 
-           "您的沙灘鸚鵡螺 %10d 換算成 Ptt 幣為 %9d (匯率 22:1), \n"
-           "    沙灘貝殼有 %10d 換算為 Ptt 幣為 %9d (匯率 222105:1), \n"
-           "    原有P幣  %10d 匯入後共有 %d\n",
+           "您的沙灘鸚鵡螺 %10d 換算成 " MONEYNAME " 幣為 %9d (匯率 22:1), \n"
+           "    沙灘貝殼有 %10d 換算為 " MONEYNAME " 幣為 %9d (匯率 222105:1), \n"
+           "    原有 %10d 匯入後共有 %d\n",
 	   (int)man.goldmoney, (int)man.goldmoney/22, 
 	   (int)man.silvermoney, (int)man.silvermoney/222105,
 	   cuser.money,

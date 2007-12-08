@@ -1,4 +1,4 @@
-/* $Id: config.h 3649 2007-12-07 06:04:47Z piaip $ */
+/* $Id: config.h 3650 2007-12-08 02:37:03Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -17,6 +17,11 @@
 /* 系統名(選單用)，建議剛好 4 個字元。 詳見 sample/pttbbs.conf */
 #ifndef BBSMNAME2
 #define BBSMNAME2	"Ｐtt"
+#endif
+
+/* 錢幣名，建議剛好 3 個字元。 詳見 sample/pttbbs.conf */
+#ifndef MONEYNAME
+#define MONEYNAME	"Ptt"
 #endif
 
 #ifndef BBSUSER
