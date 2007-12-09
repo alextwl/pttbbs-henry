@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3654 2007-12-09 02:37:52Z piaip $ */
+/* $Id: pmore.c 3657 2007-12-09 05:40:01Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -422,6 +422,8 @@ MF_Movie mfmovie;
     	mfmovie.mode =  MFDISP_MOVIE_YES; \
     if (mfmovie.mode == MFDISP_MOVIE_PLAYING_OLD) \
     	mfmovie.mode =  MFDISP_MOVIE_NO; \
+    mf_determinemaxdisps(MFNAV_PAGE, 0); \
+    mf_forward(0); \
 }
 
 #define RESET_MOVIE() { \
@@ -1807,8 +1809,6 @@ pmore(char *fpath, int promptend)
 			if(!mf_movieNextFrame())
 			{
 			    STOP_MOVIE();
-			    mf_determinemaxdisps(MFNAV_PAGE, 0);
-			    mf_forward(0);
 
 			    if(promptend == NA)
 			    {
@@ -1848,10 +1848,11 @@ pmore(char *fpath, int promptend)
 			}
 		    }
 		    else if(mfmovie.mode == MFDISP_MOVIE_PLAYING_OLD)
+		    {
 			mfmovie.mode = MFDISP_MOVIE_NO;
-
-		    mf_determinemaxdisps(MFNAV_PAGE, 0);
-		    mf_forward(0);
+			mf_determinemaxdisps(MFNAV_PAGE, 0);
+			mf_forward(0);
+		    }
 		}
 		continue;
 	}
