@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3653 2007-12-08 05:01:57Z piaip $ */
+/* $Id: bbs.c 3655 2007-12-09 04:12:22Z piaip $ */
 #include "bbs.h"
 
 #define WHEREAMI_LEVEL	16
@@ -3328,7 +3328,7 @@ b_config(void)
     boardheader_t   *bp=NULL;
     int touched = 0, finished = 0;
     bp = getbcache(currbid); 
-    const int ytitle = b_lines - 15;
+    int ytitle = b_lines - 15;
     int i = 0;
 
 #ifndef OLDRECOMMEND
