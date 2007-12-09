@@ -1,4 +1,4 @@
-/* $Id: io.c 3637 2007-12-05 09:42:10Z piaip $ */
+/* $Id: io.c 3659 2007-12-09 06:58:59Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -884,7 +884,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 		standout();
 		for(i=0; i<=len; i++)
 		{
-		    if(i <= clen)
+		    if(i < clen)
 			outc(buf[i]);
 		    else
 			outc(' ');
