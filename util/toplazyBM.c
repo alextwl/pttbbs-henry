@@ -1,4 +1,4 @@
-/* $Id: toplazyBM.c 3237 2005-11-02 03:06:24Z scw $ */
+/* $Id: toplazyBM.c 3656 2007-12-09 04:51:05Z piaip $ */
 #define _UTIL_C_
 #include "bbs.h"
 #define OUTFILE  BBSHOME "/etc/toplazyBM"
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 		lostbms[i].bmname[0], lostbms[i].bmname);
 	stampfile(genbuf, &mymail);
 
-	strcpy(mymail.owner, "[PTT警察局]");
+	strcpy(mymail.owner, "[" BBSMNAME "警察局]");
 	if (lostdays <= 90)
 	    sprintf(mymail.title,
 		    "\033[32m版主通知\033[m %s版版主%s",

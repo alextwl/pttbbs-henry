@@ -1,4 +1,4 @@
-/* $Id: jungo.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: jungo.c 3656 2007-12-09 04:51:05Z piaip $ */
 #define _UTIL_C_
 #include "bbs.h"
 
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     	sprintf(genbuf, BBSHOME "/home/%c/%s", lostbms[i].bmname[0], lostbms[i].bmname);
     	stampfile(genbuf, &mymail);
     	
-    	strcpy(mymail.owner, "[PTT警察局]");
+    	strcpy(mymail.owner, "[" BBSMNAME "警察局]");
     	
     	if(lostdays <= 60){
     		sprintf(mymail.title,

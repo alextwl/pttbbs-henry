@@ -1,4 +1,4 @@
-/* $Id: toplazyBBM.c 3156 2005-09-11 12:44:44Z scw $ */
+/* $Id: toplazyBBM.c 3656 2007-12-09 04:51:05Z piaip $ */
 #define _UTIL_C_
 #include "bbs.h"
 
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 	sprintf(genbuf, BBSHOME "/home/%c/%s", lostbms[i].bmname[0], lostbms[i].bmname);
 	stampfile(genbuf, &mymail);
 
-	strcpy(mymail.owner, "[PTT警察局]");
+	strcpy(mymail.owner, "[" BBSMNAME "警察局]");
 
 	if(lostdays <= 30){
 	    sprintf(mymail.title,

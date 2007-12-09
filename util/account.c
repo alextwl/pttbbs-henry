@@ -1,4 +1,4 @@
-/* $Id: account.c 3511 2007-05-04 04:21:34Z victor $ */
+/* $Id: account.c 3656 2007-12-09 04:51:05Z piaip $ */
 #include "bbs.h"
 
 // test
@@ -377,7 +377,7 @@ main(int argc, char **argv)
 	system(buf);
     }
     /* Ptt reset Ptt's share memory */
-    printf("重設Pttcache 與fcache\n");
+    printf("重設cache 與fcache\n");
 
     SHM->Puptime = 0;
     resolve_fcache();
