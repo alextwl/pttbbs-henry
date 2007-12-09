@@ -1,4 +1,4 @@
-/* $Id: menu.c 3649 2007-12-07 06:04:47Z piaip $ */
+/* $Id: menu.c 3658 2007-12-09 06:11:23Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -478,7 +478,9 @@ static const commands_t userlist[] = {
     {u_cloak, PERM_CLOAK,           "KKCloak        隱身術"},
 #endif
     {u_register, PERM_BASIC,        "RRegister      填寫《註冊申請單》"},
+#ifdef ASSESS
     {u_cancelbadpost, PERM_LOGINOK, "BBye BadPost   申請刪除劣文"},
+#endif // ASSESS
     {u_list, PERM_SYSOP,            "XUsers         列出註冊名單"},
 #ifdef MERGEBBS
 //    {m_sob, PERM_LOGUSER|PERM_SYSOP,             "SSOB Import    沙灘變身術"},
