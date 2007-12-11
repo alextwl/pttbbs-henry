@@ -1,4 +1,4 @@
-/* $Id: vote.c 3617 2007-12-02 18:00:21Z piaip $ */
+/* $Id: vote.c 3667 2007-12-11 06:16:49Z piaip $ */
 #include "bbs.h"
 
 #define MAX_VOTE_NR	20
@@ -151,7 +151,7 @@ vote_report(const char *bname, const char *fname, char *fpath)
     }
     strlcpy(header.filename, ip, sizeof(header.filename));
 
-    strcpy(ip, ".DIR");
+    strcpy(ip, FN_DIR);
     if ((fd = open(fpath, O_WRONLY | O_CREAT, 0644)) >= 0) {
 	flock(fd, LOCK_EX);
 	lseek(fd, 0, SEEK_END);

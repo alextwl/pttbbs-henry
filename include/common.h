@@ -1,4 +1,4 @@
-/* $Id: common.h 3644 2007-12-06 12:54:47Z piaip $ */
+/* $Id: common.h 3667 2007-12-11 06:16:49Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -16,6 +16,7 @@
 #define FN_CANVOTE      "can_vote"
 #define FN_VISABLE      "visable"
 #define FN_USIES        "usies"         /* BBS log */
+#define FN_DIR		".DIR"
 #define FN_BOARD        ".BRD"       /* board list */
 #define FN_USEBOARD     "usboard"       /* ¬ÝªO²Î­p */
 #define FN_NOTE_ANS     "note.ans"

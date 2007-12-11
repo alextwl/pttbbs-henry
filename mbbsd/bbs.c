@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3665 2007-12-11 05:26:34Z piaip $ */
+/* $Id: bbs.c 3667 2007-12-11 06:16:49Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -56,7 +56,7 @@ query_file_money(const fileheader_t *pfh)
 	char genbuf[MAXPATHLEN];
 
 	/* it is assumed that in MODE_SELECT, currboard is selected. */
-	setbfile(genbuf, currboard, ".DIR");
+	setbfile(genbuf, currboard, FN_DIR);
 	get_record(genbuf, &hdr, sizeof(hdr), pfh->multi.refer.ref);
 	pfh = &hdr;
     }

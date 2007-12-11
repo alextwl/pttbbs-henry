@@ -1,4 +1,4 @@
-/* $Id: mail.c 3666 2007-12-11 05:27:06Z piaip $ */
+/* $Id: mail.c 3667 2007-12-11 06:16:49Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1834,7 +1834,7 @@ bsmtp(const char *fpath, const char *title, const char *rcpt)
     strlcpy(mqueue.username, cuser.nickname, sizeof(mqueue.username));
     strlcpy(mqueue.rcpt, rcpt, sizeof(mqueue.rcpt));
 
-    if (append_record("out/.DIR", (fileheader_t *) & mqueue, sizeof(mqueue)) < 0)
+    if (append_record("out/" FN_DIR, (fileheader_t *) & mqueue, sizeof(mqueue)) < 0)
 	return 0;
     return chrono;
 }
