@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3635 2007-12-05 07:21:53Z piaip $ */
+/* $Id: stuff.c 3663 2007-12-11 01:49:03Z piaip $ */
 #include "bbs.h"
 #include "fnv_hash.h"
 
@@ -959,6 +959,12 @@ unsigned
 StringHash(const char *s)
 {
     return fnv1a_32_strcase(s, FNV1_32_INIT);
+}
+
+unsigned
+DBCS_StringHash(const char *s)
+{
+    return fnv1a_32_dbcs_strcase(s, FNV1_32_INIT);
 }
 
 inline int *intbsearch(int key, const int *base0, int nmemb)

@@ -1,4 +1,4 @@
-/* $Id: proto.h 3637 2007-12-05 09:42:10Z piaip $ */
+/* $Id: proto.h 3663 2007-12-11 01:49:03Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -811,6 +811,7 @@ int Goodbye(void);
 
 /* toolkit */
 unsigned StringHash(const char *s);
+unsigned DBCS_StringHash(const char *s);
 
 /* passwd */
 int passwd_init(void);
