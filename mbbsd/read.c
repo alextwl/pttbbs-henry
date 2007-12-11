@@ -1,4 +1,4 @@
-/* $Id: read.c 3663 2007-12-11 01:49:03Z piaip $ */
+/* $Id: read.c 3664 2007-12-11 01:56:45Z piaip $ */
 #include "bbs.h"
 
 static int headers_size;
@@ -220,7 +220,7 @@ getkeep(const char *s, int def_topline, int def_cursline)
     static struct keepsome preserv_keepblock;
     static struct keepsome *keeplist = &preserv_keepblock;
     struct keeploc_t *p;
-    unsigned key=DBCS_StringHash(s);
+    unsigned key=StringHash(s);
     int i;
 
     if (def_cursline >= 0) {
@@ -562,7 +562,7 @@ select_read(const keeploc_t * locmem, int sr_mode)
    
    snprintf(genbuf, sizeof(genbuf), "%s%X.%X.%X",
             first_select ? "SR.":p,
-            sr_mode, (int)strlen(keyword), StringHash(keyword));
+            sr_mode, (int)strlen(keyword), DBCS_StringHash(keyword));
    if( strlen(genbuf) > MAXPATHLEN - 50 )
        return  READ_REDRAW; // avoid overflow
 
