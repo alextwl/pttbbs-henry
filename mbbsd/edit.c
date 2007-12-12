@@ -1,4 +1,4 @@
-/* $Id: edit.c 3638 2007-12-05 09:45:48Z piaip $ */
+/* $Id: edit.c 3670 2007-12-12 01:37:36Z kcwu $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -1678,7 +1678,7 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
     }
     curr_buf->currline = NULL;
 
-    if (postrecord.times > MAX_CROSSNUM-1 && hbflcheck(currbid, currutmp->uid))
+    if (postrecord.times > MAX_CROSSNUM-1 && !is_hidden_board_friend(currbid, currutmp->uid))
 	anticrosspost();
 
     if (po && sum == 3) {

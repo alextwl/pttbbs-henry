@@ -1,4 +1,4 @@
-/* $Id: announce.c 3574 2007-09-23 17:57:58Z kcwu $ */
+/* $Id: announce.c 3670 2007-12-12 01:37:36Z kcwu $ */
 #include "bbs.h"
 
 /* copy temp queue operation -------------------------------------- */
@@ -977,7 +977,7 @@ isvisible_man(const menu_t * me)
 				 /* board friend only effact when
 				  * in board reading mode             */
 				 (currstat == ANNOUNCE ||
-				  hbflcheck(currbid, currutmp->uid))
+				  !is_hidden_board_friend(currbid, currutmp->uid))
 				)))
 	return 0;
     return 1;

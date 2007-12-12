@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3668 2007-12-11 08:01:19Z piaip $ */
+/* $Id: bbs.c 3670 2007-12-12 01:37:36Z kcwu $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -188,7 +188,7 @@ set_board(void)
     if( HasUserPerm(PERM_SYSOP) &&
 	(bp->brdattr & BRD_HIDE) &&
 	!is_BM_cache(bp - bcache + 1) &&
-	hbflcheck((int)(bp - bcache) + 1, currutmp->uid) )
+	!is_hidden_board_friend((int)(bp - bcache) + 1, currutmp->uid) )
 	vmsg("進入未經授權看板");
 
     board_note_time = &bp->bupdate;

@@ -1,4 +1,4 @@
-/* $Id: board.c 3668 2007-12-11 08:01:19Z piaip $ */
+/* $Id: board.c 3670 2007-12-12 01:37:36Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -161,7 +161,7 @@ HasBoardPerm(boardheader_t *bptr)
 
     /* 祕密看板：核對首席板主的好友名單 */
     if (brdattr & BRD_HIDE) {	/* 隱藏 */
-	if (hbflcheck((int)(bptr - bcache) + 1, currutmp->uid)) {
+	if (!is_hidden_board_friend((int)(bptr - bcache) + 1, currutmp->uid)) {
 	    if (brdattr & BRD_POSTMASK)
 		return 0;
 	    else

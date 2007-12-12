@@ -1,4 +1,4 @@
-/* $Id: proto.h 3668 2007-12-11 08:01:19Z piaip $ */
+/* $Id: proto.h 3670 2007-12-12 01:37:36Z kcwu $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -158,7 +158,7 @@ int setumoney(int uid, int money);
 userinfo_t *search_ulist_pid(int pid);
 userinfo_t *search_ulist_userid(const char *userid);
 void hbflreload(int bid);
-int hbflcheck(int bid, int uid);
+int is_hidden_board_friend(int bid, int uid);
 void *attach_shm(int shmkey, int shmsize);
 void attach_SHM(void);
 int is_BM_cache(int);
