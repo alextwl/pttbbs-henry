@@ -1,4 +1,4 @@
-/* $Id: user.c 3658 2007-12-09 06:11:23Z piaip $ */
+/* $Id: user.c 3673 2007-12-12 01:42:23Z kcwu $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -100,7 +100,7 @@ int u_cancelbadpost(void)
        cuser.badpost--;
        cuser.timeremovebadpost = now;
        passwd_update(usernum, &cuser);
-       log_file("log/cancelbadpost.log", LOG_VF|LOG_CREAT,
+       log_filef("log/cancelbadpost.log", LOG_CREAT,
 	        "%s %s 刪除一篇劣文\n", Cdate(&now), cuser.userid);
    }
    vmsg("恭喜您已經成功\刪除一篇劣文.");

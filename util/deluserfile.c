@@ -1,4 +1,4 @@
-/* $Id: deluserfile.c 2987 2005-08-05 09:32:59Z piaip $ */
+/* $Id: deluserfile.c 3673 2007-12-12 01:42:23Z kcwu $ */
 /* 自動砍user目錄檔案程式 */
 
 #include "bbs.h"
@@ -6,25 +6,6 @@
 #define HOLDWRITELOG
 #define DELZEROFILE
 #define USERHOME BBSHOME "/home"
-
-int bad_user_id(const char *userid)
-{
-    register char ch;
-
-    if (strlen(userid) < 2)
-	return 1;
-
-    if (!isalpha(*userid))
-	return 1;
-
-    if (!strcasecmp(userid, "new"))
-	return 1;
-
-    while ((ch = *(++userid)))
-	if (!isalnum(ch))
-	    return 1;
-    return 0;
-}
 
 void del_file(char *userid)
 {
@@ -123,7 +104,7 @@ int main(int argc, char **argv)
 	    ptr = de->d_name;
 
 	    /* 預防錯誤 */
-	    if (!bad_user_id(ptr))
+	    if (is_validuserid(ptr))
 	    {
 		if (!(count++ % 300))
 		    printf(".\n");

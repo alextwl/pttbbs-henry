@@ -1,4 +1,4 @@
-/* $Id: modes.h 3524 2007-05-30 15:48:39Z scw $ */
+/* $Id: modes.h 3673 2007-12-12 01:42:23Z kcwu $ */
 #ifndef INCLUDE_MODES_H
 #define INCLUDE_MODES_H
 
@@ -155,13 +155,11 @@
 #define AUTHOR_PREV     (RS_AUTHOR)
 
 /* DBCS aware modes */
-enum {
+enum _DBCS_STATUS {
     DBCS_ASCII,
     DBCS_LEADING,
     DBCS_TRAILING,
-} _DBCS_STATUS;
-
-enum {STRIP_ALL = 0, ONLY_COLOR, NO_RELOAD};
+};
 
 #define SIG_PK          0
 #define SIG_TALK        1

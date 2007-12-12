@@ -1,4 +1,4 @@
-/* $Id: dice.c 3650 2007-12-08 02:37:03Z piaip $ */
+/* $Id: dice.c 3673 2007-12-12 01:42:23Z kcwu $ */
 #include "bbs.h"
 
 #define DICE_TXT   BBSHOME "/etc/dice.txt"
@@ -79,19 +79,6 @@ IsNum(const char *a, int n)
 	    return 0;
     return 1;
 }
-
-#if 0
-static int
-IsSNum(char *a)
-{
-    int             i;
-
-    for (i = 0; a[i]; i++)
-	if (a[i] > '9' || a[i] < '0')
-	    return 0;
-    return 1;
-}
-#endif
 
 static void
 show_data(void)

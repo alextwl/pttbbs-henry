@@ -1,4 +1,4 @@
-# $Id: Makefile 3559 2007-09-19 17:21:55Z kcwu $
+# $Id: Makefile 3673 2007-12-12 01:42:23Z kcwu $
 SRCROOT=	..
 .include "$(SRCROOT)/pttbbs.mk"
 
@@ -42,6 +42,8 @@ ${UTIL_DIR}/${fn}:	# FIXME: dependency
 	cd ${UTIL_DIR}; make ${fn}
 .endfor
 
+LINK_UTIL_OBJS+=  $(SRCROOT)/src/libbbsutil/libbbsutil.a \
+	$(SRCROOT)/src/libbbs/libbbs.a
 
 echobbslib.o:	echobbslib.c
 	${CC} ${CFLAGS} -DWITH_ECHOMAIL -c echobbslib.c

@@ -1,4 +1,4 @@
-/* $Id: friend.c 3618 2007-12-03 02:05:23Z piaip $ */
+/* $Id: friend.c 3673 2007-12-12 01:42:23Z kcwu $ */
 #include "bbs.h"
 
 /* ------------------------------------- */
@@ -319,7 +319,7 @@ inline void friend_load_real(int tosort, int maxf,
 	fclose(fp);
 
 	if( tosort )
-	    qsort(tarray, nFriends, sizeof(int), qsort_intcompar);
+	    qsort(tarray, nFriends, sizeof(int), cmp_int);
 	if( destn )
 	    *destn = nFriends;
 	tarray[nFriends] = 0;

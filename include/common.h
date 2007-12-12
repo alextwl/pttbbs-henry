@@ -1,4 +1,4 @@
-/* $Id: common.h 3667 2007-12-11 06:16:49Z piaip $ */
+/* $Id: common.h 3673 2007-12-12 01:42:23Z kcwu $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -229,8 +229,6 @@
 #define REPLYING        0
 #define RECVINREPLYING  1
 
-#define LOG_CREAT       1
-#define LOG_VF          2
 
 
 #if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
