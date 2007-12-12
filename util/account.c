@@ -1,4 +1,4 @@
-/* $Id: account.c 3656 2007-12-09 04:51:05Z piaip $ */
+/* $Id: account.c 3671 2007-12-12 01:37:48Z kcwu $ */
 #include "bbs.h"
 
 // test
@@ -100,7 +100,7 @@ main(int argc, char **argv)
     int             act[27];	/* 次數/累計時間/pointer */
     time4_t         now;
     struct tm      *ptime;
-    int             per_hour_unit = 10;
+    int             per_hour_unit = 100;
 
     attach_SHM();
     nice(10);
