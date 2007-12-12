@@ -1,4 +1,4 @@
-/* $Id: args.c 3673 2007-12-12 01:42:23Z kcwu $ */
+/* $Id: args.c 3674 2007-12-12 05:35:16Z kcwu $ */
 #include "bbs.h"
 #ifdef HAVE_SETPROCTITLE
 
@@ -11,7 +11,7 @@ initsetproctitle(int argc, char **argv, char **envp)
 
 
 static char **Argv = NULL;	/* pointer to argument vector */
-static int arg_size;		/* end of argv */
+static int argv_size;		/* end of argv */
 
 extern char **environ;
 
