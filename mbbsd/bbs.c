@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3681 2007-12-15 03:39:20Z piaip $ */
+/* $Id: bbs.c 3682 2007-12-15 04:12:51Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -1672,7 +1672,7 @@ cross_post(int ent, fileheader_t * fhdr, const char *direct)
 #ifdef USE_COOLDOWN
     if(check_cooldown(getbcache(xbid)))
     {
-	msg("該看板現在無法轉錄。");
+	vmsg("該看板現在無法轉錄。");
 	return FULLUPDATE;
     }
 #endif
