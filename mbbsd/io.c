@@ -1,4 +1,4 @@
-/* $Id: io.c 3673 2007-12-12 01:42:23Z kcwu $ */
+/* $Id: io.c 3683 2007-12-15 05:09:29Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -169,20 +169,12 @@ dogetch(void)
 	    }
 
 	    if (len == 0){
-#ifdef OUTTA_TIMER
-		now = SHM->GV2.e.now;
-#else
-		now = time(0);
-#endif
+		syncnow();
 		return I_TIMEOUT;
 	    }
 
 	    if (i_newfd && FD_ISSET(i_newfd, &readfds)){
-#ifdef OUTTA_TIMER
-		now = SHM->GV2.e.now;
-#else
-		now = time(0);
-#endif
+		syncnow();
 		return I_OTHERDATA;
 	    }
 	}
@@ -209,11 +201,7 @@ dogetch(void)
     }
 
     if (currutmp) {
-#ifdef OUTTA_TIMER
-	now = SHM->GV2.e.now;
-#else
-	now = time(0);
-#endif
+	syncnow();
 	/* 3 秒內超過兩 byte 才算 active, anti-antiidle.
 	 * 不過方向鍵等組合鍵不止 1 byte */
 	if (now - lastact < 3)

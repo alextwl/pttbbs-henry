@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3673 2007-12-12 01:42:23Z kcwu $ */
+/* $Id: stuff.c 3683 2007-12-15 05:09:29Z piaip $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -238,6 +238,17 @@ gettime(int line, time4_t dt, const char*head)
     } while ((endtime.tm_hour = atoi(yn)) < 0 || endtime.tm_hour > 23);
     return mktime(&endtime);
 }
+
+// synchronize 'now'
+void syncnow(void)
+{
+#ifdef OUTTA_TIMER
+        now = SHM->GV2.e.now;
+#else
+	now = time(0);
+#endif
+}
+
 #endif
 
 

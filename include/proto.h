@@ -1,4 +1,4 @@
-/* $Id: proto.h 3679 2007-12-12 17:47:03Z piaip $ */
+/* $Id: proto.h 3683 2007-12-15 05:09:29Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -639,6 +639,7 @@ int qsort_intcompar(const void *a, const void *b);
 #ifdef PLAY_ANGEL
 void pressanykey_or_callangel(void);
 #endif
+void syncnow(void);
 
 /* syspost */
 int post_msg(const char* bname, const char* title, const char *msg, const char* author);
