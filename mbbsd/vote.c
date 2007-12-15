@@ -1,4 +1,4 @@
-/* $Id: vote.c 3667 2007-12-11 06:16:49Z piaip $ */
+/* $Id: vote.c 3685 2007-12-15 18:59:12Z piaip $ */
 #include "bbs.h"
 
 #define MAX_VOTE_NR	20
@@ -808,7 +808,7 @@ user_vote_one(vote_buffer_t *vbuf, const char *bname, int ind)
 	fclose(lfp);
 	if (cuser.firstlogin > closetime || cuser.numposts < limits_posts ||
 		cuser.numlogins < limits_logins) {
-	    vmsg("你不夠資深喔！ (可在看板內按大寫 I 查看限制)");
+	    vmsg("你不夠資深喔！");
 	    return FULLUPDATE;
 	}
     }

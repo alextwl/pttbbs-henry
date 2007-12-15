@@ -1,4 +1,4 @@
-/* $Id: screen.c 3642 2007-12-05 13:53:26Z piaip $ */
+/* $Id: screen.c 3685 2007-12-15 18:59:12Z piaip $ */
 #include "bbs.h"
 
 #define o_clear()     output(clearbuf,clearbuflen)
@@ -357,7 +357,9 @@ outc(unsigned char c)
 	slp->data[cur_col] = '\0';
 	slp->len = cur_col + 1;
     }
-    if (slp->data[cur_col] != c) {
+
+    // flush ANSI escapes everytime.
+    if (c == ESC_CHR || slp->data[cur_col] != c) {
 	slp->data[cur_col] = c;
 	if (!(slp->mode & MODIFIED))
 	    slp->smod = slp->emod = cur_col;

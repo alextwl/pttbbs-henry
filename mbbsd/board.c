@@ -1,4 +1,4 @@
-/* $Id: board.c 3684 2007-12-15 07:23:22Z piaip $ */
+/* $Id: board.c 3685 2007-12-15 18:59:12Z piaip $ */
 #include "bbs.h"
 
 /* personal board state
@@ -207,6 +207,7 @@ b_config(void)
 
     while(!finished) {
 	move(ytitle +2, 0);
+	clrtobot();
 
 	prints(" 中文敘述: %s\n", bp->title);
 	prints(" 板主名單: %s\n", (bp->BM[0] > ' ')? bp->BM : "(無)");
