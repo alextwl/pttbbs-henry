@@ -1,4 +1,4 @@
-/* $Id: user.c 3673 2007-12-12 01:42:23Z kcwu $ */
+/* $Id: user.c 3688 2007-12-16 04:43:32Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -335,6 +335,7 @@ void Customize(void)
 	COLORED_MODMARK,
 #ifdef DBCSAWARE
 	DBCSAWARE_FLAG,
+	DBCS_NOINTRESC,
 #endif
 	0,
     };
@@ -345,6 +346,7 @@ void Customize(void)
 	"改用色彩代替修改符號 (+)",
 #ifdef DBCSAWARE
 	"自動偵測雙位元字集(如全型中文)",
+	"禁止插入雙位元的色碼(一字雙色)",
 #endif
 	0,
     };
