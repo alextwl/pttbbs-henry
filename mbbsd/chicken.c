@@ -1,5 +1,8 @@
-/* $Id: chicken.c 3673 2007-12-12 01:42:23Z kcwu $ */
+/* $Id: chicken.c 3695 2007-12-16 11:16:33Z piaip $ */
 #include "bbs.h"
+
+// TODO pull chicken out of userec.
+// remove chickenpk.
 
 #define NUM_KINDS   15		/* 有多少種動物 */
 
@@ -878,6 +881,7 @@ chicken_main(void)
     return 0;
 }
 
+#ifdef USE_CHICKEN_PK
 int
 chickenpk(int fd)
 {
@@ -1020,3 +1024,4 @@ chickenpk(int fd)
     unlockutmpmode();
     return 0;
 }
+#endif // USE_CHICKEN_PK
