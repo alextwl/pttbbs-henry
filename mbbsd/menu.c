@@ -1,4 +1,4 @@
-/* $Id: menu.c 3658 2007-12-09 06:11:23Z piaip $ */
+/* $Id: menu.c 3690 2007-12-16 06:22:48Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -141,7 +141,7 @@ show_status(void)
     snprintf(mystatus, sizeof(mystatus),
 	     ANSI_COLOR(34;46) "[%d/%d 星期%c%c %d:%02d]" 
 	     ANSI_COLOR(1;33;45) "%-14s"
-	     ANSI_COLOR(30;47) " 目前坊裡有" ANSI_COLOR(31) 
+	     ANSI_COLOR(30;47) " 線上" ANSI_COLOR(31) 
 	     "%d" ANSI_COLOR(30) "人, 我是" ANSI_COLOR(31) "%s"
 	     ANSI_COLOR(30) ,
 	     ptime->tm_mon + 1, ptime->tm_mday, myweek[i], myweek[i + 1],
