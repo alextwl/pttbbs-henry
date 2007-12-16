@@ -1,4 +1,4 @@
-/* $Id: proto.h 3683 2007-12-15 05:09:29Z piaip $ */
+/* $Id: proto.h 3694 2007-12-16 09:41:13Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -222,6 +222,7 @@ int dice_main(void);
 
 /* edit */
 int vedit(char *fpath, int saveheader, int *islocal);
+int vedit2(char *fpath, int saveheader, int *islocal, int textOnly);
 void write_header(FILE *fp, char *mytitle);
 void addsignature(FILE *fp, int ifuseanony);
 void auto_backup(void);
