@@ -1,4 +1,4 @@
-/* $Id: passwd.c 3557 2007-09-19 16:10:22Z kcwu $ */
+/* $Id: passwd.c 3693 2007-12-16 08:16:38Z piaip $ */
 #include "bbs.h"
 
 static int      semid = -1;
@@ -82,6 +82,8 @@ passwd_update(int num, userec_t * buf)
 	passwd_query(num, &u);
 	if(pwdfd & ALERT_PWD_BADPOST)
 	   cuser.badpost = buf->badpost = u.badpost;
+	if(pwdfd & ALERT_PWD_GOODPOST)
+	   cuser.goodpost = buf->goodpost = u.goodpost;
         if(pwdfd & ALERT_PWD_PERM)	
 	   cuser.userlevel = buf->userlevel = u.userlevel;
 	currutmp->alerts &= ~ALERT_PWD;
