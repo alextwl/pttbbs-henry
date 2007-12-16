@@ -1,4 +1,4 @@
-/* $Id: board.c 3690 2007-12-16 06:22:48Z piaip $ */
+/* $Id: board.c 3692 2007-12-16 07:15:46Z piaip $ */
 #include "bbs.h"
 
 /* personal board state
@@ -191,9 +191,9 @@ b_config(void)
 
     const int ytitle = b_lines - 
 #ifndef OLDRECOMMEND
-	LNBOARDINFO+1;
+	(LNBOARDINFO+1);    // new format
 #else // OLDRECOMMEND
-	LNBOARDINFO;
+	(LNBOARDINFO);	    // old (less)
 #endif  // OLDRECOMMEND
 
     grayout_lines(0, ytitle-1, 0);
