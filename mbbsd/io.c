@@ -1,4 +1,4 @@
-/* $Id: io.c 3683 2007-12-15 05:09:29Z piaip $ */
+/* $Id: io.c 3698 2007-12-17 03:26:22Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -61,12 +61,16 @@ oflush(void)
     }
 }
 
+// deprecated?
+#if 0
 void
 init_buf(void)
 {
-
     memset(inbuf, 0, IBUFSIZE);
+    ibufsize = icurrchar = 0;
 }
+#endif 
+
 void
 output(const char *s, int len)
 {
@@ -260,7 +264,7 @@ _debug_check_keyinput()
 	move(b_lines, 0);
 	if(dbcsaware)
 	{
-	    prints( ANSI_COLOR(7) "游標在此" ANSI_RESET
+	    outs( ANSI_COLOR(7) "游標在此" ANSI_RESET
 		    " 測試中文模式會不會亂送鍵。 'q' 離開, 'd' 回英文模式 ");
 	    move(b_lines, 4);
 	} else {
@@ -870,6 +874,11 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	    case KEY_UNKNOWN:
 		break;
 	    default:
+		if (echo == NUMECHO && !isdigit(ch))
+		{
+		    bell();
+		    break;
+		}
 		if (isprint2(ch) && clen < len && x + clen < scr_cols) {
 #ifdef DBCSAWARE
 		    if(ISDBCSAWARE())

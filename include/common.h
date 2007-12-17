@@ -1,4 +1,4 @@
-/* $Id: common.h 3673 2007-12-12 01:42:23Z kcwu $ */
+/* $Id: common.h 3698 2007-12-17 03:26:22Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -124,6 +124,7 @@
 #define NOECHO       0
 #define DOECHO       1
 #define LCECHO       2
+#define NUMECHO	     4
 
 #define YEA  1		       /* Booleans  (Yep, for true and false) */
 #define NA   0

@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3697 2007-12-17 01:57:04Z piaip $ */
+/* $Id: bbs.c 3698 2007-12-17 03:26:22Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -3495,8 +3495,12 @@ change_cooldown(void)
 static int
 b_moved_to_config()
 {
-    vmsg("這個功\能已移入看板設定 (大寫 I) 去了！");
-    return FULLUPDATE;
+    if ((currmode & MODE_BOARD) || HasUserPerm(PERM_SYSOP))
+    {
+	vmsg("這個功\能已移入看板設定 (大寫 I) 去了！");
+	return FULLUPDATE;
+    }
+    return DONOTHING;
 }
 
 /* ----------------------------------------------------- */

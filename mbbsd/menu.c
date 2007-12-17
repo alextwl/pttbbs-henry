@@ -1,4 +1,4 @@
-/* $Id: menu.c 3695 2007-12-16 11:16:33Z piaip $ */
+/* $Id: menu.c 3698 2007-12-17 03:26:22Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -688,7 +688,7 @@ Talk(void)
 int
 User(void)
 {
-    domenu(M_UMENU, "個人設定", 'I', userlist);
+    domenu(M_UMENU, "個人設定", 'U', userlist);
     return 0;
 }
 

@@ -1,4 +1,4 @@
-/* $Id: board.c 3697 2007-12-17 01:57:04Z piaip $ */
+/* $Id: board.c 3698 2007-12-17 03:26:22Z piaip $ */
 #include "bbs.h"
 
 /* personal board state
@@ -441,7 +441,7 @@ b_config(void)
 		    );
 	}
 
-	// if (isBM)
+	if (isBM)
 	{
 	    ipostres ++;
 	    move_ansi(ipostres++, COLPOSTRES-2);

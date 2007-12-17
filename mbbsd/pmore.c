@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3683 2007-12-15 05:09:29Z piaip $ */
+/* $Id: pmore.c 3698 2007-12-17 03:26:22Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -233,11 +233,10 @@ pmore_clrtoeol(int y, int x)
     for (i = x; i < t_columns; i++) 
 	outc(' '); 
     clrtoeol();
-    move(y, x);
+    move(y, x); // this is required, due to outc().
 #else
     move(y, x);
     clrtoeol();
-    move(y, x);
 #endif
 }
 
@@ -1989,7 +1988,7 @@ pmore(char *fpath, int promptend)
 
 		postfix1len = 12;	// check msg below
 		postfix2len = 10;
-		if(mf_viewedAll()) postfix1len = 15;
+		if(mf_viewedAll()) postfix1len = 16;
 
 		if (prefixlen + postfix1len + postfix2len + 1 > t_columns)
 		{
@@ -2006,7 +2005,7 @@ pmore(char *fpath, int promptend)
 		    outs(
 			mf_viewedAll() ?
 			    ANSI_COLOR(0;31;47)"(y)" ANSI_COLOR(30) "回信"
-			    ANSI_COLOR(31) "(X)" ANSI_COLOR(30) "推文 "
+			    ANSI_COLOR(31) "(X%)" ANSI_COLOR(30) "推文 "
 			:
 			    ANSI_COLOR(0;31;47) "(h)" 
 			    ANSI_COLOR(30) "按鍵說明 "

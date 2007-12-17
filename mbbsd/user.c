@@ -1,4 +1,4 @@
-/* $Id: user.c 3689 2007-12-16 05:22:03Z piaip $ */
+/* $Id: user.c 3698 2007-12-17 03:26:22Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -502,10 +502,17 @@ void Customize(void)
 	
     }
 
-    if(dirty)
-	passwd_update(usernum, &cuser);
+    grayout_lines(1, b_lines, 0);
+    move(b_lines-1, 0); clrtoeol();
 
-    grayout_lines(0, b_lines, 0);
+    if(dirty)
+    {
+	passwd_update(usernum, &cuser);
+	outs("設定已儲存。\n");
+    } else {
+	outs("結束設定。\n");
+    }
+
     vmsg("設定完成");
 }
 
