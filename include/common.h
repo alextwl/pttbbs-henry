@@ -1,4 +1,4 @@
-/* $Id: common.h 3699 2007-12-17 05:09:43Z piaip $ */
+/* $Id: common.h 3700 2007-12-17 08:14:27Z mhsin $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -91,6 +91,9 @@
 #define STR_AUTHOR2     "發信人:"
 #define STR_POST1       "看板:"
 #define STR_POST2       "站內:"
+
+/* AID */
+#define AID_DISPLAYNAME	"文章代碼(AID)"
 
 /* LONG MESSAGES */
 #define MSG_SELECT_BOARD ANSI_COLOR(7) "【 選擇看板 】" ANSI_RESET "\n" \
