@@ -1,4 +1,4 @@
-/* $Id: common.h 3698 2007-12-17 03:26:22Z piaip $ */
+/* $Id: common.h 3699 2007-12-17 05:09:43Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -209,7 +209,8 @@
 #define I_TIMEOUT   (-2)       /* Used for the getchar routine select call */
 #define I_OTHERDATA (-333)     /* interface, (-3) will conflict with chinese */
 
-#define MAX_MODES 127
+#define MAX_MODES	(127)
+#define MAX_RECOMMENDS  (100)
 
 #ifndef MIN
 #define	MIN(a,b)	(((a)<(b))?(a):(b))
