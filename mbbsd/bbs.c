@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3700 2007-12-17 08:14:27Z mhsin $ */
+/* $Id: bbs.c 3701 2007-12-17 08:25:17Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -2496,7 +2496,9 @@ recommend(int ent, fileheader_t * fhdr, const char *direct)
     int isGuest = (strcmp(cuser.userid, STR_GUEST) == EQUSTR);
     int logIP = 0;
     int ymsg = b_lines -1;
+#ifdef ASSESS
     char oldrecom = fhdr->recommend;
+#endif // ASSESS
 
     assert(0<=currbid-1 && currbid-1<MAX_BOARD);
     bp = getbcache(currbid);

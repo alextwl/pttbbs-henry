@@ -1,4 +1,4 @@
-/* $Id: proto.h 3700 2007-12-17 08:14:27Z mhsin $ */
+/* $Id: proto.h 3701 2007-12-17 08:25:17Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -284,6 +284,7 @@ void friend_edit(int type);
 void friend_load(int);
 int t_override(void);
 int t_reject(void);
+int t_fix_aloha();
 void friend_add(const char *uident, int type, const char *des);
 void friend_delete(const char *uident, int type);
 void friend_delete_all(const char *uident, int type);

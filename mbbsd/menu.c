@@ -1,4 +1,4 @@
-/* $Id: menu.c 3698 2007-12-17 03:26:22Z piaip $ */
+/* $Id: menu.c 3701 2007-12-17 08:25:17Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -446,6 +446,7 @@ static const commands_t namelist[] = {
     {t_override, PERM_LOGINOK,"OOverRide      好友名單"},
     {t_reject, PERM_LOGINOK,  "BBlack         壞人名單"},
     {t_aloha,PERM_LOGINOK,    "AALOHA         上站通知名單"},
+    {t_fix_aloha,PERM_LOGINOK,"XXFixALOHA     修正上站通知"},
 #ifdef POSTNOTIFY
     {t_post,PERM_LOGINOK,     "NNewPost       新文章通知名單"},
 #endif
