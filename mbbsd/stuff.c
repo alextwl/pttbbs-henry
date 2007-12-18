@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3705 2007-12-18 09:36:52Z mhsin $ */
+/* $Id: stuff.c 3706 2007-12-18 10:00:31Z mhsin $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -747,7 +747,7 @@ char *aidu2fn(char *fn, aidu_t aidu)
 
   if(fn == NULL)
     return NULL;
-  snprintf(fn, FNLEN - 1, "%c.%ld.A.%03lX", ((type == 0) ? 'M' : 'G'), v1, v2);
+  snprintf(fn, FNLEN - 1, "%c.%d.A.%03X", ((type == 0) ? 'M' : 'G'), (unsigned int)v1, (unsigned int)v2);
   fn[FNLEN - 1] = '\0';
   return fn;
 }
