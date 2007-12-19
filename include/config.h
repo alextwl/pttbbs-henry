@@ -1,4 +1,4 @@
-/* $Id: config.h 3650 2007-12-08 02:37:03Z piaip $ */
+/* $Id: config.h 3708 2007-12-19 05:33:45Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -197,6 +197,10 @@
 #ifndef HASH_BITS
 #define HASH_BITS         16             /* userid->uid hashing bits */
 #endif
+
+#ifndef VICE_MIN
+#define VICE_MIN	(1)	    /* 最小發票面額 */
+#endif // VICE_MIN
 
 /* more.c 中文章頁數上限(lines/22), +4 for safe */
 #define MAX_PAGES         (MAX_EDIT_LINE / 22 + 4)
