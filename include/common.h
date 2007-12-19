@@ -1,4 +1,4 @@
-/* $Id: common.h 3703 2007-12-17 11:49:15Z mhsin $ */
+/* $Id: common.h 3707 2007-12-19 01:56:21Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -235,7 +235,16 @@
 #define REPLYING        0
 #define RECVINREPLYING  1
 
+/* ----------------------------------------------------- */
+/* ½s¿è¾¹¿ï¶µ                                            */
+/* ----------------------------------------------------- */
+#define EDITFLAG_TEXTONLY   (0x00000001)
+#define EDITFLAG_UPLOAD	    (0x00000002)
 
+
+/* ----------------------------------------------------- */
+/* Macros                                                */
+/* ----------------------------------------------------- */
 
 #if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
     #define __builtin_expect(exp,c) (exp)
