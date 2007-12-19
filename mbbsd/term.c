@@ -1,4 +1,4 @@
-/* $Id: term.c 2798 2005-06-08 04:22:19Z piaip $ */
+/* $Id: term.c 3710 2007-12-19 15:39:37Z piaip $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -40,25 +40,15 @@ sig_term_resize(int sig)
 
 void term_resize(int w, int h)
 {
-    screenline_t   *new_picture;
-
     Signal(SIGWINCH, SIG_IGN);	/* Don't bother me! */
 
     /* make sure reasonable size */
     h = MAX(24, MIN(100, h));
     w = MAX(80, MIN(200, w));
 
-    if (h > t_lines && big_picture) {
-	new_picture = (screenline_t *) 
-		calloc(h, sizeof(screenline_t));
-	if (new_picture == NULL) {
-	    syslog(LOG_ERR, "calloc(): %m");
-	    return;
-	}
-	memcpy(new_picture, big_picture, t_lines * sizeof(screenline_t));
-	free(big_picture);
-	big_picture = new_picture;
-    }
+    // invoke terminal system resize
+    resizescr(h, w);
+
     t_lines = h;
     t_columns = w;
     scr_lns = t_lines;	/* XXX: scr_lns 跟 t_lines 有什麼不同, 為何分成兩個 */
