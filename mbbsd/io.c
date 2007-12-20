@@ -1,4 +1,4 @@
-/* $Id: io.c 3698 2007-12-17 03:26:22Z piaip $ */
+/* $Id: io.c 3711 2007-12-20 01:30:59Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -16,6 +16,11 @@ static unsigned char *outbuf = real_outbuf + 3, *inbuf = real_inbuf + 3;
 
 static int      obufsize = 0, ibufsize = 0;
 static int      icurrchar = 0;
+
+#ifdef EXP_OUTRPT
+// output counter
+static unsigned long szTotalOutput = 0, szLastOutput = 0;
+#endif // EXP_OUTRPT
 
 /* ----------------------------------------------------- */
 /* convert routines                                      */
@@ -59,17 +64,17 @@ oflush(void)
 #endif
 	obufsize = 0;
     }
-}
 
-// deprecated?
-#if 0
-void
-init_buf(void)
-{
-    memset(inbuf, 0, IBUFSIZE);
-    ibufsize = icurrchar = 0;
+#ifdef EXP_OUTRPT
+    {
+	static char xbuf[128];
+	sprintf(xbuf, ESC_STR "[s" ESC_STR "[H" " [%lu/%lu] " ESC_STR "[u",
+		szLastOutput, szTotalOutput);
+	write(1, xbuf, strlen(xbuf));
+	szLastOutput = 0; 
+    }
+#endif // EXP_OUTRPT
 }
-#endif 
 
 void
 output(const char *s, int len)
@@ -77,6 +82,12 @@ output(const char *s, int len)
     /* Invalid if len >= OBUFSIZE */
 
     assert(len<OBUFSIZE);
+
+#ifdef EXP_OUTRPT
+    szTotalOutput += len; 
+    szLastOutput  += len;
+#endif // EXP_OUTRPT
+
     if (obufsize + len > OBUFSIZE) {
 	STATINC(STAT_SYSWRITESOCKET);
 #ifdef CONVERT
@@ -93,6 +104,12 @@ output(const char *s, int len)
 int
 ochar(int c)
 {
+
+#ifdef EXP_OUTRPT
+    szTotalOutput ++; 
+    szLastOutput ++;
+#endif // EXP_OUTRPT
+
     if (obufsize > OBUFSIZE - 1) {
 	STATINC(STAT_SYSWRITESOCKET);
 	/* suppose one byte data doesn't need to be converted. */
