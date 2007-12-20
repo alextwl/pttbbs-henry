@@ -1,4 +1,4 @@
-/* $Id: edit.c 3707 2007-12-19 01:56:21Z piaip $ */
+/* $Id: edit.c 3713 2007-12-20 04:16:27Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -703,22 +703,6 @@ delete_line(textline_t * line, int saved)
     else {
 	free_line(line);
     }
-}
-
-static int
-ask(const char *prompt)
-{
-    int ch;
-
-    move(0, 0);
-    clrtoeol();
-    standout();
-    outs(prompt);
-    standend();
-    ch = igetch();
-    move(0, 0);
-    clrtoeol();
-    return (ch);
 }
 
 /**
@@ -3060,7 +3044,8 @@ vedit2(char *fpath, int saveheader, int *islocal, int flags)
 		curr_buf->oldcurrline = curr_buf->currline;
 		break;
 	    case Ctrl('Q'):	/* Quit without saving */
-		ch = ask("結束但不儲存 (Y/N)? [N]: ");
+		grayout(0, b_lines-1, GRAYOUT_DARK);
+		ch = vmsg("結束但不儲存 [y/N]? ");
 		if (ch == 'y' || ch == 'Y') {
 		    currutmp->mode = mode0;
 		    currutmp->destuid = destuid0;

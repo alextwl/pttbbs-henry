@@ -1,4 +1,4 @@
-/* $Id: talk.c 3698 2007-12-17 03:26:22Z piaip $ */
+/* $Id: talk.c 3713 2007-12-20 04:16:27Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -1081,7 +1081,7 @@ t_display(void)
     }
     setuserfile(genbuf, fn_writelog);
     if (more(genbuf, YEA) != -1) {
-	grayout_lines(0, b_lines-4, 0);
+	grayout(0, b_lines-5, GRAYOUT_DARK);
 	move(b_lines - 4, 0);
 	clrtobot();
 	outs(ANSI_COLOR(1;33;45) "★水球整理程式 " ANSI_RESET "\n"

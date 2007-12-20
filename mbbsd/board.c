@@ -1,4 +1,4 @@
-/* $Id: board.c 3698 2007-12-17 03:26:22Z piaip $ */
+/* $Id: board.c 3713 2007-12-20 04:16:27Z piaip $ */
 #include "bbs.h"
 
 /* personal board state
@@ -286,7 +286,7 @@ b_config(void)
     ytitle ++;
 #endif  // OLDRECOMMEND
 
-    grayout_lines(0, ytitle-1, 0);
+    grayout(0, ytitle-2, GRAYOUT_DARK);
 
     // available hotkeys yet:
     // a b d j k m p q z

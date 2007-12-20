@@ -1,4 +1,4 @@
-/* $Id: user.c 3698 2007-12-17 03:26:22Z piaip $ */
+/* $Id: user.c 3713 2007-12-20 04:16:27Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -502,7 +502,7 @@ void Customize(void)
 	
     }
 
-    grayout_lines(1, b_lines, 0);
+    grayout(1, b_lines-2, GRAYOUT_DARK);
     move(b_lines-1, 0); clrtoeol();
 
     if(dirty)

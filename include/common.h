@@ -1,4 +1,4 @@
-/* $Id: common.h 3707 2007-12-19 01:56:21Z piaip $ */
+/* $Id: common.h 3713 2007-12-20 04:16:27Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -241,6 +241,12 @@
 #define EDITFLAG_TEXTONLY   (0x00000001)
 #define EDITFLAG_UPLOAD	    (0x00000002)
 
+/* ----------------------------------------------------- */
+/* Grayout Levels                                        */
+/* ----------------------------------------------------- */
+#define GRAYOUT_BOLD (-1)
+#define GRAYOUT_DARK (0)
+#define GRAYOUT_NORM (1)
 
 /* ----------------------------------------------------- */
 /* Macros                                                */
