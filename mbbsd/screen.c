@@ -1,5 +1,7 @@
-/* $Id: screen.c 3710 2007-12-19 15:39:37Z piaip $ */
+/* $Id: screen.c 3712 2007-12-20 02:09:12Z piaip $ */
 #include "bbs.h"
+
+#ifndef EXP_PFTERM
 
 #define o_clear()     output(clearbuf,clearbuflen)
 #define o_cleol()     output(cleolbuf,cleolbuflen)
@@ -653,6 +655,8 @@ void screen_restore(const screen_backup_t *old)
     move(old->y, old->x);
     redoscr();
 }
+
+#endif
 
 /* vim:sw=4
  */
