@@ -1,4 +1,4 @@
-/* $Id: io.c 3717 2007-12-21 10:36:17Z piaip $ */
+/* $Id: io.c 3720 2007-12-21 12:34:15Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -700,6 +700,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
     // workaround poor terminal
     move_ansi(line, col);
     getyx(&line, &col);
+    clrtoeol();
 
     // (line, col) are real starting address
     

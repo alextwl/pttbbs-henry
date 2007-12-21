@@ -1,4 +1,4 @@
-/* $Id: talk.c 3717 2007-12-21 10:36:17Z piaip $ */
+/* $Id: talk.c 3720 2007-12-21 12:34:15Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3092,7 +3092,7 @@ t_idle(void)
     currutmp->destuid = idle_type;
     do {
 	move(b_lines - 2, 0);
-	clrtoeol();
+	clrtobot();
 	prints("(鎖定螢幕)發呆原因: %s", (idle_type != 6) ?
 		 IdleTypeTable[idle_type] : idle_reason);
 	refresh();
