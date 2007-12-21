@@ -1,4 +1,4 @@
-/* $Id: screen.c 3717 2007-12-21 10:36:17Z piaip $ */
+/* $Id: screen.c 3719 2007-12-21 11:44:58Z piaip $ */
 #include "bbs.h"
 
 #if !defined(EXP_PFTERM) && !defined(HAVE_PFTERM)
@@ -441,9 +441,19 @@ outc(unsigned char c)
 void
 outs(const char *str)
 {
+    if (!str)
+	return;
     while (*str) {
 	outc(*str++);
     }
+}
+
+void
+outstr(const char *str)
+{
+    // XXX TODO cannot prepare DBCS-ready environment?
+    
+    outs(str);
 }
 
 void
