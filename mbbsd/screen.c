@@ -1,4 +1,4 @@
-/* $Id: screen.c 3719 2007-12-21 11:44:58Z piaip $ */
+/* $Id: screen.c 3723 2007-12-21 18:16:03Z piaip $ */
 #include "bbs.h"
 
 #if !defined(EXP_PFTERM) && !defined(HAVE_PFTERM)
@@ -562,7 +562,9 @@ inansistr(char *str, int n)
     *str = 0;
     if (!slp)
 	return 0;
+    slp->data[slp->len] = 0;
     strncpy(str, (char*)slp->data, n);
+    str[n] = 0;
     return strlen(str);
 }
 
