@@ -1,4 +1,4 @@
-/* $Id: go.c 3582 2007-10-03 08:27:44Z scw $ */
+/* $Id: go.c 3716 2007-12-21 07:05:16Z piaip $ */
 
 #include "bbs.h"
 #include <sys/socket.h> 
@@ -837,6 +837,7 @@ go_genlog(ChessInfo* info, FILE* fp, ChessGameResult result)
 	    sethand = step->loc.r;
     }
 
+    if (big_picture)
     for (i = 1; i <= 22; i++)
 	fprintf(fp, "%.*s\n", big_picture[i].len, big_picture[i].data);
 
