@@ -1,4 +1,4 @@
-/* $Id: talk.c 3720 2007-12-21 12:34:15Z piaip $ */
+/* $Id: talk.c 3725 2007-12-21 20:01:36Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -22,8 +22,8 @@ static char    * const withme_str[] = {
 #define TALK_MAXCOL (78)
 #define TALK_BUFLEN (TALK_MAXCOL+2)
 typedef struct twpic {
-    unsigned char data[TALK_BUFLEN]; // bound to specific size
     unsigned short len;
+    unsigned char data[TALK_BUFLEN]; // bound to specific size
 }		twpic_t;
 
 typedef struct talkwin_t {
