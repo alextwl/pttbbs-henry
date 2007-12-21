@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3717 2007-12-21 10:36:17Z piaip $ */
+/* $Id: pmore.c 3722 2007-12-21 17:18:33Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -1055,7 +1055,8 @@ mf_display()
 #if defined(PMORE_USE_ASCII_MOVIE) && !defined(PMORE_USING_POOR_TERM)
     // For movies, maybe clear() is better.
     // Let's enable for good terminals (which does not need workarounds)
-    if (mfmovie.mode == MFDISP_MOVIE_PLAYING)
+    if (mfmovie.mode == MFDISP_MOVIE_PLAYING ||
+	mfmovie.mode == MFDISP_MOVIE_PLAYING_OLD)
     {
 	clear(); move(0, 0);
     } else

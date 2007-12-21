@@ -1,4 +1,4 @@
-/* $Id: gomo.c 3716 2007-12-21 07:05:16Z piaip $ */
+/* $Id: gomo.c 3722 2007-12-21 17:18:33Z piaip $ */
 #include "bbs.h"
 #include "gomo.h"
 
@@ -420,12 +420,18 @@ gomo_gameend(ChessInfo* info, ChessGameResult result)
 static void
 gomo_genlog(ChessInfo* info, FILE* fp, ChessGameResult result)
 {
+    char buf[ANSILINELEN] = "";
     const int nStep = info->history.used;
-    int       i;
+    int   i, x, y;
 
-    if(big_picture)
+    getyx(&y, &x);
     for (i = 1; i <= 18; i++)
-	fprintf(fp, "%.*s\n", big_picture[i].len, big_picture[i].data);
+    {
+	move(i, 0);
+	inansistr(buf, sizeof(buf)-1);
+	fprintf(fp, "%s\n", buf);
+    }
+    move(y, x);
 
     fprintf(fp, "\n");
     fprintf(fp, "按 z 可進入打譜模式\n");
