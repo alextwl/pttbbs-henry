@@ -1,4 +1,4 @@
-/* $Id: term.c 3710 2007-12-19 15:39:37Z piaip $ */
+/* $Id: term.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -47,7 +47,7 @@ void term_resize(int w, int h)
     w = MAX(80, MIN(200, w));
 
     // invoke terminal system resize
-    resizescr(h, w);
+    resizeterm(h, w);
 
     t_lines = h;
     t_columns = w;

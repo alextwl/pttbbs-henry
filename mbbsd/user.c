@@ -1,4 +1,4 @@
-/* $Id: user.c 3713 2007-12-20 04:16:27Z piaip $ */
+/* $Id: user.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -1341,7 +1341,7 @@ u_editcalendar(void)
 	vmsg("行事曆刪除完畢");
     } else if (genbuf[0] == 'h') {
 	move(1, 0);
-	clrtoline(b_lines);
+	clrtoln(b_lines);
 	move(3, 0);
 	prints("行事曆格式說明:\n編輯時以一行為單位，如:\n\n# 井號開頭的是註解\n2006/05/04 red 上批踢踢!\n\n其中的 red 是指表示的顏色。");
 	pressanykey();

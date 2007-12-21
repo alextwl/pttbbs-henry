@@ -1,4 +1,4 @@
-/* $Id: menu.c 3701 2007-12-17 08:25:17Z piaip $ */
+/* $Id: menu.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
@@ -188,7 +188,7 @@ movie(int cmdmode)
 #undef N_SYSMOVIE
 
 	move(1, 0);
-	clrtoline(1 + FILMROW);	/* 清掉上次的 */
+	clrtoln(1 + FILMROW);	/* 清掉上次的 */
 	out_lines(SHM->notes[i], 11);	/* 只印11行就好 */
 	outs(reset_color);
     }

@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3715 2007-12-20 16:08:28Z piaip $ */
+/* $Id: stuff.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -359,6 +359,7 @@ vmsg(const char *msg)
 	    if (i == pad-1)
 		outc(' ');
 	}
+	outs(ANSI_RESET);
     } else {
 	/* msg_pressanykey_trail */ 
 	outs(ANSI_COLOR(1;36;44) " ¡» ");
@@ -410,7 +411,7 @@ show_file(const char *filename, int y, int lines, int mode)
 
     if (y >= 0)
 	move(y, 0);
-    clrtoline(lines + y);
+    clrtoln(lines + y);
     if ((fp = fopen(filename, "r"))) {
 	while (fgets(buf, sizeof(buf), fp) && lines--)
 	    outs(Ptt_prints(buf, sizeof(buf), mode));

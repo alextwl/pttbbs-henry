@@ -1,4 +1,4 @@
-/* $Id: io.c 3714 2007-12-20 14:49:42Z piaip $ */
+/* $Id: io.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -431,7 +431,7 @@ igetch(void)
 	    continue;
 #endif
 	case Ctrl('L'):
-	    redoscr();
+	    redrawwin();
 	    continue;
 	case Ctrl('U'):
 	    if (currutmp != NULL && currutmp->mode != EDITING
@@ -441,7 +441,7 @@ igetch(void)
 		int		oldroll = roll;
 		int             my_newfd;
 
-		screen_backup(&old_screen);
+		scr_dump(&old_screen);
 		my_newfd = i_newfd;
 		i_newfd = 0;
 
@@ -449,7 +449,7 @@ igetch(void)
 
 		i_newfd = my_newfd;
 		roll = oldroll;
-		screen_restore(&old_screen);
+		scr_restore(&old_screen);
 		continue;
 	    } 
             return ch;
@@ -473,12 +473,12 @@ igetch(void)
 		int my_newfd;
 		screen_backup_t old_screen;
 
-		screen_backup(&old_screen);
+		scr_dump(&old_screen);
 
 		my_newfd = i_newfd;
 		i_newfd = 0;
 		my_write2();
-	    	screen_restore(&old_screen);
+	    	scr_restore(&old_screen);
 		i_newfd = my_newfd;
 		continue;
 	    } else if (!WATERMODE(WATER_OFO)) {
@@ -499,7 +499,7 @@ igetch(void)
 		    /* 第一次按 Ctrl-R (必須先被丟過水球) */
 		    screen_backup_t old_screen;
 		    int             my_newfd;
-		    screen_backup(&old_screen);
+		    scr_dump(&old_screen);
 
 		    /* 如果正在talk的話先不處理對方送過來的封包 (不去select) */
 		    my_newfd = i_newfd;
@@ -529,7 +529,7 @@ igetch(void)
 		    i_newfd = my_newfd;
 
 		    /* 還原螢幕 */
-		    screen_restore(&old_screen);
+		    scr_restore(&old_screen);
 		    continue;
 		}
 	    }

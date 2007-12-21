@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3713 2007-12-20 04:16:27Z piaip $ */
+/* $Id: bbs.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -3143,7 +3143,7 @@ view_postinfo(int ent, const fileheader_t * fhdr, const char *direct, int crs_ln
     clrtoeol();
 
     move(area_l, 0);
-    clrtoline(area_l + area_lines);
+    clrtoln(area_l + area_lines);
 
     if(area_l > l)
       prints("  ¡ø\n");

@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3713 2007-12-20 04:16:27Z piaip $ */
+/* $Id: pmore.c 3717 2007-12-21 10:36:17Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -15,7 +15,7 @@
  * All Rights Reserved.
  * You are free to use, modify, redistribute this program 
  * in any BBS style systems, or any other non-commercial usage.
- * You must keep these copyright infomration.
+ * You must keep these copyright information.
  *
  * MAJOR IMPROVEMENTS:
  *  - Clean source code, and more readable for mortal

@@ -1,4 +1,4 @@
-/* $Id: chess.c 3587 2007-11-04 08:17:01Z scw $ */
+/* $Id: chess.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 #include "chess.h"
 #include <setjmp.h>
@@ -1299,9 +1299,9 @@ ChessReplayGame(const char* fname)
     fclose(fp);
 
     if (info) {
-	screen_backup(&oldscreen);
+	scr_dump(&oldscreen);
 	ChessPlay(info);
-	screen_restore(&oldscreen);
+	scr_restore(&oldscreen);
 
 	DeleteChessInfo(info);
     }

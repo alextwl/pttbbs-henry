@@ -1,4 +1,4 @@
-/* $Id: chat.c 3581 2007-10-01 14:42:57Z kcwu $ */
+/* $Id: chat.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 
 #ifndef DBCSAWARE
@@ -490,10 +490,10 @@ t_chat(void)
 	} else if (ch == Ctrl('I')) {
 	    screen_backup_t old_screen;
 
-	    screen_backup(&old_screen);
+	    scr_dump(&old_screen);
 	    add_io(0, 0);
 	    t_idle();
-	    screen_restore(&old_screen);
+	    scr_restore(&old_screen);
 	    add_io(cfd, 0);
 	} else if (ch == Ctrl('Q')) {
 	    print_chatid(chatid);
