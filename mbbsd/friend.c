@@ -1,6 +1,5 @@
-/* $Id: friend.c 3718 2007-12-21 11:07:33Z victor $ */
+/* $Id: friend.c 3721 2007-12-21 16:52:26Z victor $ */
 #include "bbs.h"
-/* Happy birthday, kcwu & rafan!! */
 
 /* ------------------------------------- */
 /* 特別名單                              */
