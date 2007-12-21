@@ -1,7 +1,7 @@
-/* $Id: screen.c 3723 2007-12-21 18:16:03Z piaip $ */
+/* $Id: screen.c 3724 2007-12-21 19:17:14Z piaip $ */
 #include "bbs.h"
 
-#if !defined(EXP_PFTERM) && !defined(HAVE_PFTERM)
+#if !defined(EXP_PFTERM) && !defined(USE_PFTERM)
 
 #define o_clear()     output(clearbuf,clearbuflen)
 #define o_cleol()     output(cleolbuf,cleolbuflen)
@@ -701,7 +701,7 @@ void scr_restore(const screen_backup_t *old)
     redrawwin();
 }
 
-#endif //  !defined(EXP_PFTERM) && !defined(HAVE_PFTERM)
+#endif //  !defined(EXP_PFTERM) && !defined(USE_PFTERM)
 
 /* vim:sw=4
  */
