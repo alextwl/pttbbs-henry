@@ -1,4 +1,4 @@
-/* $Id: user.c 3717 2007-12-21 10:36:17Z piaip $ */
+/* $Id: user.c 3726 2007-12-22 14:14:38Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -513,6 +513,7 @@ void Customize(void)
 	outs("結束設定。\n");
     }
 
+    redrawwin(); // in case we changed output pref (like DBCS)
     vmsg("設定完成");
 }
 

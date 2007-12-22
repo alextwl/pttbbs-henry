@@ -1,4 +1,4 @@
-/* $Id: term.c 3725 2007-12-21 20:01:36Z piaip $ */
+/* $Id: term.c 3726 2007-12-22 14:14:38Z piaip $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -40,8 +40,6 @@ sig_term_resize(int sig)
 
 void term_resize(int w, int h)
 {
-    char changed = 0;
-
     Signal(SIGWINCH, SIG_IGN);	/* Don't bother me! */
 
 
