@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3728 2007-12-23 07:58:34Z piaip $ */
+/* $Id: bbs.c 3729 2007-12-23 08:23:58Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -13,6 +13,7 @@
 static int recommend(int ent, fileheader_t * fhdr, const char *direct);
 static int do_add_recommend(const char *direct, fileheader_t *fhdr,
 		 int ent, const char *buf, int type);
+static int view_postinfo(int ent, const fileheader_t * fhdr, const char *direct, int crs_ln);
 
 #ifdef ASSESS
 static char * const badpost_reason[] = {
@@ -1865,11 +1866,14 @@ read_post(int ent, fileheader_t * fhdr, const char *direct)
 	    clear();
 	    vmsg("此文章無內容");
 	    return FULLUPDATE;
-	case 999:
+	case RET_DOREPLY:
 	    do_reply(fhdr);
             return FULLUPDATE;
-	case 998:
+	case RET_DORECOMMEND:
             recommend(ent, fhdr, direct);
+	    return FULLUPDATE;
+	case RET_DOQUERYINFO:
+	    view_postinfo(ent, fhdr, direct, b_lines-3);
 	    return FULLUPDATE;
     }
     if(more_result)
