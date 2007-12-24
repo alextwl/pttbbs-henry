@@ -1,4 +1,4 @@
-/* $Id: read.c 3717 2007-12-21 10:36:17Z piaip $ */
+/* $Id: read.c 3734 2007-12-24 10:38:13Z piaip $ */
 #include "bbs.h"
 
 static int headers_size;
@@ -851,6 +851,7 @@ i_read_key(const onekey_t * rcmdlist, keeploc_t * locmem,
 	    break;
         case Ctrl('L'):
 	    redrawwin();
+	    refresh();
 	    break;
 
         case Ctrl('H'):

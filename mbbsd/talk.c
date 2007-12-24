@@ -1,4 +1,4 @@
-/* $Id: talk.c 3727 2007-12-22 14:17:07Z piaip $ */
+/* $Id: talk.c 3734 2007-12-24 10:38:13Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -1161,7 +1161,7 @@ talk_refreshline(talkwin_t *twin)
     // dirty screen
     twpic_t *line = twin->big_picture + (twin->curln - twin->sline);
     int iscomplete = iscompletedbcs(line->data);
-    int len = strlen(line->data);
+    int len = strlen((char*)line->data);
 
     move(twin->curln, 0);
     clrtoeol();
@@ -1505,9 +1505,8 @@ do_talk(int fd)
 	    if (itswin.big_picture[i].len)
 		fprintf(flog, "%.*s\n", itswin.big_picture[i].len, itswin.big_picture[i].data);
 
-	redrawwin();
-
 	fclose(flog);
+	redrawwin();
 	more(fpath, NA);
 	getdata(b_lines - 1, 0, "清除(C) 移至備忘錄(M). (C/M)?[C]",
 		ans, sizeof(ans), LCECHO);

@@ -1,4 +1,4 @@
-/* $Id: io.c 3726 2007-12-22 14:14:38Z piaip $ */
+/* $Id: io.c 3734 2007-12-24 10:38:13Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -79,6 +79,7 @@ oflush(void)
     }
 
 #ifdef DBG_OUTRPT
+    // if (0)
     {
 	static char xbuf[128];
 	sprintf(xbuf, ESC_STR "[s" ESC_STR "[H" " [%lu/%lu] " ESC_STR "[u",
@@ -450,7 +451,9 @@ igetch(void)
 #endif
 	case Ctrl('L'):
 	    redrawwin();
+	    refresh();
 	    continue;
+
 	case Ctrl('U'):
 	    if (currutmp != NULL && currutmp->mode != EDITING
 		&& currutmp->mode != LUSERS && currutmp->mode) {

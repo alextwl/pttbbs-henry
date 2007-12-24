@@ -1,4 +1,4 @@
-/* $Id: common.h 3713 2007-12-20 04:16:27Z piaip $ */
+/* $Id: common.h 3734 2007-12-24 10:38:13Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -244,9 +244,11 @@
 /* ----------------------------------------------------- */
 /* Grayout Levels                                        */
 /* ----------------------------------------------------- */
+#define GRAYOUT_COLORBOLD (-2)
 #define GRAYOUT_BOLD (-1)
 #define GRAYOUT_DARK (0)
 #define GRAYOUT_NORM (1)
+#define GRAYOUT_COLORNORM (+2)
 
 /* ----------------------------------------------------- */
 /* Macros                                                */
