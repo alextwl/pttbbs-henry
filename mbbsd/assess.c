@@ -1,4 +1,4 @@
-/* $Id: assess.c 3739 2007-12-25 01:50:59Z piaip $ */
+/* $Id: assess.c 3741 2007-12-25 02:15:09Z piaip $ */
 #include "bbs.h"
 
 #ifdef ASSESS
@@ -213,8 +213,8 @@ u_fixgoodpost(void)
 		    ANSI_COLOR(1;31) "錯誤" ANSI_RESET);
 	    if (!(fh.filemode & FILE_MARKED))
 		n = 0;
-	    prints("Ｍ文: %s\n", n ? "正確" : 
-		    ANSI_COLOR(1;3) "錯誤" ANSI_RESET);
+	    prints("Ｍ文: %s\n", (fh.filemode & FILE_MARKED) ? "正確" : 
+		    ANSI_COLOR(1;31) "錯誤" ANSI_RESET);
 	    prints("推薦: %d\n", fh.recommend);
 	    close(fd);
 	    if (!n)
