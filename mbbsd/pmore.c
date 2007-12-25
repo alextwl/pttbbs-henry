@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3729 2007-12-23 08:23:58Z piaip $ */
+/* $Id: pmore.c 3738 2007-12-25 01:43:04Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -3386,6 +3386,7 @@ mf_movieOptionHandler(unsigned char *opt, unsigned char *end)
     } while ( !selected );
 
     // selection is made now.
+    outs(ANSI_RESET); // required because options bar may be not closed
     pmore_clrtoeol(b_lines, 0);
 
 #ifdef DEBUG
