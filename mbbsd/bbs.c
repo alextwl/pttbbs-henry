@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3729 2007-12-23 08:23:58Z piaip $ */
+/* $Id: bbs.c 3740 2007-12-25 02:12:33Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -3149,6 +3149,9 @@ view_postinfo(int ent, const fileheader_t * fhdr, const char *direct, int crs_ln
 
     move(area_l-(area_l < l), 0);
     clrtoln(area_l -(area_l < l) + area_lines+1);
+    outc(' '); outs(ANSI_CLRTOEND);
+    move(area_l -(area_l < l) + area_lines, 0); 
+    outc(' '); outs(ANSI_CLRTOEND);
     move(area_l, 0);
 
     prints("    ┌───────────────────────────────────┐\n");
@@ -3159,7 +3162,7 @@ view_postinfo(int ent, const fileheader_t * fhdr, const char *direct, int crs_ln
       char aidc[10];
       
       aidu2aidc(aidc, aidu);
-      prints("    │ 此篇文章的" AID_DISPLAYNAME "為： " ANSI_COLOR(1) "#%s" ANSI_RESET " (%s看板)\n", aidc, currboard && currboard[0] ? currboard : "未知");
+      prints("    │ 此篇文章的" AID_DISPLAYNAME "為： " ANSI_COLOR(1) "#%s" ANSI_RESET " (%s)\n", aidc, currboard && currboard[0] ? currboard : "未知");
     }
     else
     {
