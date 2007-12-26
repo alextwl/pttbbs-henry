@@ -1,4 +1,4 @@
-/* $Id: talk.c 3734 2007-12-24 10:38:13Z piaip $ */
+/* $Id: talk.c 3745 2007-12-26 09:17:52Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -593,8 +593,13 @@ water_scr(const water_t * tw, int which, char type)
 	clrtoeol();
 	move(0, strlen(tw->userid) + 6);
     } else {
+
+#ifndef USE_PFTERM
+	// workaround poor terminal, made by in2.
 	move(8 + which, 28);
 	outs("123456789012345678901234567890");
+#endif // !USE_PFTERM
+
 	move(8 + which, 28);
 	prints(ANSI_COLOR(1;37;44) "  %c %-13s¡@" ANSI_COLOR(0) "",
 	       tw->uin ? ' ' : 'x',
