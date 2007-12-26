@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3738 2007-12-25 01:43:04Z piaip $ */
+/* $Id: pmore.c 3746 2007-12-26 14:28:35Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -14,7 +14,7 @@
  * <piaip@csie.ntu.edu.tw>
  * All Rights Reserved.
  * You are free to use, modify, redistribute this program 
- * in any BBS style systems, or any other non-commercial usage.
+ * in any non-commercial usage.
  * You must keep these copyright information.
  *
  * MAJOR IMPROVEMENTS:
