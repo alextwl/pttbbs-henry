@@ -1,4 +1,4 @@
-/* $Id: edit.c 3726 2007-12-22 14:14:38Z piaip $ */
+/* $Id: edit.c 3748 2007-12-28 05:28:06Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -1766,7 +1766,7 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle, int upload)
 	}
 	else if (currstat == REEDIT
 #ifndef ALL_REEDIT_LOG
-		 && strcmp(currboard, str_sysop) == 0
+		 && strcmp(currboard, GLOBAL_SYSOP) == 0
 #endif
 	    ) {
 	    ptime = localtime4(&now);

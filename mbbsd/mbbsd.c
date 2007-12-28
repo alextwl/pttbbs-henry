@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3744 2007-12-25 12:54:53Z piaip $ */
+/* $Id: mbbsd.c 3748 2007-12-28 05:28:06Z piaip $ */
 #include "bbs.h"
 #include "banip.h"
 
@@ -717,6 +717,7 @@ login_query(void)
 #ifdef LOGINASNEW
 	    new_register();
 	    mkuserdir(cuser.userid);
+	    reginit_fav();
 	    break;
 #else
 	    outs("本系統目前無法以 new 註冊, 請用 guest 進入\n");

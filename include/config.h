@@ -1,4 +1,4 @@
-/* $Id: config.h 3732 2007-12-23 15:15:31Z kcwu $ */
+/* $Id: config.h 3748 2007-12-28 05:28:06Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -41,12 +41,16 @@
 #define GLOBAL_BUGREPORT "SYSOP"
 #endif
 
+#ifndef GLOBAL_SYSOP
+#define "SYSOP"
+#endif
+
 #ifndef GLOBAL_LAW
 #define GLOBAL_LAW  BBSMNAME "Law"
 #endif
 
 #ifndef GLOBAL_NEWBIE
-#define GLOBAL_NEWBIE BBSMNAME "NewHand"
+#define GLOBAL_NEWBIE BBSMNAME "Newhand"
 #endif
 
 #ifndef GLOBAL_NOTE

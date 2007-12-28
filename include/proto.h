@@ -1,4 +1,4 @@
-/* $Id: proto.h 3719 2007-12-21 11:44:58Z piaip $ */
+/* $Id: proto.h 3748 2007-12-28 05:28:06Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -275,6 +275,7 @@ fav_t *get_fav_folder(fav_type_t *ft);
 fav_t *get_fav_root(void);
 int updatenewfav(int mode);
 void subscribe_newfav(void);
+void reginit_fav(void);
 
 /* file */
 int file_count_line(const char *file);
