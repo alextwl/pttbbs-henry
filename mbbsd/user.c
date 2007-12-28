@@ -1,4 +1,4 @@
-/* $Id: user.c 3736 2007-12-24 15:18:15Z piaip $ */
+/* $Id: user.c 3750 2007-12-28 16:26:12Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -1797,6 +1797,7 @@ u_register(void)
 	    else
 		vmsg(errcode);
 	}
+	move(11, 0); clrtobot();
 	while (1) {
 	    getfield(11, "含" ANSI_COLOR(1;33) "縣市" ANSI_RESET "及門寢號碼"
 		     "(台北請加" ANSI_COLOR(1;33) "行政區" ANSI_RESET ")",
