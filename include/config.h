@@ -1,4 +1,4 @@
-/* $Id: config.h 3748 2007-12-28 05:28:06Z piaip $ */
+/* $Id: config.h 3749 2007-12-28 15:35:05Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -42,7 +42,7 @@
 #endif
 
 #ifndef GLOBAL_SYSOP
-#define "SYSOP"
+#define GLOBAL_SYSOP "SYSOP"
 #endif
 
 #ifndef GLOBAL_LAW
