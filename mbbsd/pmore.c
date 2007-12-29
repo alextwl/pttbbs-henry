@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3757 2007-12-29 09:27:27Z piaip $ */
+/* $Id: pmore.c 3758 2007-12-29 09:37:48Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -442,6 +442,10 @@ MF_Movie mfmovie;
     mfmovie.synctime.tv_sec = mfmovie.synctime.tv_usec = 0; \
     mfmovie.frameclk.tv_sec = 1; mfmovie.frameclk.tv_usec = 0; \
 }
+
+#define MOVIE_IS_PLAYING() \
+   ((mfmovie.mode == MFDISP_MOVIE_PLAYING) || \
+    (mfmovie.mode == MFDISP_MOVIE_PLAYING_OLD))
 
 unsigned char *
     mf_movieFrameHeader(unsigned char *p, unsigned char *end);
@@ -1058,8 +1062,7 @@ mf_display()
 #if defined(PMORE_USE_ASCII_MOVIE) && !defined(PMORE_USING_POOR_TERM)
     // For movies, maybe clear() is better.
     // Let's enable for good terminals (which does not need workarounds)
-    if (mfmovie.mode == MFDISP_MOVIE_PLAYING ||
-	mfmovie.mode == MFDISP_MOVIE_PLAYING_OLD)
+    if (MOVIE_IS_PLAYING())
     {
 	clear(); move(0, 0);
     } else
@@ -1331,13 +1334,19 @@ mf_display()
 			    {
 #ifdef PMORE_RESTRICT_ANSI_MOVEMENT
 				c = 's'; // "save cursor pos"
-#else
+#else // PMORE_RESTRICT_ANSI_MOVEMENT
 			    	// some user cannot live without this.
 				// make them happy.
 				newline_default = newline = MFDISP_NEWLINE_MOVE;
-				override_attr = ANSI_COLOR(1;37;41);
-				override_msg = PMORE_MSG_WARN_MOVECMD;
-#endif
+#ifdef PMORE_USE_ASCII_MOVIE
+				// relax for movies
+				if (!MOVIE_IS_PLAYING())
+#endif // PMORE_USE_ASCII_MOVIE
+				{
+				    override_attr = ANSI_COLOR(1;37;41);
+				    override_msg = PMORE_MSG_WARN_MOVECMD;
+				}
+#endif // PMORE_RESTRICT_ANSI_MOVEMENT
 				needMove2bot = 1;
 			    }
 			    outc(c);
