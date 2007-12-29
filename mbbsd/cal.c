@@ -1,4 +1,4 @@
-/* $Id: cal.c 3748 2007-12-28 05:28:06Z piaip $ */
+/* $Id: cal.c 3754 2007-12-29 03:33:14Z piaip $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -122,7 +122,7 @@ osong(void)
 	if (ans[0] == '1')
 	    break;
 	else if (ans[0] == '2') {
-	    a_menu("點歌歌本", SONGBOOK, 0, NULL);
+	    a_menu("點歌歌本", SONGBOOK, 0, 0, NULL);
 	    clear();
 	}
 	else if (ans[0] == '3') {
@@ -150,7 +150,7 @@ osong(void)
 		address, sizeof(address), LCECHO, receiver);
     outs("\n接著要選歌囉..進入歌本好好的選一首歌吧..^o^");
     pressanykey();
-    a_menu("點歌歌本", SONGBOOK, 0, trans_buffer);
+    a_menu("點歌歌本", SONGBOOK, 0, 0, trans_buffer);
     if (!trans_buffer[0] || strstr(trans_buffer, "home") ||
 	strstr(trans_buffer, "boards") || !(fp = fopen(trans_buffer, "r"))) {
 	unlockutmpmode();

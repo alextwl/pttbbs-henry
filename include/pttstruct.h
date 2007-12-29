@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3693 2007-12-16 08:16:38Z piaip $ */
+/* $Id: pttstruct.h 3754 2007-12-29 03:33:14Z piaip $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -282,13 +282,6 @@ typedef struct {
     union   xitem_t X;
 } item_t;
 
-typedef struct {
-    item_t  *item[MAX_ITEMS];
-    char    mtitle[STRLEN];
-    char    *path;
-    int     num, page, now, level;
-} gmenu_t;
-
 #define FAVMAX   1024		  /* Max boards of Myfavorite */
 #define FAVGMAX    32             /* Max groups of Myfavorite */
 #define FAVGSLEN    8		  /* Max Length of Description String */
@@ -416,12 +409,13 @@ typedef struct {
     void *raw_memory;
 } screen_backup_t;
 
+// menu_t 其實是 gmenu_t (deprecated), 精華區專用 menu
 typedef struct {
     int     header_size;
     fileheader_t    *header;
     char    mtitle[STRLEN];
     const char    *path;
-    int     num, page, now, level;
+    int     num, page, now, level, bid;
 } menu_t;
 
 /* Used to pass commands to the readmenu.

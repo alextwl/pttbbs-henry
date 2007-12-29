@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3740 2007-12-25 02:12:33Z piaip $ */
+/* $Id: bbs.c 3754 2007-12-29 03:33:14Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -2028,7 +2028,8 @@ b_man(void)
 	    close(fd);
     }
     return a_menu(currboard, buf, HasUserPerm(PERM_ALLBOARD) ? 2 :
-		  (currmode & MODE_BOARD ? 1 : 0),
+		  (currmode & MODE_BOARD ? 1 : 0), 
+		  currbid, // getbnum(currboard)?
 		  NULL);
 }
 

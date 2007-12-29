@@ -1,4 +1,4 @@
-/* $Id: edit.c 3748 2007-12-28 05:28:06Z piaip $ */
+/* $Id: edit.c 3754 2007-12-29 03:33:14Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -3181,6 +3181,7 @@ vedit2(char *fpath, int saveheader, int *islocal, int flags)
 		    setutmpmode(EDITEXP);
 		    a_menu("編輯輔助器", "etc/editexp",
 			   (HasUserPerm(PERM_SYSOP) ? SYSOP : NOBODY),
+			   0,
 			   trans_buffer);
 		    currstat = currstat0;
 		}
