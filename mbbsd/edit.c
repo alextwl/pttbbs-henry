@@ -1,4 +1,4 @@
-/* $Id: edit.c 3762 2007-12-30 03:19:53Z piaip $ */
+/* $Id: edit.c 3763 2007-12-30 03:50:33Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -39,6 +39,7 @@
  * 32M 為 size limit 
  * 1M 為 line limit
  * 又，忽然發現之前 totaln 之類都是 short... 所以 65536 就夠了?
+ * 後註: 似乎是用 announce 的 append 作出來的，有看到 > --- <- mark。
  */
 #include "bbs.h"
 
