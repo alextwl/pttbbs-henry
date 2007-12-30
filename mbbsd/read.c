@@ -1,4 +1,4 @@
-/* $Id: read.c 3734 2007-12-24 10:38:13Z piaip $ */
+/* $Id: read.c 3764 2007-12-30 05:53:24Z piaip $ */
 #include "bbs.h"
 
 static int headers_size;
@@ -57,7 +57,7 @@ Tagger(time4_t chrono, int recno, int mode)
 
     }
     if (!comp) {
-	if (mode != TAG_TOGGLE)
+	if (mode != TAG_TOGGLE || TagNum <= 0)
 	    return NA;
 
 	TagNum--;
