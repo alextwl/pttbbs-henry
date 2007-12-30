@@ -1,4 +1,4 @@
-/* $Id: edit.c 3763 2007-12-30 03:50:33Z piaip $ */
+/* $Id: edit.c 3765 2007-12-30 15:40:21Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -44,7 +44,7 @@
 #include "bbs.h"
 
 #define EDIT_SIZE_LIMIT (32768*1024)
-#define EDIT_LINE_LIMIT (1048576)
+#define EDIT_LINE_LIMIT (65530) // (1048576)
 
 #if 0
 #define register 
@@ -1667,6 +1667,10 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle, int upload)
     stand_title("檔案處理");
     move(1,0);
 
+#ifdef EDIT_UPLOAD_ALLOWALL
+    upload = 1;
+#endif // EDIT_UPLOAD_ALLOWALL
+
     // common trail
 
     if (currstat == SMAIL)
@@ -1697,7 +1701,8 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle, int upload)
 	return KEEP_EDITING;
 #ifdef EXP_EDIT_UPLOAD
     case 'u':
-	upload_file();
+	if (upload)
+	    upload_file();
 	return KEEP_EDITING;
 #endif // EXP_EDIT_UPLOAD
     case 'r':
@@ -3210,10 +3215,11 @@ vedit2(char *fpath, int saveheader, int *islocal, int flags)
 		}
 
 #ifdef MAX_EDIT_LINE
-		if(curr_buf->totaln == MAX_EDIT_LINE
-		    && !(flags & EDITFLAG_UPLOAD))
+		if(curr_buf->totaln == 
+			((flags & EDITFLAG_ALLOWLARGE) ? 
+			 MAX_EDIT_LINE_LARGE : MAX_EDIT_LINE))
 		{
-		    vmsg("已超過最大行數限制。");
+		    vmsg("已到達最大行數限制。");
 		    break;
 		}
 #endif
