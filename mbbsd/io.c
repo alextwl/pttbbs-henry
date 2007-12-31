@@ -1,4 +1,4 @@
-/* $Id: io.c 3734 2007-12-24 10:38:13Z piaip $ */
+/* $Id: io.c 3767 2007-12-31 04:40:51Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -88,6 +88,8 @@ oflush(void)
 	szLastOutput = 0; 
     }
 #endif // DBG_OUTRPT
+
+    fsync(1);
 }
 
 void

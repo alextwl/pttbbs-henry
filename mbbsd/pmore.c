@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3759 2007-12-29 09:44:46Z piaip $ */
+/* $Id: pmore.c 3767 2007-12-31 04:40:51Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -1838,6 +1838,11 @@ pmore(char *fpath, int promptend)
 
 		mf_moviePromptPlaying(0);
 
+		// doing refresh() here is better,
+		// to prevent that we forgot to refresh
+		// in SyncFrame.
+		refresh();
+
 		if(mf_movieSyncFrame())
 		{
 		    /* user did not hit anything.
@@ -3481,14 +3486,14 @@ int mf_movieSyncFrame()
 	if(dv.tv_sec < 0)
 	    return 1;
 
-	return !pmore_wait_key(&dv, 1);
+	return !pmore_wait_key(&dv, 0);
     } else {
 	/* synchronize each frame clock model */
 	/* because Linux will change the timeval passed to select,
 	 * let's use a temp value here.
 	 */
 	struct timeval dv = mfmovie.frameclk;
-	return !pmore_wait_key(&dv, 1);
+	return !pmore_wait_key(&dv, 0);
     }
 }
 
