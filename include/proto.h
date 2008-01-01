@@ -1,4 +1,4 @@
-/* $Id: proto.h 3754 2007-12-29 03:33:14Z piaip $ */
+/* $Id: proto.h 3770 2008-01-01 16:37:54Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -790,6 +790,12 @@ int Goodbye(void);
 
 /* toolkit */
 unsigned DBCS_StringHash(const char *s);
+
+/* recycle */
+// public
+int RcyAddFile(const fileheader_t *fhdr, int bid, const char *fpath);
+int RcyAddDir (const fileheader_t *fhdr, int bid, const char *direct);
+int RcyRecycleBin(void);
 
 /* passwd */
 int passwd_init(void);

@@ -1,4 +1,4 @@
-/* $Id: config.h 3749 2007-12-28 15:35:05Z piaip $ */
+/* $Id: config.h 3770 2008-01-01 16:37:54Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -51,6 +51,10 @@
 
 #ifndef GLOBAL_NEWBIE
 #define GLOBAL_NEWBIE BBSMNAME "Newhand"
+#endif
+
+#ifndef GLOBAL_TEST
+#define GLOBAL_TEST "Test"
 #endif
 
 #ifndef GLOBAL_NOTE
