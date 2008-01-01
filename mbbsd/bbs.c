@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3765 2007-12-30 15:40:21Z piaip $ */
+/* $Id: bbs.c 3768 2008-01-01 07:04:39Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -3004,6 +3004,7 @@ del_post(int ent, fileheader_t * fhdr, char *direct)
                     int rpt_bid;
  
 		    move(b_lines - 2, 0);
+		    clrtobot();
 		    for (i = 0; i < SIZE; i++)
 			prints("%d.%s ", i + 1, badpost_reason[i]);
 		    prints("%d.%s", i + 1, "¨ä¥L");
