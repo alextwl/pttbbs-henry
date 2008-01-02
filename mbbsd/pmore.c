@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3767 2007-12-31 04:40:51Z piaip $ */
+/* $Id: pmore.c 3771 2008-01-02 04:24:48Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -1394,7 +1394,12 @@ mf_display()
 			    buf[0] = '*';
 			else
 			{
-			    if(strchr("sbmlpn", buf[2]) != NULL)
+#ifdef LOW_SECURITY
+# define PTTPRINT_WARN_PATTERN "slpnbm"
+#else
+# define PTTPRINT_WARN_PATTERN "slpn" 
+#endif // LOW_SECURITY
+			    if(strchr(PTTPRINT_WARN_PATTERN, buf[2]) != NULL)
 			    {
 				override_attr = ANSI_COLOR(1;37;41);
 				override_msg = PMORE_MSG_WARN_FAKEUSERINFO;
