@@ -1,25 +1,7 @@
-# $Id: Makefile 3774 2008-01-02 15:16:23Z wens $
+# $Id: Makefile 3775 2008-01-02 15:36:46Z wens $
 
 SRCROOT=	..
 .include "$(SRCROOT)/pttbbs.mk"
-
-# conditional configurations
-
-.if !defined(WITHOUT_BLOG) 	&& defined(WITH_BLOG)
-CFLAGS+=  -DBLOG
-LDFLAGS+= -L/usr/local/lib/mysql -lmysqlclient
-.endif
-
-.if !defined(WITHOUT_EMAILDB) && defined(WITH_EMAILDB)
-OBJS+=   emaildb.o
-CFLAGS+= -DUSE_EMAILDB
-LDFLAGS+= -lsqlite3
-.endif
-
-.if !defined(WITHOUT_PFTERM) 	&& defined(WITH_PFTERM)
-CFLAGS+=  -DUSE_PFTERM
-#CFLAGS+= -DDBG_OUTRPT
-.endif
 
 # common modules
 
@@ -35,8 +17,21 @@ OBJS=	admin.o announce.o args.o assess.o bbs.o board.o cache.o cal.o card.o\
 
 # optional modules
 
+.if !defined(WITHOUT_BLOG) 	&& defined(WITH_BLOG)
+CFLAGS+=  -DBLOG
+LDFLAGS+= -L/usr/local/lib/mysql -lmysqlclient
+.endif
+
+.if !defined(WITHOUT_EMAILDB) && defined(WITH_EMAILDB)
+OBJS+=   emaildb.o
+CFLAGS+= -DUSE_EMAILDB
+LDFLAGS+= -lsqlite3
+.endif
+
 .if !defined(WITHOUT_PFTERM) && defined(WITH_PFTERM)
 OBJS+=	pfterm.o
+CFLAGS+=  -DUSE_PFTERM
+#CFLAGS+= -DDBG_OUTRPT
 .else
 OBJS+=	screen.o
 .endif
