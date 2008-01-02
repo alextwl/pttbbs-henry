@@ -1,4 +1,4 @@
-# $Id: Makefile 3773 2008-01-02 12:37:27Z piaip $
+# $Id: Makefile 3774 2008-01-02 15:16:23Z wens $
 
 SRCROOT=	..
 .include "$(SRCROOT)/pttbbs.mk"
@@ -10,9 +10,10 @@ CFLAGS+=  -DBLOG
 LDFLAGS+= -L/usr/local/lib/mysql -lmysqlclient
 .endif
 
-.if !defined(WITHOUT_EMAIL_DB) 	&& defined(WITH_EMAIL_DB)
-CFLAGS+= -DUSE_EMAIL_DB
-LDFLAGS+= -L/usr/local/lib/sqlite3 -lsqlite3
+.if !defined(WITHOUT_EMAILDB) && defined(WITH_EMAILDB)
+OBJS+=   emaildb.o
+CFLAGS+= -DUSE_EMAILDB
+LDFLAGS+= -lsqlite3
 .endif
 
 .if !defined(WITHOUT_PFTERM) 	&& defined(WITH_PFTERM)
