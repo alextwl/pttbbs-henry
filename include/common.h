@@ -1,4 +1,4 @@
-/* $Id: common.h 3765 2007-12-30 15:40:21Z piaip $ */
+/* $Id: common.h 3777 2008-01-02 16:02:07Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -42,7 +42,6 @@
 #define MSG_WOMAN       "叫我小阿姨!! /:>"
 #define MSG_PLANT       "植物也有性別喔.."
 #define MSG_MIME        "礦物總沒性別了吧"
-#define MSG_PASSWD      "請輸入您的密碼: "
 
 #define MSG_CLOAKED     "哈哈！我隱形了！看不到勒... :P"
 #define MSG_UNCLOAK     "我要重現江湖了...."

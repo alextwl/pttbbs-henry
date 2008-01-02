@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3748 2007-12-28 05:28:06Z piaip $ */
+/* $Id: mbbsd.c 3777 2008-01-02 16:02:07Z piaip $ */
 #include "bbs.h"
 #include "banip.h"
 
@@ -688,7 +688,7 @@ login_query(void)
 	prints("current pid: %d ", getpid());
 #endif
 
-	if (getdata(20, 0, "請輸入代號，或以[guest]參觀，以[new]註冊：",
+	if (getdata(20, 0, "請輸入代號，或以[guest]參觀，以[new]註冊: ",
 		uid, sizeof(uid), DOECHO) < 1)
 	{
 	    // got nothing 
