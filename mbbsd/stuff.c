@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3761 2007-12-29 14:26:17Z piaip $ */
+/* $Id: stuff.c 3776 2008-01-02 15:48:41Z piaip $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -416,6 +416,7 @@ show_file(const char *filename, int y, int lines, int mode)
 	while (fgets(buf, sizeof(buf), fp) && lines--)
 	    outs(Ptt_prints(buf, sizeof(buf), mode));
 	fclose(fp);
+	outs(ANSI_RESET); // prevent some broken Welcome file
     } else
 	return 0;
     return 1;

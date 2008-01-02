@@ -1,4 +1,4 @@
-/* $Id: user.c 3774 2008-01-02 15:16:23Z wens $ */
+/* $Id: user.c 3776 2008-01-02 15:48:41Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -1447,7 +1447,7 @@ toregister(char *email, char *genbuf, char *phone, char *career,
 	    if (email_count < 0) {
 		move(15, 0); clrtobot();
 		move(17, 0);
-		outs("暫時不允許 email 認證註冊, 請稍後再試\n");
+		outs("暫時不允許\ email 認證註冊, 請稍後再試\n");
 		pressanykey();
 		return;
 	    } else if (email_count >= EMAILDB_LIMIT) { 
@@ -1476,7 +1476,7 @@ toregister(char *email, char *genbuf, char *phone, char *career,
 		email, strlen(email)) < 0) {
 	move(15, 0); clrtobot();
 	move(17, 0);
-	outs("暫時不允許 email 認證註冊, 請稍後再試\n");
+	outs("暫時不允許\ email 認證註冊, 請稍後再試\n");
 	pressanykey();
 	return;
     }
