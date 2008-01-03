@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3778 2008-01-03 12:54:30Z piaip $ */
+/* $Id: bbs.c 3779 2008-01-03 13:09:17Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -1374,14 +1374,13 @@ edit_post(int ent, fileheader_t * fhdr, const char *direct)
 
     if (strcmp(fhdr->owner, cuser.userid) != EQUSTR)
     {
-	time4_t t = time4(NULL);
 	if (!HasUserPerm(PERM_SYSOP))
 	    return DONOTHING;
 
 	// admin edit!
 	log_filef("log/security", LOG_CREAT,
 		"%d %24.24s %d %s admin edit (board) file=%s\n", 
-		t, ctime4(&t), getpid(), cuser.userid, fpath);
+		(int)now, ctime4(&now), getpid(), cuser.userid, fpath);
     }
 
 # ifdef GLOBAL_BBSMOVIE

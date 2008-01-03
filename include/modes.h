@@ -1,4 +1,4 @@
-/* $Id: modes.h 3778 2008-01-03 12:54:30Z piaip $ */
+/* $Id: modes.h 3779 2008-01-03 13:09:17Z piaip $ */
 #ifndef INCLUDE_MODES_H
 #define INCLUDE_MODES_H
 
@@ -18,10 +18,11 @@
 #define HEADERS_RELOAD  13      
 
 // values returned by pager
-#define RET_DOREPLY	(999)
-#define RET_DORECOMMEND	(998)
-#define RET_DOQUERYINFO	(997)
-#define RET_DOSYSOPEDIT (996)
+#define RET_DOREPLY	    (999)
+#define RET_DORECOMMEND	    (998)
+#define RET_DOQUERYINFO	    (997)
+#define RET_DOSYSOPEDIT	    (996)
+#define RET_DOCHESSREPLAY   (995)
 
 /* user ¾Þ§@ª¬ºA»P¼Ò¦¡ */
 #define IDLE            0
