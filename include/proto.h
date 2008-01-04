@@ -1,4 +1,4 @@
-/* $Id: proto.h 3774 2008-01-02 15:16:23Z wens $ */
+/* $Id: proto.h 3786 2008-01-04 14:02:58Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -796,6 +796,9 @@ int Goodbye(void);
 
 /* toolkit */
 unsigned DBCS_StringHash(const char *s);
+
+/* BBS-LUA */
+int bbslua(const char *fpath);
 
 /* recycle */
 // public

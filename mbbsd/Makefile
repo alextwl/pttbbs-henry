@@ -1,4 +1,4 @@
-# $Id: Makefile 3776 2008-01-02 15:48:41Z piaip $
+# $Id: Makefile 3786 2008-01-04 14:02:58Z piaip $
 
 SRCROOT=	..
 .include "$(SRCROOT)/pttbbs.mk"
@@ -33,6 +33,12 @@ LDFLAGS+= -L/usr/local/lib/mysql -lmysqlclient
 OBJS+=   emaildb.o
 CFLAGS+= -DUSE_EMAILDB
 LDFLAGS+= -lsqlite3
+.endif
+
+.if !defined(WITHOUT_BBSLUA)	&& defined(WITH_BBSLUA)
+OBJS+=	 bbslua.o
+CFLAGS+= -DUSE_BBSLUA -I/usr/include/lua5.1
+LDFLAGS+=-llua5.1
 .endif
 
 .if !defined(WITHOUT_PFTERM)	&& defined(WITH_PFTERM)
