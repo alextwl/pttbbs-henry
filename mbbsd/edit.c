@@ -1,4 +1,4 @@
-/* $Id: edit.c 3765 2007-12-30 15:40:21Z piaip $ */
+/* $Id: edit.c 3783 2008-01-04 05:44:08Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -3364,8 +3364,8 @@ vedit2(char *fpath, int saveheader, int *islocal, int flags)
 	    case Ctrl('A'):
 		curr_buf->currpnt = 0;
 		break;
+	    case Ctrl('O'):	// better not use ^O - UNIX not sending.
 	    case KEY_INS:	/* Toggle insert/overwrite */
-	    case Ctrl('O'):
 		if (has_block_selection() && curr_buf->insert_mode) {
 		    char            ans[4];
 

@@ -1,4 +1,4 @@
-/* $Id: mail.c 3781 2008-01-03 15:21:21Z piaip $ */
+/* $Id: mail.c 3783 2008-01-04 05:44:08Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1659,7 +1659,7 @@ static const onekey_t mail_comms[] = {
     { 0, NULL }, // Ctrl('L')
     { 0, NULL }, // Ctrl('M')
     { 0, NULL }, // Ctrl('N')
-    { 0, NULL }, // Ctrl('O')
+    { 0, NULL }, // Ctrl('O')	// DO NOT USE THIS KEY - UNIX not sending
     { 0, NULL }, // Ctrl('P')
     { 0, NULL }, // Ctrl('Q')
     { 0, NULL }, // Ctrl('R')

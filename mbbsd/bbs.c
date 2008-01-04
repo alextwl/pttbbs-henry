@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3782 2008-01-04 05:31:55Z piaip $ */
+/* $Id: bbs.c 3783 2008-01-04 05:44:08Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -3662,7 +3662,7 @@ const onekey_t read_comms[] = {
     { 0, NULL }, // Ctrl('L')
     { 0, NULL }, // Ctrl('M')
     { 0, b_moved_to_config }, // Ctrl('N')
-    { 0, do_post_openbid }, // Ctrl('O')
+    { 0, do_post_openbid }, // Ctrl('O') // BETTER NOT USE ^O - UNIX not work
     { 0, do_post }, // Ctrl('P')
     { 0, NULL }, // Ctrl('Q')
     { 0, NULL }, // Ctrl('R')
