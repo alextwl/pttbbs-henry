@@ -1,4 +1,4 @@
-/* $Id: config.h 3770 2008-01-01 16:37:54Z piaip $ */
+/* $Id: config.h 3782 2008-01-04 05:31:55Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -117,6 +117,10 @@
 #ifndef MAX_EDIT_LINE
 #define MAX_EDIT_LINE 2048                  /* 文章最長編輯長度 */
 #endif 
+
+#ifndef MAX_EDIT_LINE_LARGE
+#define MAX_EDIT_LINE_LARGE (32000)
+#endif
 
 #ifndef MAX_LIFE                            /* 最長使用者保留時間(秒) */
 #define MAX_LIFE           (120 * 24 * 60 * 60)
