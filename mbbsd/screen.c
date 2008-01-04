@@ -1,4 +1,4 @@
-/* $Id: screen.c 3776 2008-01-02 15:48:41Z piaip $ */
+/* $Id: screen.c 3785 2008-01-04 12:30:07Z piaip $ */
 #include "bbs.h"
 
 #if !defined(USE_PFTERM)
@@ -449,12 +449,47 @@ outs(const char *str)
 }
 
 void
+outns(const char *str, int n)
+{
+    if (!str)
+	return;
+    while (*str && n-- > 0) {
+	outc(*str++);
+    }
+}
+
+void
 outstr(const char *str)
 {
     // XXX TODO cannot prepare DBCS-ready environment?
     
     outs(str);
 }
+
+void
+addch(unsigned char c)
+{
+    outc(c);
+}
+
+void
+addstr(const char *s)
+{
+    outs(s);
+}
+
+void
+addnstr(const char *s, int n)
+{
+    outns(s, n);
+}
+
+void
+addstring(const char *s)
+{
+    outs(s);
+}
+
 
 void
 scroll(void)
