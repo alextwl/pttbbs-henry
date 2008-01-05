@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3777 2008-01-02 16:02:07Z piaip $ */
+/* $Id: mbbsd.c 3791 2008-01-05 08:22:03Z piaip $ */
 #include "bbs.h"
 #include "banip.h"
 
@@ -731,7 +731,11 @@ login_query(void)
 
             if (initcuser(uid)< 1) exit (0) ;
 	    cuser.userlevel = 0;
-	    cuser.uflag = PAGER_FLAG | BRDSORT_FLAG | MOVIE_FLAG | DBCS_NOINTRESC;
+	    cuser.uflag = PAGER_FLAG | BRDSORT_FLAG | MOVIE_FLAG;
+
+#ifdef GUEST_DEFAULT_DBCS_NOINTRESC;
+	    cuser.uflag |= DBCS_NOINTRESC;
+#endif
 	    // can we prevent mkuserdir() here?
 	    mkuserdir(cuser.userid);
 	    break;
