@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3779 2008-01-03 13:09:17Z piaip $ */
+/* $Id: pmore.c 3789 2008-01-05 06:16:18Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -2367,6 +2367,12 @@ pmore(char *fpath, int promptend)
 		pmore_Preference();
 		MFDISP_DIRTY();
 		break;
+
+#if defined(USE_BBSLUA) && defined(RET_DOBBSLUA)
+	    case 'P':
+		flExit = 1,	retval = RET_DOBBSLUA;
+		break;
+#endif
 
 #ifdef PMORE_USE_ASCII_MOVIE
 	    case 'p':
