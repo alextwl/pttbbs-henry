@@ -1,4 +1,4 @@
-/* $Id: more.c 3789 2008-01-05 06:16:18Z piaip $ */
+/* $Id: more.c 3793 2008-01-05 08:46:17Z piaip $ */
 #include "bbs.h"
 
 /* use new pager: piaip's more. */
@@ -32,10 +32,12 @@ int more(char *fpath, int promptend)
 	    ChessReplayGame(fpath);
 	    break;
 
+#if defined(USE_BBSLUA)
 	case RET_DOBBSLUA:
 	    r = FULLUPDATE;
 	    bbslua(fpath);
 	    break;
+#endif
     }
 
     return r;
