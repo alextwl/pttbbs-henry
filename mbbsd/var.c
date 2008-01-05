@@ -1,4 +1,4 @@
-/* $Id: var.c 3753 2007-12-28 18:26:28Z piaip $ */
+/* $Id: var.c 3790 2008-01-05 06:36:08Z piaip $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -181,7 +181,6 @@ char           * const str_post1 = STR_POST1;
 char           * const str_post2 = STR_POST2;
 char           * const BBSName = BBSNAME;
 
-/* #define MAX_MODES 78 */
 /* MAX_MODES is defined in common.h */
 
 char           * const ModeTypeTable[MAX_MODES] = {
@@ -270,8 +269,8 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "下圍棋",			/* UMODE_GO */
     "[系統錯誤]",		/* DEBUGSLEEPING */
     "連六棋",			/* UMODE_CONN6 */
-    "", /* for future usage */
-    "",
+    "黑白棋",			/* REVERSI */
+    "BBSLUA",			/* UMODE_BBSLUA */
     "",
     "",
     "",

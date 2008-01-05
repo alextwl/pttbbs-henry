@@ -1,4 +1,4 @@
-/* $Id: modes.h 3789 2008-01-05 06:16:18Z piaip $ */
+/* $Id: modes.h 3790 2008-01-05 06:36:08Z piaip $ */
 #ifndef INCLUDE_MODES_H
 #define INCLUDE_MODES_H
 
@@ -112,7 +112,8 @@
 #define DEBUGSLEEPING	83
 #define UMODE_CONN6	84
 #define REVERSI		85
-#define MODE_MAX        86      /* 所有其他選單動態須在此之前 */
+#define UMODE_BBSLUA	86
+#define MODE_MAX        87      /* 所有其他選單動態須在此之前 */
 
 /* menu.c 中的模式 */
 #define QUIT    0x666           /* Return value to abort recursive functions */
