@@ -1,4 +1,4 @@
-/* $Id: user.c 3776 2008-01-02 15:48:41Z piaip $ */
+/* $Id: user.c 3799 2008-01-06 11:03:14Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -2062,7 +2062,8 @@ int u_detectDBCSAwareEvilClient()
 	     * years) of num_in_buf forced me to write new wait_input.
 	     * Anyway it is fixed now.
 	     */
-	    if(wait_input(0.1, 1))
+	    refresh();
+	    if(wait_input(0.1, 0))
 	    // if(igetch() == ch)
 	    // if (num_in_buf() > 0)
 	    {

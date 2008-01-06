@@ -1,4 +1,4 @@
-/* $Id: proto.h 3798 2008-01-06 07:54:16Z piaip $ */
+/* $Id: proto.h 3799 2008-01-06 11:03:14Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -333,7 +333,7 @@ void set_converting_type(int which);
 /* io */
 int getdata(int line, int col, const char *prompt, char *buf, int len, int echo);
 int igetch(void);
-int wait_input(float f, int flDoRefresh);
+int wait_input(float f, int bIgnoreBuf);
 int peek_input(float f, int c);
 void drop_input(void);
 int getdata_str(int line, int col, const char *prompt, char *buf, int len, int echo, const char *defaultstr);
