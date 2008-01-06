@@ -1,4 +1,4 @@
-/* $Id: cache.c 3670 2007-12-12 01:37:36Z kcwu $ */
+/* $Id: cache.c 3798 2008-01-06 07:54:16Z piaip $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -499,6 +499,14 @@ setutmpmode(unsigned int mode)
     if (HasUserPerm(PERM_LOGUSER)) {
 	log_user("setutmpmode to %s(%d)\n", modestring(currutmp, 0), mode);
     }
+}
+
+unsigned int 
+getutmpmode(void)
+{
+    if (currutmp)
+	return currutmp->mode;
+    return currstat;
 }
 #endif
 

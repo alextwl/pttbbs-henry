@@ -1,4 +1,4 @@
-/* $Id: proto.h 3788 2008-01-05 04:22:34Z piaip $ */
+/* $Id: proto.h 3798 2008-01-06 07:54:16Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -132,6 +132,7 @@ void touch_boards(void);
 void addbrd_touchcache(void);
 void setapath(char *buf, const char *boardname);
 void setutmpmode(unsigned int mode);
+unsigned int  getutmpmode(void);
 void setadir(char *buf, const char *path);
 int apply_boards(int (*func)(boardheader_t *));
 int haspostperm(const char *bname);
