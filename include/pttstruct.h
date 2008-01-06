@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3754 2007-12-29 03:33:14Z piaip $ */
+/* $Id: pttstruct.h 3796 2008-01-06 04:35:16Z piaip $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -302,7 +302,7 @@ typedef struct msgque_t {
 } msgque_t;
 
 #define ALERT_NEW_MAIL        1
-#define ISNEWMAIL(utmp)           utmp->alerts & ALERT_NEW_MAIL
+#define ISNEWMAIL(utmp)       (utmp->alerts & ALERT_NEW_MAIL)
 #define ALERT_PWD_PERM        2
 #define ALERT_PWD_BADPOST     4 
 #define ALERT_PWD_GOODPOST    8 

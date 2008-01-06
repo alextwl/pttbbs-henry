@@ -1,4 +1,4 @@
-/* $Id: mail.c 3783 2008-01-04 05:44:08Z piaip $ */
+/* $Id: mail.c 3796 2008-01-06 04:35:16Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1154,6 +1154,7 @@ mail_read_all(int ent, fileheader_t * fhdr, const char *direct)
     int	    fd = 0;
     fileheader_t xfhdr;
 
+    currutmp->alerts &= ~ALERT_NEW_MAIL;
     if ((fd = open(currmaildir, O_RDWR)) < 0)
 	return DONOTHING;
 
