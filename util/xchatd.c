@@ -1,4 +1,4 @@
-/* $Id: xchatd.c 3584 2007-10-16 17:05:46Z kcwu $ */
+/* $Id: xchatd.c 3797 2008-01-06 05:13:10Z piaip $ */
 #include "bbs.h"
 #include "xchatd.h"
 
@@ -1326,8 +1326,8 @@ arrive_room(ChatUser *cuser, ChatRoom *room)
 	send_to_user(cuser, chatbuf, 0, 0);
     }
 
-    sprintf(chatbuf, "¡° [32;1m%s[m ¶i¤J [33;1m[%s][m ¥]´[",
-	    cuser->chatid, rname);
+    sprintf(chatbuf, "¡° [32;1m%s (%s)[m ¶i¤J [33;1m[%s][m ¥]´[",
+	    cuser->chatid, cuser->userid, rname);
     if (!CLOAK(cuser))            /* Thor: ²á¤Ñ«ÇÁô¨­³N */
 	send_to_room(room, chatbuf, cuser->userno, MSG_MESSAGE);
 }
