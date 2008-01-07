@@ -1,4 +1,4 @@
-/* $Id: screen.c 3795 2008-01-05 14:24:15Z piaip $ */
+/* $Id: screen.c 3804 2008-01-07 15:42:25Z piaip $ */
 #include "bbs.h"
 
 #if !defined(USE_PFTERM)
@@ -208,13 +208,18 @@ redrawwin(void)
 void
 refresh(void)
 {
+    if (num_in_buf())
+	return;
+    doupdate();
+}
+
+void
+doupdate(void)
+{
     /* TODO remove unnecessary refresh() call, to save CPU time */
     register screenline_t *bp = big_picture;
     register int    i, j;
     int len;
-    if (num_in_buf())
-	return;
-
     if ((docls) || (abs(scrollcnt) >= (scr_lns - 3))) {
 	redrawwin();
 	return;

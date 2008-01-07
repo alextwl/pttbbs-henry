@@ -1,4 +1,4 @@
-/* $Id: proto.h 3799 2008-01-06 11:03:14Z piaip $ */
+/* $Id: proto.h 3804 2008-01-07 15:42:25Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -581,6 +581,7 @@ void clrtoeol	(void);
 void clrtobot	(void);
 void clrtoln	(int ln);
 void refresh	(void);
+void doupdate	(void);
 void redrawwin	(void);
 void scroll	(void);
 void rscroll	(void);
