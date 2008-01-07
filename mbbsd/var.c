@@ -1,4 +1,4 @@
-/* $Id: var.c 3796 2008-01-06 04:35:16Z piaip $ */
+/* $Id: var.c 3805 2008-01-07 15:54:16Z piaip $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -615,7 +615,7 @@ const commands_t      cmdlist[] = {
     {Talk, 	0,		"TTalk         【 休閒聊天區 】"},
     {User, 	PERM_BASIC,	"UUser         【 個人設定區 】"},
     {Xyz, 	0,		"XXyz          【 系統工具區 】"},
-    {Play_Play, PERM_BASIC, 	"PPlay         【 娛樂與休閒 】"},
+    {Play_Play, PERM_LOGINOK, 	"PPlay         【 娛樂與休閒 】"},
     {Name_Menu, PERM_LOGINOK,	"NNamelist     【 編特別名單 】"},
 #ifdef DEBUG
     {Goodbye, 	0, 		"GGoodbye      再見再見再見再見"},
