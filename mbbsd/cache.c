@@ -1,4 +1,4 @@
-/* $Id: cache.c 3798 2008-01-06 07:54:16Z piaip $ */
+/* $Id: cache.c 3808 2008-01-08 02:05:18Z piaip $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -362,10 +362,30 @@ search_ulistn(int uid, int unum)
 	if (j == 0) {
 	    for (; i > 0 && uid == SHM->uinfo[ulist[i - 1]].uid; --i)
 		;/* 指到第一筆 */
+	    // piaip Tue Jan  8 09:28:03 CST 2008
+	    // many people bugged about that their utmp have invalid
+	    // entry on record.
+	    // we found them caused by crash process (DEBUGSLEEPING) which
+	    // may occupy utmp entries even after process was killed.
+	    // because the memory is invalid, it is not safe for those process
+	    // to wipe their utmp entry. it should be done by some external
+	    // daemon.
+	    // however, let's make a little workaround here...
+	    for (; unum > 0 && i >= 0 && ulist[i] >= 0 &&
+		    SHM->uinfo[ulist[i]].uid == uid; unum--, i++)
+	    {
+		if (SHM->uinfo[ulist[i]].mode == DEBUGSLEEPING)
+		    unum ++;
+	    }
+	    if (unum == 0 && i > 0 && ulist[i-1] >= 0 &&
+		    SHM->uinfo[ulist[i-1]].uid == uid)
+		return &SHM->uinfo[ulist[i-1]];
+	    /*
 	    if ( i + unum - 1 >= 0 &&
 		 (ulist[i + unum - 1] >= 0 &&
 		  uid == SHM->uinfo[ulist[i + unum - 1]].uid ) )
 		return &SHM->uinfo[ulist[i + unum - 1]];
+		*/
 	    break;		/* 超過範圍 */
 	}
 	if (end == start) {
