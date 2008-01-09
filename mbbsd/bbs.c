@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3806 2008-01-07 16:53:24Z piaip $ */
+/* $Id: bbs.c 3810 2008-01-09 16:11:05Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -1560,8 +1560,13 @@ edit_post(int ent, fileheader_t * fhdr, const char *direct)
 
 	// OK to save file.
 
-	// force to remove file first?
-	// unlink(genbuf);
+	// piaip Wed Jan  9 11:11:33 CST 2008
+	// in order to prevent calling system 'mv' all the
+	// time, it is better to unlink() first, which
+	// increased the chance of succesfully using rename().
+	// WARNING: if genbuf and fpath are in different directory,
+	// you should disable pre-unlinking
+	unlink(genbuf);
         Rename(fpath, genbuf);
 	fhdr->modified = dasht(genbuf);
 

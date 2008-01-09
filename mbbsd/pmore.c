@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3808 2008-01-08 02:05:18Z piaip $ */
+/* $Id: pmore.c 3810 2008-01-09 16:11:05Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -116,10 +116,13 @@
 #include <string.h>
 
 // Platform Related. NoSync is faster but if we don't have it...
+// Experimental: POPULATE should work faster?
 #ifdef MAP_NOSYNC
-#define MF_MMAP_OPTION (MAP_NOSYNC|MAP_PRIVATE)
+#define MF_MMAP_OPTION (MAP_NOSYNC|MAP_SHARED)
+#elif defined(MAP_POPULATE)
+#define MF_MMAP_OPTION (MAP_POPULATE|MAP_SHARED)
 #else
-#define MF_MMAP_OPTION (MAP_PRIVATE)
+#define MF_MMAP_OPTION (MAP_SHARED)
 #endif
 
 /* Developer's Guide
