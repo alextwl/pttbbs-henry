@@ -1,4 +1,4 @@
-/* $Id: kaede.c 3771 2008-01-02 04:24:48Z piaip $ */
+/* $Id: kaede.c 3819 2008-01-10 18:01:34Z piaip $ */
 #include "bbs.h"
 
 // TODO move stuff to libbbs(or util)/string.c, ...
@@ -110,12 +110,19 @@ outslr(const char *left, int leftlen, const char *right, int rightlen)
 void
 out_lines(const char *str, int line)
 {
+	int y, x;
+	getyx(&y, &x);
     while (*str && line) {
-	outc(*str);
-	if (*str == '\n')
-	    line--;
-	str++;
-    }
+		if (*str == '\n')
+		{
+			move(++y, 0);
+			line--;
+		} else 
+		{
+			outc(*str);
+		}
+		str++;
+	}
 }
 
 void
