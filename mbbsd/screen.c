@@ -1,4 +1,4 @@
-/* $Id: screen.c 3812 2008-01-10 06:33:16Z piaip $ */
+/* $Id: screen.c 3817 2008-01-10 16:46:01Z piaip $ */
 #include "bbs.h"
 
 #if !defined(USE_PFTERM)
@@ -368,8 +368,8 @@ clrtoeol(void)
 
 void newwin	(int nlines, int ncols, int y, int x)
 {
-    int i=0, y, x;
-    getyx(&y, &x);
+    int i=0, oy, ox;
+    getyx(&oy, &ox);
 
     while (nlines-- > 0)
     {
@@ -377,7 +377,7 @@ void newwin	(int nlines, int ncols, int y, int x)
 	for (i = 0; i < ncols; i++)
 	    outc(' ');
     }
-    move(y, x);
+    move(oy, ox);
 }
 
 /**
