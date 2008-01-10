@@ -1,4 +1,4 @@
-/* $Id: screen.c 3804 2008-01-07 15:42:25Z piaip $ */
+/* $Id: screen.c 3812 2008-01-10 06:33:16Z piaip $ */
 #include "bbs.h"
 
 #if !defined(USE_PFTERM)
@@ -363,6 +363,21 @@ clrtoeol(void)
 	    slp->data[ln] = ' ';
     }
     slp->len = cur_col;
+}
+
+
+void newwin	(int nlines, int ncols, int y, int x)
+{
+    int i=0, y, x;
+    getyx(&y, &x);
+
+    while (nlines-- > 0)
+    {
+	move_ansi(y++, x);
+	for (i = 0; i < ncols; i++)
+	    outc(' ');
+    }
+    move(y, x);
 }
 
 /**
