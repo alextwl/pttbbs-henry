@@ -1,4 +1,4 @@
-/* $Id: proto.h 3812 2008-01-10 06:33:16Z piaip $ */
+/* $Id: proto.h 3815 2008-01-10 11:37:16Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -806,6 +806,8 @@ unsigned DBCS_StringHash(const char *s);
 
 /* BBS-LUA */
 int bbslua(const char *fpath);
+int bbslua_isHeader(const char *ps, const char *pe);
+
 
 /* recycle */
 // public
