@@ -1,4 +1,4 @@
-/* $Id: menu.c 3804 2008-01-07 15:42:25Z piaip $ */
+/* $Id: menu.c 3820 2008-01-11 02:00:31Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) \
@@ -88,7 +88,7 @@ showtitle(const char *title, const char *mid)
     /* now, calculate real positioning info */
     if(llen < 0) llen = strlen(title);
     if(mlen < 0) mlen = strlen(mid);
-    mpos = (t_columns - mlen)/2;
+    mpos = (t_columns -1 - mlen)/2;
 
     /* first, print left. */
     clear();
@@ -104,7 +104,7 @@ showtitle(const char *title, const char *mid)
     outs(TITLE_COLOR);
     /* try to locate right */
     rlen = strlen(currboard) + 4 + 4;
-    if(currboard[0] && pos+rlen <= t_columns)
+    if(currboard[0] && pos+rlen < t_columns)
     {
 	// print right stuff
 	while(++pos < t_columns-rlen)
