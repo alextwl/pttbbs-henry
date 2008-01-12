@@ -1,4 +1,4 @@
-/* $Id: io.c 3818 2008-01-10 17:15:29Z piaip $ */
+/* $Id: io.c 3825 2008-01-12 08:11:57Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -967,6 +967,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	    }			/* end case */
 	    assert(0<=clen);
 	}			/* end while */
+	buf[clen] = '\0';
 
 	if (clen > 1) {
 	    strlcpy(lastcmd[0], buf, sizeof(lastcmd[0]));
