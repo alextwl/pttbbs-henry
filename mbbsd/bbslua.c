@@ -4,7 +4,7 @@
 // Author: Hung-Te Lin(piaip), Jan. 2008. 
 // <piaip@csie.ntu.edu.tw>
 // Create: 2008-01-04 22:02:58
-// $Id: bbslua.c 3829 2008-01-12 17:02:05Z kcwu $
+// $Id: bbslua.c 3831 2008-01-12 17:39:44Z kcwu $
 //
 // This source is released in MIT License, same as Lua 5.0
 // http://www.lua.org/license.html
@@ -1153,12 +1153,6 @@ bbslua(const char *fpath)
 	int lineshift;
 	AllocData ad;
 
-	alloc_init(&ad);
-	L = lua_newstate(allocf, &ad);
-	if (!L)
-		return 0;
-	lua_atpanic(L, &panic);
-
 #ifdef UMODE_BBSLUA
 	unsigned int prevmode = getutmpmode();
 #endif
@@ -1166,6 +1160,13 @@ bbslua(const char *fpath)
 	// re-entrant not supported!
 	if (runningBBSLua)
 		return 0;
+
+	// init lua
+	alloc_init(&ad);
+	L = lua_newstate(allocf, &ad);
+	if (!L)
+		return 0;
+	lua_atpanic(L, &panic);
 
 	abortBBSLua = 0;
 
