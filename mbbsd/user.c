@@ -1,4 +1,4 @@
-/* $Id: user.c 3799 2008-01-06 11:03:14Z piaip $ */
+/* $Id: user.c 3830 2008-01-12 17:08:05Z kcwu $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -260,7 +260,7 @@ kick_all(char *user)
 {
    userinfo_t *ui;
    int num = searchuser(user, NULL), i=1;
-   while((ui = (userinfo_t *) search_ulistn(num, i))>0)
+   while((ui = (userinfo_t *) search_ulistn(num, i)) != NULL)
        {
          if(ui == currutmp) i++;
          if ((ui->pid <= 0 || kill(ui->pid, SIGHUP) == -1))
@@ -400,7 +400,7 @@ void Customize(void)
 	/* extended stuff */
 	{
 	    char mindbuf[5];
-	    const static char *wm[] = 
+	    static const char *wm[] = 
 		{"一般", "進階", "未來", ""};
 
 	    prints("%c. %-40s%s\n",
