@@ -1,4 +1,4 @@
-/* $Id: common.h 3778 2008-01-03 12:54:30Z piaip $ */
+/* $Id: common.h 3832 2008-01-13 00:55:09Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -249,6 +249,10 @@
 #define GRAYOUT_DARK (0)
 #define GRAYOUT_NORM (1)
 #define GRAYOUT_COLORNORM (+2)
+
+/* Typeahead */
+#define TYPEAHEAD_NONE	(-1)
+#define TYPEAHEAD_STDIN	(0)
 
 /* ----------------------------------------------------- */
 /* Macros                                                */

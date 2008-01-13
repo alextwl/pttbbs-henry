@@ -1,4 +1,4 @@
-/* $Id: screen.c 3817 2008-01-10 16:46:01Z piaip $ */
+/* $Id: screen.c 3832 2008-01-13 00:55:09Z piaip $ */
 #include "bbs.h"
 
 #if !defined(USE_PFTERM)
@@ -13,6 +13,7 @@ static unsigned short cur_ln = 0, cur_col = 0;
 static unsigned char docls;
 static unsigned char standing = NA;
 static int      scrollcnt, tc_col, tc_line;
+static unsigned char _typeahead = 1;
 
 #define MODIFIED (1)		/* if line has been modifed, screen output */
 #define STANDOUT (2)		/* if this line has a standout region */
@@ -205,10 +206,28 @@ redrawwin(void)
     oflush();
 }
 
+int	
+typeahead(int fd)
+{
+    switch(fd)
+    {
+	case TYPEAHEAD_NONE:
+	    _typeahead = 0;
+	    break;
+	case TYPEAHEAD_STDIN:
+	    _typeahead = 1;
+	    break;
+	default: // shall never reach here
+	    assert(NULL);
+	    break;
+    }
+    return 0;
+}
+
 void
 refresh(void)
 {
-    if (num_in_buf())
+    if (num_in_buf() && _typeahead)
 	return;
     doupdate();
 }
