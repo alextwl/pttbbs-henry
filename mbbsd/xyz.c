@@ -1,4 +1,4 @@
-/* $Id: xyz.c 3784 2008-01-04 05:45:20Z piaip $ */
+/* $Id: xyz.c 3834 2008-01-14 11:50:05Z piaip $ */
 #include "bbs.h"
 
 #if 0
@@ -207,6 +207,7 @@ note(void)
     if ((foo = fopen(".note", "a")) == NULL)
 	return 0;
 
+    unlink(fn_note_ans); // remove first to prevent mmap(pmore) crash
     if ((fp = fopen(fn_note_ans, "w")) == NULL) {
 	fclose(fp);
 	return 0;

@@ -1,4 +1,4 @@
-/* $Id: fav.c 3748 2007-12-28 05:28:06Z piaip $ */
+/* $Id: fav.c 3834 2008-01-14 11:50:05Z piaip $ */
 #include "bbs.h"
 
 /**
@@ -1219,6 +1219,11 @@ void reginit_fav(void)
 
 #ifdef GLOBAL_NEWBIE
     bid = getbnum(GLOBAL_NEWBIE);
+    if (bid > 0) fav_add_board(bid);
+#endif
+
+#ifdef GLOBAL_ASKBOARD
+    bid = getbnum(GLOBAL_ASKBOARD);
     if (bid > 0) fav_add_board(bid);
 #endif
 

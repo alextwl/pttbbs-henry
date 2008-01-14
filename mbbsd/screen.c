@@ -1,4 +1,4 @@
-/* $Id: screen.c 3832 2008-01-13 00:55:09Z piaip $ */
+/* $Id: screen.c 3834 2008-01-14 11:50:05Z piaip $ */
 #include "bbs.h"
 
 #if !defined(USE_PFTERM)
@@ -94,6 +94,32 @@ getyx(int *y, int *x)
 {
     *y = cur_ln;
     *x = cur_col;
+}
+
+void
+getyx_ansi(int *py, int *px)
+{
+    // take ANSI length in consideration
+    register screenline_t *slp;
+    int y = cur_ln,  x = cur_col;
+    char c = 0;
+
+    if (y < 0) y = 0;
+    if (y >= t_lines) y = t_lines -1;
+    if (x < 0) x = 0;
+    if (x >= ANSILINELEN) x = ANSILINELEN -1;
+
+    *py = y; *px = x;
+
+    if (y >= scr_lns || x < 1)
+	return;
+
+    slp = &big_picture[y];
+    if (slp->len < 1)
+	return;
+    c = slp->data[x];
+    *px += (strlen((char*)slp->data) - strlen_noansi((char*)slp->data));
+    slp->data[x] = c;
 }
 
 static inline

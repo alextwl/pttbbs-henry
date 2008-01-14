@@ -1,4 +1,4 @@
-/* $Id: record.c 3673 2007-12-12 01:42:23Z kcwu $ */
+/* $Id: record.c 3834 2008-01-14 11:50:05Z piaip $ */
 
 #include "bbs.h"
 
@@ -625,4 +625,40 @@ append_record_forward(char *fpath, fileheader_t * record, int size, const char *
     append_record(fpath, record, size);
 
     return 0;
+}
+
+void 
+setaidfile(char *buf, const char *bn, aidu_t aidu)
+{
+    // try to load by AID
+    int bid = 0;
+    int n = 0, fd = 0;
+    char bfpath[PATHLEN] = "";
+    boardheader_t  *bh = NULL;
+    fileheader_t fh;
+
+    buf[0] = 0;
+    bid = getbnum(bn);
+
+    if (bid <= 0) return;
+    assert(0<=bid-1 && bid-1<MAX_BOARD);
+    bh = getbcache(bid);
+    if (!HasBoardPerm(bh)) return;
+
+    setbfile(bfpath, bh->brdname, FN_DIR);
+    n = search_aidu(bfpath, aidu);
+
+    if (n < 0) return;
+    fd = open(bfpath, O_RDONLY);
+    if (fd < 0) return;
+
+    lseek(fd, n*sizeof(fileheader_t), SEEK_SET);
+    memset(&fh, 0, sizeof(fh));
+    if (read(fd, &fh, sizeof(fh)) > 0)
+    {
+	setbfile(buf, bh->brdname, fh.filename);
+	if (!dashf(buf))
+	    buf[0] = 0;
+    }
+    close(fd);
 }
