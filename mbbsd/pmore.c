@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3823 2008-01-12 05:43:03Z piaip $ */
+/* $Id: pmore.c 3838 2008-01-16 13:22:58Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -14,10 +14,10 @@
  *
  * Copyright(c) 2005-2008 Hung-Te Lin <piaip@csie.ntu.edu.tw>
  * All Rights Reserved.
- * You are free to use, modify, redistribute this program 
- * in any non-commercial usage (including network service).
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * You are free to use, modify, redistribute this program in any
+ * non-commercial usage (including network service).
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
  *
  * MAJOR IMPROVEMENTS:
  *  - Clean source code, and more readable for mortal
