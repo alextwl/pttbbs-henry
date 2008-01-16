@@ -1,4 +1,4 @@
-/* $Id: var.c 3805 2008-01-07 15:54:16Z piaip $ */
+/* $Id: var.c 3839 2008-01-16 15:30:02Z piaip $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -142,7 +142,8 @@ char           * const loginview_file[NUMVIEWFILE][2] = {
     {"etc/yesterday", "昨日上站人次"},
     {"etc/history", "歷史上的今天"},
     {"etc/topboardman", "精華區排行榜"},
-    {"etc/topboard.tmp", "看板人氣排行榜"}
+    {"etc/topboard.tmp", "看板人氣排行榜"},
+    {NULL, NULL}
 };
 
 /* message */
