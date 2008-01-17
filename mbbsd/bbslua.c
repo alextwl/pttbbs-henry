@@ -4,7 +4,7 @@
 // Author: Hung-Te Lin(piaip), Jan. 2008. 
 // <piaip@csie.ntu.edu.tw>
 // Create: 2008-01-04 22:02:58
-// $Id: bbslua.c 3838 2008-01-16 13:22:58Z piaip $
+// $Id: bbslua.c 3840 2008-01-17 16:16:13Z piaip $
 //
 // This source is released in MIT License, same as Lua 5.0
 // http://www.lua.org/license.html
@@ -494,11 +494,17 @@ bl_kball(lua_State *L)
 	if (abortBBSLua)
 		return r;
 
+#ifdef _WIN32
+	while (peekch(0))
+	{
+		bl_k2s(L, igetch());
+		i++;
+	}
+#else
 	// next, collect all input and return.
 	if (num_in_buf() < 1)
 		return 0;
 
-	lua_newtable(L);
 	oldr = num_in_buf() +1;
 	i = 0;
 
@@ -508,6 +514,8 @@ bl_kball(lua_State *L)
 		bl_k2s(L, igetch());
 		i++;
 	}
+#endif
+
 	return i;
 }
 
