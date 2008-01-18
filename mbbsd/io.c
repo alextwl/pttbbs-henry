@@ -1,4 +1,4 @@
-/* $Id: io.c 3825 2008-01-12 08:11:57Z piaip $ */
+/* $Id: io.c 3842 2008-01-18 16:02:22Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -165,6 +165,8 @@ add_io(int fd, int timeout)
 int
 num_in_buf(void)
 {
+    if (ibufsize <= icurrchar)
+	return 0;
     return ibufsize - icurrchar;
 }
 
@@ -266,6 +268,15 @@ dogetch(void)
 	if (now - lastact < 3)
 	    currutmp->lastact = now;
 	lastact = now;
+    }
+
+    // CR LF are treated as one.
+    if (inbuf[icurrchar] == Ctrl('M'))
+    {
+	if (++icurrchar < ibufsize &&
+	    inbuf[icurrchar] == Ctrl('J'))
+	    icurrchar ++;
+	return Ctrl('M');
     }
     return (unsigned char)inbuf[icurrchar++];
 }
@@ -626,6 +637,8 @@ igetch(void)
 	    }
 	    return ch;
 
+	    // try to do this in getch() level.
+#if 0	    
 	case Ctrl('J'):  /* Ptt 把 \n 拿掉 */
 #ifdef PLAY_ANGEL
 	    /* Seams some telnet client still send CR LF when changing lines.
@@ -633,6 +646,7 @@ igetch(void)
 	    */
 #endif
 	    continue;
+#endif
 
 	default:
             return ch;
