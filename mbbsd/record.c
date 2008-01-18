@@ -1,4 +1,4 @@
-/* $Id: record.c 3834 2008-01-14 11:50:05Z piaip $ */
+/* $Id: record.c 3841 2008-01-18 09:47:36Z piaip $ */
 
 #include "bbs.h"
 
@@ -627,6 +627,7 @@ append_record_forward(char *fpath, fileheader_t * record, int size, const char *
     return 0;
 }
 
+#ifndef _BBS_UTIL_C_
 void 
 setaidfile(char *buf, const char *bn, aidu_t aidu)
 {
@@ -662,3 +663,4 @@ setaidfile(char *buf, const char *bn, aidu_t aidu)
     }
     close(fd);
 }
+#endif
