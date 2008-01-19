@@ -4,7 +4,7 @@
 // Author: Hung-Te Lin(piaip), Jan. 2008. 
 // <piaip@csie.ntu.edu.tw>
 // Create: 2008-01-04 22:02:58
-// $Id: bbslua.c 3845 2008-01-19 06:12:13Z piaip $
+// $Id: bbslua.c 3846 2008-01-19 06:14:42Z piaip $
 //
 // This source is released in MIT License, same as Lua 5.0
 // http://www.lua.org/license.html
@@ -739,14 +739,14 @@ bls_setfn(char *fn, const char *p)
 	switch(bls_getcat(p))
 	{
 		case BLS_GLOBAL:
-			_snprintf(fn, PATHLEN, "%s/%08X", 
+			snprintf(fn, PATHLEN, "%s/%08X", 
 					BLSCONF_GPATH, blrt.hash);
 			return	1;
 		case BLS_USER:
 			setuserfile(fn, BLSCONF_UPATH);
 			mkdir(fn, 0755);
 			assert(strlen(fn) +8 <= PATHLEN);
-			_snprintf(fn + strlen(fn),
+			snprintf(fn + strlen(fn),
 					PATHLEN - strlen(fn),
 					"/%08X", blrt.hash);
 			return	1;
