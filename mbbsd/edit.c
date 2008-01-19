@@ -1,4 +1,4 @@
-/* $Id: edit.c 3843 2008-01-18 17:54:07Z piaip $ */
+/* $Id: edit.c 3844 2008-01-19 06:08:33Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -2079,7 +2079,8 @@ static const char *luaBbs[] = {
     "clrtobot", "clrtoeol", "color", "ctime", "getch","getdata",
     "getmaxyx", "getstr", "getyx", "interface", "kball", "kbhit", "kbreset", 
     "move", "moverel", "now", "outs", "pause", "print", "rect", "refresh",
-    "setattr", "sitename", "sleep", "strip_ansi", "time", "title", "userid",
+    "setattr", "sitename", "sleep", "strip_ansi", "time", "title", 
+    "userid", "usernick",
     NULL
 };
 
