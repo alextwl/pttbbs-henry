@@ -1,4 +1,4 @@
-/* $Id: var.c 3839 2008-01-16 15:30:02Z piaip $ */
+/* $Id: var.c 3856 2008-01-23 14:48:33Z piaip $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -365,7 +365,7 @@ boardheader_t  *bcache;
 userinfo_t     *currutmp;
 
 /* read.c */
-int             TagNum;			/* tag's number */
+int             TagNum = 0;		/* tag's number */
 int		TagBoard = -1;		/* TagBoard = 0 : user's mailbox */
                                         /* TagBoard > 0 : bid where last taged */
 char            currdirect[64];
