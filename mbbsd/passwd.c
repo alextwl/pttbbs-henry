@@ -1,4 +1,4 @@
-/* $Id: passwd.c 3693 2007-12-16 08:16:38Z piaip $ */
+/* $Id: passwd.c 3859 2008-01-23 17:35:17Z kcwu $ */
 #include "bbs.h"
 
 static int      semid = -1;
@@ -121,14 +121,14 @@ int initcuser(const char *userid)
 }
 
 int
-passwd_apply(int (*fptr) (int, userec_t *))
+passwd_apply(void *ctx, int (*fptr) (void *ctx, int, userec_t *))
 {
     int             i;
     userec_t        user;
     for (i = 0; i < MAX_USERS; i++) {
 	passwd_query(i + 1, &user);
-	if ((*fptr) (i, &user) == QUIT)
-	    return QUIT;
+	if ((*fptr) (ctx, i, &user) < 0)
+	    return -1;
     }
     return 0;
 }
