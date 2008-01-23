@@ -1,4 +1,4 @@
-/* $Id: announce.c 3853 2008-01-22 13:28:28Z piaip $ */
+/* $Id: announce.c 3857 2008-01-23 15:36:32Z piaip $ */
 #include "bbs.h"
 
 // XXX piaip 2007/12/29
@@ -645,7 +645,7 @@ a_pastetagpost(menu_t * pm, int mode)
     tagnum = TagNum;
 
     // prevent if anything wrong
-    if (tagnum >= MAXTAGS || tagnum < 0)
+    if (tagnum > MAXTAGS || tagnum < 0)
     {
 	vmsg("內部錯誤。請把你剛剛進行的完整步驟貼到 "
 		GLOBAL_BUGREPORT " 板。");
