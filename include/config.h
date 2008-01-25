@@ -1,4 +1,4 @@
-/* $Id: config.h 3782 2008-01-04 05:31:55Z piaip $ */
+/* $Id: config.h 3867 2008-01-25 16:31:50Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -128,6 +128,10 @@
 
 #ifndef MAX_FROM
 #define MAX_FROM           (300)            /* 最多故鄉數 */
+#endif
+
+#ifndef DEBUGSLEEP_SECONDS
+#define DEBUGSLEEP_SECONDS (3600)	    /* debug 等待時間 */
 #endif
 
 #ifndef THREAD_SEARCH_RANGE
@@ -297,7 +301,7 @@
 #define ALLPOST "ALLPOST"
 #define ALLHIDPOST "ALLHIDPOST"
 
-#define MAXTAGS	256
+#define MAXTAGS	255
 #define WRAPMARGIN (511)
 
 #endif
