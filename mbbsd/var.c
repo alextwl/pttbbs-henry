@@ -1,4 +1,4 @@
-/* $Id: var.c 3856 2008-01-23 14:48:33Z piaip $ */
+/* $Id: var.c 3868 2008-01-25 19:17:09Z kcwu $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -599,33 +599,6 @@ const unsigned char  * const adv_gomoku /* [978] */ = (unsigned char*)
 
 /* name.c */
 word_t         *toplev;
-
-#ifndef _BBS_UTIL_C_
-/* menu.c */
-const commands_t      cmdlist[] = {
-    {admin, PERM_SYSOP|PERM_ACCOUNTS|PERM_BOARD|PERM_VIEWSYSOP|PERM_ACCTREG|PERM_POLICE_MAN, 
-				"00Admin       【 系統維護區 】"},
-    {Announce,	0,		"AAnnounce     【 精華公佈欄 】"},
-#ifdef DEBUG
-    {Favorite,	0,		"FFavorite     【 我的最不愛 】"},
-#else
-    {Favorite,	0,		"FFavorite     【 我 的 最愛 】"},
-#endif
-    {Class,	0,		"CClass        【 分組討論區 】"},
-    {Mail, 	PERM_BASIC,	"MMail         【 私人信件區 】"},
-    {Talk, 	0,		"TTalk         【 休閒聊天區 】"},
-    {User, 	PERM_BASIC,	"UUser         【 個人設定區 】"},
-    {Xyz, 	0,		"XXyz          【 系統工具區 】"},
-    {Play_Play, PERM_LOGINOK, 	"PPlay         【 娛樂與休閒 】"},
-    {Name_Menu, PERM_LOGINOK,	"NNamelist     【 編特別名單 】"},
-#ifdef DEBUG
-    {Goodbye, 	0, 		"GGoodbye      再見再見再見再見"},
-#else
-    {Goodbye, 	0, 		"GGoodbye         離開，再見… "},
-#endif
-    {NULL, 	0, 		NULL}
-};
-#endif
 
 /* friend.c */
 /* Ptt 各種特別名單的檔名 */

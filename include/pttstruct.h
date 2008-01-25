@@ -1,4 +1,4 @@
-/* $Id: pttstruct.h 3796 2008-01-06 04:35:16Z piaip $ */
+/* $Id: pttstruct.h 3868 2008-01-25 19:17:09Z kcwu $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
 
@@ -614,12 +614,6 @@ struct NameList {
     int capacity;
     char (*base)[IDLEN+1];
 };
-
-typedef struct commands_t {
-    int     (*cmdfunc)();
-    int     level;
-    char    *desc;                   /* next/key/description */
-} commands_t;
 
 typedef struct MailQueue {
     char    filepath[FNLEN];

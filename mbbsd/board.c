@@ -1,4 +1,4 @@
-/* $Id: board.c 3806 2008-01-07 16:53:24Z piaip $ */
+/* $Id: board.c 3868 2008-01-25 19:17:09Z kcwu $ */
 #include "bbs.h"
 
 /* personal board state
@@ -267,8 +267,6 @@ b_posttype()
    return FULLUPDATE;
 }
 
-char board_hidden_status;
-
 // integrated board config
 int
 b_config(void)
@@ -516,12 +514,10 @@ b_config(void)
 		{
 		    bp->brdattr &= ~BRD_HIDE;
 		    bp->brdattr &= ~BRD_POSTMASK;
-		    board_hidden_status = 0;
 		    hbflreload(currbid);
 		} else {
 		    bp->brdattr |= BRD_HIDE;
 		    bp->brdattr |= BRD_POSTMASK;
-		    board_hidden_status = 1;
 		}
 		touched = 1;
 		break;
