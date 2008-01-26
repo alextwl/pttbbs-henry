@@ -4,7 +4,7 @@
 // Author: Hung-Te Lin(piaip), Jan. 2008. 
 // <piaip@csie.ntu.edu.tw>
 // Create: 2008-01-04 22:02:58
-// $Id: bbslua.c 3854 2008-01-22 17:28:54Z piaip $
+// $Id: bbslua.c 3869 2008-01-26 05:25:59Z piaip $
 //
 // This source is released in MIT License, same as Lua 5.0
 // http://www.lua.org/license.html
@@ -761,6 +761,13 @@ bls_setfn(char *fn, size_t sz, const char *p)
 }
 
 BLAPI_PROTO
+bls_iolimit(lua_State *L)
+{
+	lua_pushinteger(L, BLSCONF_MAXIO);
+	return 1;
+}
+
+BLAPI_PROTO
 bls_limit(lua_State *L)
 {
 	int n = lua_gettop(L);
@@ -913,6 +920,7 @@ static const struct luaL_reg lib_store [] = {
 	{ "load",		bls_load },
 	{ "save",		bls_save },
 	{ "limit",		bls_limit },
+	{ "iolimit",	bls_iolimit },
 	{ NULL, NULL},
 };
 
