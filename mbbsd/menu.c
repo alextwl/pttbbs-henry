@@ -1,4 +1,4 @@
-/* $Id: menu.c 3868 2008-01-25 19:17:09Z kcwu $ */
+/* $Id: menu.c 3870 2008-01-26 05:27:56Z piaip $ */
 #include "bbs.h"
 
 #define CheckMenuPerm(x) \
@@ -199,7 +199,7 @@ movie(int cmdmode)
     refresh();
 }
 
-typedef struct commands_t {
+typedef struct {
     int     (*cmdfunc)();
     int     level;
     char    *desc;                   /* next/key/description */
