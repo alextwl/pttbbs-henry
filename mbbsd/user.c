@@ -1,4 +1,4 @@
-/* $Id: user.c 3861 2008-01-23 18:31:16Z kcwu $ */
+/* $Id: user.c 3873 2008-01-28 05:39:47Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -695,18 +695,22 @@ uinfo_query(userec_t *u, int adminmode, int unum)
     case 'c':
 	Customize();
 	return;
+
     case 'm':
 	do {
-	    getdata_str(y, 0, "電子信箱[變動要重新認證]：", buf, 50, DOECHO,
-		    x.email);
+	    getdata_str(y, 0, "電子信箱[變動要重新認證]：", buf, 
+		    sizeof(x.email), DOECHO, x.email);
 	} while (!isvalidemail(buf) && vmsg("認證信箱不能用使用免費信箱"));
 	y++;
-	if (strcmp(buf, x.email) && strchr(buf, '@')) {
+	// admins may want to use special names
+	if (strcmp(buf, x.email) && 
+		(strchr(buf, '@') || adminmode)) {
 	    strlcpy(x.email, buf, sizeof(x.email));
 	    mail_changed = 1;
 	    delregcodefile();
 	}
 	break;
+
     case '7':
 	violate_law(&x, unum);
 	return;

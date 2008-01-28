@@ -1,4 +1,4 @@
-/* $Id: register.c 3409 2006-09-01 00:41:55Z kcwu $ */
+/* $Id: register.c 3873 2008-01-28 05:39:47Z piaip $ */
 #include "bbs.h"
 
 char           *
@@ -228,7 +228,8 @@ new_register(void)
 	    if (minute == 999999) // XXX magic number.  It should be greater than MAX_USERS at least.
 		outs("此代號已經有人使用 是不死之身");
 	    else {
-		prints("此代號已經有人使用 還有%d天才過期 \n", minute / (60 * 24));
+		prints("此代號已經有人使用 還有 %d 天才過期 \n", 
+			minute / (60 * 24) + 1);
 	    }
 	} else
 	    break;

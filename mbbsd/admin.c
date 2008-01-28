@@ -1,4 +1,4 @@
-/* $Id: admin.c 3787 2008-01-05 02:27:34Z piaip $ */
+/* $Id: admin.c 3873 2008-01-28 05:39:47Z piaip $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -1344,8 +1344,9 @@ scan_register_form(const char *regfile, int automode, int neednum)
 			 fdata[4], fdata[2], uid);
 		strlcpy(muser.justify, genbuf, sizeof(muser.justify));
 
-		// XXX TODO notify users?
 		passwd_update(unum, &muser);
+		// XXX TODO notify users?
+		sendalert(muser.userid,  ALERT_PWD_PERM); // force to reload perm
 
 		sethomefile(buf, muser.userid, "justify");
 		log_file(buf, LOG_CREAT, genbuf);
