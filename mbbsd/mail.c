@@ -1,4 +1,4 @@
-/* $Id: mail.c 3796 2008-01-06 04:35:16Z piaip $ */
+/* $Id: mail.c 3874 2008-01-28 05:41:23Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -817,7 +817,8 @@ read_new_mail(void * voidfptr, void *optarg)
     char            genbuf[4];
 
     arg->idc++;
-    if (fptr->filemode)
+    // XXX fptr->filename may be invalid.
+    if (fptr->filemode || !fptr->filename[0])
 	return 0;
     clear();
     move(10, 0);
