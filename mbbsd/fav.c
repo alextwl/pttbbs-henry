@@ -1,4 +1,4 @@
-/* $Id: fav.c 3834 2008-01-14 11:50:05Z piaip $ */
+/* $Id: fav.c 3875 2008-01-28 07:17:26Z victor $ */
 #include "bbs.h"
 
 /**
@@ -194,6 +194,7 @@ void set_attr(fav_type_t *ft, int bit, char bool){
 	ft->attr |= bit;
     else
 	ft->attr &= ~bit;
+    dirty = 1;
 }
 
 inline int is_set_attr(fav_type_t *ft, char bit){
