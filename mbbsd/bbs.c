@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3864 2008-01-25 11:54:23Z piaip $ */
+/* $Id: bbs.c 3876 2008-01-28 07:54:24Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -3727,7 +3727,7 @@ const onekey_t read_comms[] = {
     { 1, edit_post }, // 'E'
     { 0, NULL }, // 'F'
     { 0, NULL }, // 'G'
-    { 0, NULL }, // 'H'
+    { 0, b_moved_to_config }, // 'H'
     { 0, b_config }, // 'I'
 #ifdef USE_COOLDOWN
     { 0, change_cooldown }, // 'J'

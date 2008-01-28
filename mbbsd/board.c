@@ -1,4 +1,4 @@
-/* $Id: board.c 3871 2008-01-26 08:24:59Z piaip $ */
+/* $Id: board.c 3876 2008-01-28 07:54:24Z piaip $ */
 #include "bbs.h"
 
 /* personal board state
@@ -1429,7 +1429,7 @@ choose_board(int newflag)
 	    if (IS_LISTING_FAV()){
 		assert(nbrdsize>0);
 		if(get_fav_type(&nbrd[0]) != 0)
-		    fav_tag(ptr->bid, get_fav_type(ptr), 2);
+		    fav_tag(ptr->bid, get_fav_type(ptr), EXCH);
 	    }
 	    else if (HasUserPerm(PERM_SYSOP) ||
 		     HasUserPerm(PERM_SYSSUPERSUBOP) ||
