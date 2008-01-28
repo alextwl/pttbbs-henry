@@ -1,4 +1,4 @@
-/* $Id: mail.c 3874 2008-01-28 05:41:23Z piaip $ */
+/* $Id: mail.c 3880 2008-01-28 14:43:23Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -9,7 +9,7 @@ static char     listfile[] = "list.0";
 // check only 20 mails (one page) is enough.
 // #define NEWMAIL_CHECK_RANGE (1)
 // checking only 1 mail works more like brc style.
-#define NEWMAIL_CHECK_RANGE (1)
+#define NEWMAIL_CHECK_RANGE (5)
 
 enum SHOWMAIL_MODES {
     SHOWMAIL_NORM = 0,
