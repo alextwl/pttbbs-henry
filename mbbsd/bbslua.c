@@ -4,7 +4,7 @@
 // Author: Hung-Te Lin(piaip), Jan. 2008. 
 // <piaip@csie.ntu.edu.tw>
 // Create: 2008-01-04 22:02:58
-// $Id: bbslua.c 3883 2008-01-30 05:59:36Z piaip $
+// $Id: bbslua.c 3884 2008-01-30 06:45:47Z piaip $
 //
 // This source is released in MIT License, same as Lua 5.0
 // http://www.lua.org/license.html
@@ -418,8 +418,7 @@ bl_getstr(lua_State* L)
 	 * this part now done in getdata_str
 	if (pmsg && *pmsg)
 	{
-		strncpy(buf, pmsg, sizeof(buf)-1);
-		buf[sizeof(buf)-1] = 0;
+		strlcpy(buf, pmsg, sizeof(buf));
 	}
 	*/
 

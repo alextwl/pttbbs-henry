@@ -1,4 +1,4 @@
-/* $Id: pmore.c 3879 2008-01-28 14:36:11Z piaip $ */
+/* $Id: pmore.c 3884 2008-01-30 06:45:47Z piaip $ */
 
 /*
  * pmore: piaip's more, a new replacement for traditional pager
@@ -1404,7 +1404,7 @@ mf_display()
 			char buf[64];	// make sure ptt_prints will not exceed
 
 			memset(buf, 0, sizeof(buf));
-			strncpy(buf, (char*)mf.dispe, 3);  // ^[[*s
+			memcpy(buf, mf.dispe, 3);  // ^[*s
 			mf.dispe += 2;
 
 			if(bpref.rawmode)
