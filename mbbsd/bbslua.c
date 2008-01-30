@@ -4,7 +4,7 @@
 // Author: Hung-Te Lin(piaip), Jan. 2008. 
 // <piaip@csie.ntu.edu.tw>
 // Create: 2008-01-04 22:02:58
-// $Id: bbslua.c 3869 2008-01-26 05:25:59Z piaip $
+// $Id: bbslua.c 3883 2008-01-30 05:59:36Z piaip $
 //
 // This source is released in MIT License, same as Lua 5.0
 // http://www.lua.org/license.html
@@ -744,7 +744,6 @@ bls_setfn(char *fn, size_t sz, const char *p)
 		case BLS_GLOBAL:
 			snprintf(fn, sz, "%s/" BLSCONF_PREFIX "U%08x", 
 					BLSCONF_GPATH, blrt.storename);
-			fn[sz-1] = 0;
 			return	1;
 
 		case BLS_USER:
@@ -754,7 +753,6 @@ bls_setfn(char *fn, size_t sz, const char *p)
 			snprintf(fn + strlen(fn),
 					sz - strlen(fn),
 					"/" BLSCONF_PREFIX "G%08x", blrt.storename);
-			fn[sz-1] = 0;
 			return	1;
 	}
 	return 0;
@@ -1337,7 +1335,6 @@ bbslua_logo(lua_State *L)
 		snprintf(msg, sizeof(msg),
 				" ▲ 此程式使用新版的 BBS-Lua 規格 (%0.3f)，您可能無法正常執行",
 				tocinterface);
-		msg[sizeof(msg)-1] = 0;
 		fullmsg(msg);
 		fullmsg("   若執行出現錯誤，建議您重新登入 BBS 後再重試");
 		fullmsg("");
@@ -1386,7 +1383,6 @@ bbslua_logo(lua_State *L)
 	snprintf(msg, sizeof(msg),
 			" ■ BBS-Lua %.03f  (Build " __DATE__ " " __TIME__") ",
 			(double)BBSLUA_INTERFACE_VER);
-	msg[sizeof(msg)-1] = 0;
 	fullmsg(msg);
 
 	// system break key prompt

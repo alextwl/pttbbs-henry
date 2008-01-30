@@ -1,4 +1,4 @@
-/* $Id: board.c 3882 2008-01-29 05:30:15Z piaip $ */
+/* $Id: board.c 3883 2008-01-30 05:59:36Z piaip $ */
 #include "bbs.h"
 
 /* personal board state
@@ -1609,7 +1609,7 @@ choose_board(int newflag)
 		// MyFav Functionality (Require PERM_BASIC)
 		///////////////////////////////////////////////////////
 	case 'y':
-	    if (HasFavEditPerm() && IN_FAVORITE()) {
+	    if (HasFavEditPerm() && !(IN_CLASS())) {
 		if (get_current_fav() != NULL || !IS_LISTING_FAV()){
 		    yank_flag ^= 1; /* FAV <=> BRD */
 		}
