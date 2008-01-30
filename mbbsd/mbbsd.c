@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3888 2008-01-30 12:54:02Z piaip $ */
+/* $Id: mbbsd.c 3889 2008-01-30 14:36:21Z piaip $ */
 #include "bbs.h"
 #include "banip.h"
 
@@ -1120,8 +1120,10 @@ user_login(void)
     mysrand();
 
     /* check if over18 */
-    // 照實歲計算
-    if( (ptime.tm_year - cuser.year) > 18)
+    // 照實歲計算，沒生日的當作未滿 18
+    if (cuser.year < 1 || cuser.month < 1)
+	over18 = 0;
+    else if( (ptime.tm_year - cuser.year) > 18)
 	over18 = 1;
     else if (ptime.tm_year - cuser.year < 18)
 	over18 = 0;
