@@ -1,4 +1,4 @@
-/* $Id: modes.h 3796 2008-01-06 04:35:16Z piaip $ */
+/* $Id: modes.h 3887 2008-01-30 10:34:45Z piaip $ */
 #ifndef INCLUDE_MODES_H
 #define INCLUDE_MODES_H
 
@@ -24,6 +24,7 @@
 #define RET_DOSYSOPEDIT	    (996)
 #define RET_DOCHESSREPLAY   (995)
 #define RET_DOBBSLUA	    (994)
+#define RET_COPY2TMP		(993)
 
 /* user ¾Þ§@ª¬ºA»P¼Ò¦¡ */
 #define IDLE            0
