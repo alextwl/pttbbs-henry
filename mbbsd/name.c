@@ -1,4 +1,4 @@
-/* $Id: name.c 3714 2007-12-20 14:49:42Z piaip $ */
+/* $Id: name.c 3890 2008-01-30 17:00:25Z piaip $ */
 #include "bbs.h"
 
 static word_t  *current = NULL;
@@ -1025,7 +1025,7 @@ completeboard_permission(int where)
     return (!(bptr->brdattr & BRD_SYMBOLIC) &&
 	    (GROUPOP() || HasBoardPerm(bptr)) &&
 	    !(bptr->brdattr & BRD_GROUPBOARD) &&
-	    !(bptr->brdattr & BRD_OVER18 && !over18));
+	    !((bptr->brdattr & BRD_OVER18) && !over18));
 }
 
 int 

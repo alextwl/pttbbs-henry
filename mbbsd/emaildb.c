@@ -1,4 +1,4 @@
-/* $Id: emaildb.c 3886 2008-01-30 09:04:40Z piaip $ */
+/* $Id: emaildb.c 3890 2008-01-30 17:00:25Z piaip $ */
 #include <sqlite3.h>
 #include "bbs.h"
 
@@ -47,6 +47,9 @@ int emaildb_check_email(char * email, int email_len)
 	// use mail.
 	if (strcasecmp(result, cuser.userid) == 0)
 	    continue;
+
+	// force update
+	u.email[0] = 0;
 	
 	if (getuser(result, &u))
 	    if (strcasecmp(email, u.email) == 0)
