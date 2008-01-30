@@ -1,4 +1,4 @@
-/* $Id: emaildb.c 3885 2008-01-30 08:53:57Z piaip $ */
+/* $Id: emaildb.c 3886 2008-01-30 09:04:40Z piaip $ */
 #include <sqlite3.h>
 #include "bbs.h"
 
@@ -187,6 +187,10 @@ int main()
 
     if (Db != NULL)
 	sqlite3_close(Db);
+
+#if defined(__GLIBC__)
+    __libc_freeres();	// discovered by wens, to reduce internal cache caused by sqlite.
+#endif 
 
     close(fd);
     return 0;
