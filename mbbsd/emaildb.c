@@ -1,4 +1,4 @@
-/* $Id: emaildb.c 3852 2008-01-21 15:56:16Z piaip $ */
+/* $Id: emaildb.c 3885 2008-01-30 08:53:57Z piaip $ */
 #include <sqlite3.h>
 #include "bbs.h"
 
@@ -42,6 +42,11 @@ int emaildb_check_email(char * email, int email_len)
 
 	if ((result = (char*)sqlite3_column_text(Stmt, 0)) == NULL)
 	    break;
+
+	// ignore my self, because I may be the one going to
+	// use mail.
+	if (strcasecmp(result, cuser.userid) == 0)
+	    continue;
 	
 	if (getuser(result, &u))
 	    if (strcasecmp(email, u.email) == 0)
