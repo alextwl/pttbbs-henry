@@ -1,8 +1,12 @@
-/* $Id: emaildb.c 3890 2008-01-30 17:00:25Z piaip $ */
+/* $Id: emaildb.c 3894 2008-01-31 05:46:30Z piaip $ */
 #include <sqlite3.h>
 #include "bbs.h"
 
 #define EMAILDB_PATH BBSHOME "/emaildb.db"
+
+#if defined(__GLIBC__)
+void __libc_freeres();
+#endif 
 
 static int emaildb_open(sqlite3 **Db) {
     int rc;
@@ -95,6 +99,10 @@ end:
 	sqlite3_finalize(Stmt);
     if (Db != NULL)
 	sqlite3_close(Db);
+
+#if defined(__GLIBC__)
+    __libc_freeres();	// discovered by wens, to reduce internal cache caused by sqlite.
+#endif 
 
     return ret;
 }
