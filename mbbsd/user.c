@@ -1,4 +1,4 @@
-/* $Id: user.c 3890 2008-01-30 17:00:25Z piaip $ */
+/* $Id: user.c 3893 2008-01-31 05:30:33Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -1122,6 +1122,10 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	passwd_update(unum, &x);
 	if(perm_changed)
     	  sendalert(x.userid,  ALERT_PWD_PERM); // force to reload perm
+
+	// resolve_over18 only works for cuser
+	if (!adminmode)
+	    resolve_over18();
     }
 }
 

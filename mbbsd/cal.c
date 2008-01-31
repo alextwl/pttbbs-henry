@@ -1,4 +1,4 @@
-/* $Id: cal.c 3866 2008-01-25 13:47:09Z piaip $ */
+/* $Id: cal.c 3893 2008-01-31 05:30:33Z piaip $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -425,6 +425,29 @@ p_give(void)
 	return -1;
     }
     return do_give_money(id, uid, atoi(money_buf));
+}
+
+void
+resolve_over18(void)
+{
+    /* get local time */
+    struct tm ptime = *localtime4(&now);
+
+    over18 = 0;
+    /* check if over18 */
+    // 照實歲計算，沒生日的當作未滿 18
+    if (cuser.year < 1 || cuser.month < 1)
+	over18 = 0;
+    else if( (ptime.tm_year - cuser.year) > 18)
+	over18 = 1;
+    else if (ptime.tm_year - cuser.year < 18)
+	over18 = 0;
+    else if ((ptime.tm_mon+1) > cuser.month)
+	over18 = 1;
+    else if ((ptime.tm_mon+1) < cuser.month)
+	over18 = 0;
+    else if (ptime.tm_mday >= cuser.day )
+	over18 = 1;
 }
 
 int

@@ -1,4 +1,4 @@
-/* $Id: modes.h 3887 2008-01-30 10:34:45Z piaip $ */
+/* $Id: modes.h 3893 2008-01-31 05:30:33Z piaip $ */
 #ifndef INCLUDE_MODES_H
 #define INCLUDE_MODES_H
 
@@ -181,6 +181,7 @@ enum _DBCS_STATUS {
 #define SIG_DARK        5
 #define SIG_GO          6
 #define SIG_REVERSI	7
+#define SIG_CONN6	8
 
 /* talk.c ¤¤ªº¼Ò¦¡ */
 #define WATERBALL_GENERAL 0

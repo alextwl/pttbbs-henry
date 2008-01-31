@@ -1,4 +1,4 @@
-/* $Id: proto.h 3859 2008-01-23 17:35:17Z kcwu $ */
+/* $Id: proto.h 3893 2008-01-31 05:30:33Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -190,6 +190,7 @@ int p_from(void);
 int ordersong(void);
 int p_exmail(void);
 void mail_redenvelop(const char* from, const char* to, int money, char mode);
+void resolve_over18(void);
 
 /* card */
 int g_card_jack(void);
