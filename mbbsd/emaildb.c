@@ -1,4 +1,4 @@
-/* $Id: emaildb.c 3894 2008-01-31 05:46:30Z piaip $ */
+/* $Id: emaildb.c 3896 2008-01-31 11:53:39Z piaip $ */
 #include <sqlite3.h>
 #include "bbs.h"
 
@@ -101,7 +101,8 @@ end:
 	sqlite3_close(Db);
 
 #if defined(__GLIBC__)
-    __libc_freeres();	// discovered by wens, to reduce internal cache caused by sqlite.
+    // seems like causing SEGV on localtime()?
+    // __libc_freeres();	// discovered by wens, to reduce internal cache caused by sqlite.
 #endif 
 
     return ret;
