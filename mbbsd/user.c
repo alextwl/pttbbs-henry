@@ -1,4 +1,4 @@
-/* $Id: user.c 3893 2008-01-31 05:30:33Z piaip $ */
+/* $Id: user.c 3898 2008-02-01 10:32:24Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -726,7 +726,9 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	    getdata_buf(y++, 0, "居住地址：",
 			x.address, sizeof(x.address), DOECHO);
 	}
-	snprintf(buf, sizeof(buf), "%010d", x.mobile);
+	buf[0] = 0;
+	if (x.mobile)
+	    snprintf(buf, sizeof(buf), "%010d", x.mobile);
 	getdata_buf(y++, 0, "手機號碼：", buf, 11, LCECHO);
 	x.mobile = atoi(buf);
 	snprintf(genbuf, sizeof(genbuf), "%d", (u->sex + 1) % 8);
