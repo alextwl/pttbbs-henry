@@ -1,4 +1,4 @@
-/* $Id: mail.c 3902 2008-02-05 03:40:48Z piaip $ */
+/* $Id: mail.c 3903 2008-02-05 03:47:50Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1372,9 +1372,12 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 
     move(2, 0);
     clrtoeol();
-    outs(ANSI_COLOR(1;31) 
-	    "請注意: 過量重複轉錄將視為洗板，導致被開罰單停權。\n" ANSI_RESET
-	    "若有特別需求請洽各板主，請他們幫你轉文。\n\n");
+    if (postrecord.times > 1)
+    {
+	outs(ANSI_COLOR(1;31) 
+	"請注意: 若過量重複轉錄將視為洗板，導致被開罰單停權。\n" ANSI_RESET
+	"若有特別需求請洽各板主，請他們幫你轉文。\n\n");
+    }
     move(1, 0);
     CompleteBoard("轉錄本文章於看板：", xboard);
 
