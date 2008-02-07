@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3903 2008-02-05 03:47:50Z piaip $ */
+/* $Id: bbs.c 3904 2008-02-07 17:29:58Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -1279,6 +1279,7 @@ do_reply(/*const*/ fileheader_t * fhdr)
     boardheader_t  *bp;
     if (!fhdr || !fhdr->filename[0])
 	return DONOTHING;
+
     if (!CheckPostPerm() ) return DONOTHING;
     if (fhdr->filemode &FILE_SOLVED)
      {
@@ -1294,8 +1295,10 @@ do_reply(/*const*/ fileheader_t * fhdr)
     assert(0<=currbid-1 && currbid-1<MAX_BOARD);
     bp = getbcache(currbid);
     if (bp->brdattr & BRD_NOREPLY) {
-	vmsg("很抱歉, 本板不開放回覆文章.");
-	return FULLUPDATE;
+	// try to reply by mail.
+	// vmsg("很抱歉, 本板不開放回覆文章.");
+	// return FULLUPDATE;
+	return mail_reply(0, fhdr, 0);
     }
 
     setbfile(quote_file, bp->brdname, fhdr->filename);
