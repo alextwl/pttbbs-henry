@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3904 2008-02-07 17:29:58Z piaip $ */
+/* $Id: bbs.c 3905 2008-02-08 02:17:08Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -729,6 +729,24 @@ delete_allpost(const char *userid)
 /* ----------------------------------------------------- */
 /* 發表、回應、編輯、轉錄文章                            */
 /* ----------------------------------------------------- */
+static int 
+solveEdFlagByBoard(const char *bn, int flags)
+{
+    if (
+#ifdef GLOBAL_BBSMOVIE
+	    strcmp(bn, GLOBAL_BBSMOVIE) == 0 ||
+#endif
+#ifdef GLOBAL_TEST
+	    strcmp(bn, GLOBAL_TEST) == 0 ||
+#endif
+	    0
+	)
+    {
+	flags |= EDITFLAG_UPLOAD | EDITFLAG_ALLOWLARGE;
+    }
+    return flags;
+}
+
 void
 do_reply_title(int row, const char *title)
 {
@@ -972,13 +990,7 @@ do_general(int isbid)
 	Copy(genbuf, fpath);
     }
 
-# ifdef GLOBAL_BBSMOVIE
-    if (strcmp(currboard, GLOBAL_BBSMOVIE) == 0)
-    {
-	edflags |= EDITFLAG_UPLOAD;
-	edflags |= EDITFLAG_ALLOWLARGE;
-    }
-# endif // GLOBAL_BBSMOVIE
+    edflags = solveEdFlagByBoard(currboard, edflags);
     
     aborted = vedit2(fpath, YEA, &islocal, edflags);
     if (aborted == -1) {
@@ -1409,13 +1421,7 @@ edit_post(int ent, fileheader_t * fhdr, const char *direct)
 		(int)now, ctime4(&now), getpid(), cuser.userid, fpath);
     }
 
-# ifdef GLOBAL_BBSMOVIE
-    if (strcmp(bp->brdname, GLOBAL_BBSMOVIE) == 0)
-    {
-	edflags |= EDITFLAG_UPLOAD;
-	edflags |= EDITFLAG_ALLOWLARGE;
-    }
-# endif // GLOBAL_BBSMOVIE
+    edflags = solveEdFlagByBoard(bp->brdname, edflags);
 
     setutmpmode(REEDIT);
 
