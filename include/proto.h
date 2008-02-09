@@ -1,4 +1,4 @@
-/* $Id: proto.h 3893 2008-01-31 05:30:33Z piaip $ */
+/* $Id: proto.h 3907 2008-02-09 17:33:43Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -43,7 +43,6 @@ void merge_dir(const char *dir1, const char *dir2, int isoutter);
 int a_menu(const char *maintitle, const char *path, int lastlevel, int lastbid, char *trans_buffer);
 void a_copyitem(const char* fpath, const char* title, const char* owner, int mode);
 int Announce(void);
-void gem(char* maintitle, item_t* path, int update);
 #ifdef BLOG
 void BlogMain(int);
 #endif
