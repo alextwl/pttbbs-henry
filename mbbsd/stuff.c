@@ -1,4 +1,4 @@
-/* $Id: stuff.c 3865 2008-01-25 13:17:26Z mhsin $ */
+/* $Id: stuff.c 3906 2008-02-09 04:33:28Z piaip $ */
 #include "bbs.h"
 
 /* ----------------------------------------------------- */
@@ -273,7 +273,7 @@ pressanykey_or_callangel(){
     outmsg(
 	    ANSI_COLOR(1;34;44) " ▄▄▄▄ " 
 	    ANSI_COLOR(32) "H " ANSI_COLOR(36) "呼叫小天使" ANSI_COLOR(34) 
-	    " ▄▄▄▄" ANSI_COLOR(37;44) " 請按 " ANSI_COLOR(36) "任意鍵 " 
+	    " ▄▄▄▄" ANSI_COLOR(37;44) " 請按 " ANSI_COLOR(36) "空白鍵 " 
 	    ANSI_COLOR(37) "繼續 " ANSI_COLOR(1;34) 
 	    "▄▄▄▄▄▄▄▄▄▄▄▄▄▄ " ANSI_RESET);
     do {
