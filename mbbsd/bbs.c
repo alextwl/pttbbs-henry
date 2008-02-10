@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3905 2008-02-08 02:17:08Z piaip $ */
+/* $Id: bbs.c 3908 2008-02-10 06:02:47Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -637,8 +637,8 @@ cancelpost(const fileheader_t *fh, int by_BM, char *newpath)
                  cuser.userid, fromhost, ptime->tm_mon + 1, ptime->tm_mday);
 	Rename(fn1, newpath);
 	setbdir(genbuf, brd);
-	setbtotal(getbnum(brd));
 	append_record(genbuf, &postfile, sizeof(postfile));
+	setbtotal(getbnum(brd));
     }
 }
 
