@@ -1,4 +1,4 @@
-/* $Id: user.c 3900 2008-02-04 13:12:42Z piaip $ */
+/* $Id: user.c 3909 2008-02-10 06:30:08Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -1783,12 +1783,13 @@ u_register(void)
 		    inregcode, sizeof(inregcode), DOECHO);
 	    if( strcmp(inregcode, "x") == 0 || strcmp(inregcode, "X") == 0 )
 		break;
-	    if( inregcode[0] != 'v' || inregcode[1] != '6' ) {
+	    if( strlen(inregcode) != 13 )
+		vmsg("認證碼輸入不完整，應該一共有十三碼。");
+	    else if( inregcode[0] != 'v' || inregcode[1] != '6' ) {
 		/* old regcode */
-		vmsg("您輸入的認證碼因系統昇級已失效，"
+		vmsg("輸入的認證碼錯誤或因系統昇級已失效，"
 		     "請輸入 x 重填一次 E-Mail");
-	    } else if( strlen(inregcode) != 13 )
-		vmsg("認證碼輸入不完全，應該一共有十三碼。");
+	    }
 	    else
 		break;
 	} while( 1 );
