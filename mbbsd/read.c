@@ -1,4 +1,4 @@
-/* $Id: read.c 3892 2008-01-31 05:27:11Z piaip $ */
+/* $Id: read.c 3912 2008-02-13 15:43:44Z piaip $ */
 #include "bbs.h"
 
 static int headers_size = 0;
@@ -573,6 +573,22 @@ select_read(const keeploc_t * locmem, int sr_mode)
 
    filetime = dasht(newdirect);
    count = dashs(newdirect) / sizeof(fileheader_t);
+
+   if (currstat != RMAIL && currboard[0] && currbid > 0)
+   {
+       time4_t filecreate = dashc(newdirect);
+       boardheader_t *bp  = getbcache(currbid);
+       assert(bp);
+
+       if (bp->SRexpire)
+       {
+	   if (bp->SRexpire > now) // invalid expire time.
+	       bp->SRexpire = now;
+
+	   if (bp->SRexpire > filecreate)
+	       filetime = -1;
+       }
+   }
 
    if(filetime<0 || now-filetime>60*60) {
        reload = 1;

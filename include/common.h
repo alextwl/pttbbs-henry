@@ -1,4 +1,4 @@
-/* $Id: common.h 3832 2008-01-13 00:55:09Z piaip $ */
+/* $Id: common.h 3912 2008-02-13 15:43:44Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -240,6 +240,7 @@
 #define EDITFLAG_TEXTONLY   (0x00000001)
 #define EDITFLAG_UPLOAD	    (0x00000002)
 #define EDITFLAG_ALLOWLARGE (0x00000004)
+#define EDITFLAG_ALLOWTITLE (0x00000008)
 
 /* ----------------------------------------------------- */
 /* Grayout Levels                                        */
