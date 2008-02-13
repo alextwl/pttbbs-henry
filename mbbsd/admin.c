@@ -1,4 +1,4 @@
-/* $Id: admin.c 3873 2008-01-28 05:39:47Z piaip $ */
+/* $Id: admin.c 3913 2008-02-13 16:09:06Z piaip $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -108,6 +108,11 @@ search_key_user(const char *passwdfile, int mode)
 	return 0;
     }
     while ((fread(&user, sizeof(user), 1, fp1)) > 0 && coun < MAX_USERS) {
+
+	// skip empty records
+	if (!user.userid[0])
+	    continue;
+
 	if (!(++coun & 15)) {
 	    move(1, 0);
 	    prints("第 [%d] 筆資料\n", coun);
