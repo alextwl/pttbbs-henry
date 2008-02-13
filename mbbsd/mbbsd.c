@@ -1,4 +1,4 @@
-/* $Id: mbbsd.c 3893 2008-01-31 05:30:33Z piaip $ */
+/* $Id: mbbsd.c 3911 2008-02-13 13:28:20Z piaip $ */
 #include "bbs.h"
 #include "banip.h"
 
@@ -752,6 +752,7 @@ login_query(void)
             if (initcuser(uid)< 1) exit (0) ;
 	    cuser.userlevel = 0;
 	    cuser.uflag = PAGER_FLAG | BRDSORT_FLAG | MOVIE_FLAG;
+	    cuser.uflag2= 0; // we don't need FAVNEW_FLAG or anything else.
 
 #ifdef GUEST_DEFAULT_DBCS_NOINTRESC
 	    cuser.uflag |= DBCS_NOINTRESC;
