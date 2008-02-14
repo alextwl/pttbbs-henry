@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3916 2008-02-14 11:54:00Z piaip $ */
+/* $Id: bbs.c 3920 2008-02-14 17:40:20Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -2332,6 +2332,16 @@ edit_title(int ent, fileheader_t * fhdr, const char *direct)
     {
 	getdata(b_lines - 1, 0, "確定(Y/N)?[n] ", genbuf, 3, DOECHO);
 	if ((genbuf[0] == 'y' || genbuf[0] == 'Y') && dirty) {
+	    // TODO verify if record is still valid
+	    fileheader_t curr;
+	    memset(&curr, 0, sizeof(curr));
+	    if (get_record(direct, &curr, sizeof(curr), ent) < 0 ||
+		strcmp(curr.filename, fhdr->filename) != 0)
+	    {
+		// modified...
+		vmsg("抱歉，系統忙碌中，請稍後再試。");
+		return FULLUPDATE;
+	    }
 	    *fhdr = tmpfhdr;
 	    substitute_ref_record(direct, fhdr, ent);
 	}
