@@ -1,4 +1,4 @@
-/* $Id: bbs.c 3912 2008-02-13 15:43:44Z piaip $ */
+/* $Id: bbs.c 3916 2008-02-14 11:54:00Z piaip $ */
 #include "bbs.h"
 
 #ifdef EDITPOST_SMARTMERGE
@@ -546,7 +546,7 @@ readdoent(int num, fileheader_t * ent)
 	prints("%s " ANSI_COLOR(1) "%.*s" ANSI_RESET "%s\n",
 	       mark, special ? 6 : 0, title, special ? title + 6 : title);
     else
-	prints("\033[1;3%cm%s %s" ANSI_RESET "\n",
+	prints(ANSI_COLOR(1;3%c) "%s %s" ANSI_RESET "\n",
 	       color, mark, title);
 }
 
