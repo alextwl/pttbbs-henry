@@ -1,4 +1,4 @@
-/* $Id: io.c 3842 2008-01-18 16:02:22Z piaip $ */
+/* $Id: io.c 3921 2008-02-15 01:51:10Z piaip $ */
 #include "bbs.h"
 
 //kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
@@ -6,13 +6,21 @@
 #define OBUFSIZE  3072
 #define IBUFSIZE  128
 
+/* realXbuf is Xbuf+3 because hz convert library requires buf[-2]. */
+#define CVTGAP	  (3)
+
 #ifdef DEBUG
 #define register
 #endif
 
-/* realXbuf is Xbuf+3 because hz convert library requires buf[-2]. */
-static unsigned char real_outbuf[OBUFSIZE+6] = "   ", real_inbuf[IBUFSIZE+6] = "   ";
-static unsigned char *outbuf = real_outbuf + 3, *inbuf = real_inbuf + 3;
+static unsigned char real_outbuf[OBUFSIZE + CVTGAP*2] = "   ", 
+		     real_inbuf [IBUFSIZE + CVTGAP*2] = "   ";
+
+// use defines instead - it is discovered that sometimes the input/output buffer was overflow,
+// without knowing why.
+// static unsigned char *outbuf = real_outbuf + 3, *inbuf = real_inbuf + 3;
+#define inbuf  (real_inbuf +CVTGAP)
+#define outbuf (real_outbuf+CVTGAP)
 
 static int      obufsize = 0, ibufsize = 0;
 static int      icurrchar = 0;
