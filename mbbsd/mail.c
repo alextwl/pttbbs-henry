@@ -1,4 +1,4 @@
-/* $Id: mail.c 3903 2008-02-05 03:47:50Z piaip $ */
+/* $Id: mail.c 3924 2008-02-17 03:25:17Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
@@ -1473,6 +1473,7 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	setbdir(fname, xboard);
 	append_record(fname, &xfile, sizeof(xfile));
 	setbtotal(getbnum(xboard));
+
 	if (!xfile.filemode)
 	    outgo_post(&xfile, xboard, cuser.userid, cuser.nickname);
 #ifdef USE_COOLDOWN
@@ -1481,10 +1482,8 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	add_posttimes(usernum, 1);
 #endif
 
-	if (strcmp(xboard, GLOBAL_TEST) == 0)
-	    outs("測試信件不列入紀錄，敬請包涵。");
-	else
-	    cuser.numposts++;
+	// cross-post does not add numpost.
+	outs("轉錄信件不增加文章數，敬請包涵。");
 
 	vmsg("文章轉錄完成");
 	currmode = currmode0;
