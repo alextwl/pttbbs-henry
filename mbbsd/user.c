@@ -1,4 +1,4 @@
-/* $Id: user.c 3919 2008-02-14 17:27:17Z piaip $ */
+/* $Id: user.c 3925 2008-02-18 16:38:56Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -1823,9 +1823,14 @@ u_register(void)
 	    u_exit("registed");
 	    exit(0);
 	    return QUIT;
-	} else if (strcmp(inregcode, "x") != 0 &&
-		   strcmp(inregcode, "X") != 0) {
-	    vmsg("認證碼錯誤！");
+	} else if (strcasecmp(inregcode, "x") != 0) {
+	    if (regcode[0])
+		vmsg("認證碼錯誤！");
+	    else {
+		vmsg("認證碼已過期，請重新註冊。");
+		toregister(email, phone, career, rname, addr, mobile);
+		return FULLUPDATE;
+	    }
 	} else {
 	    toregister(email, phone, career, rname, addr, mobile);
 	    return FULLUPDATE;
