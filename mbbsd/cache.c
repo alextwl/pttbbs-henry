@@ -1,4 +1,4 @@
-/* $Id: cache.c 3928 2008-02-19 03:18:16Z piaip $ */
+/* $Id: cache.c 3929 2008-02-19 05:30:23Z piaip $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -978,6 +978,10 @@ reload_pttcache(void)
 			    memset(SHM->notes[id], 0, sizeof(SHM->notes[0]));
 			else
 			    id++;
+#ifdef _BBS_UTIL_C_
+			// Debug purpose
+			// printf("found aggressive: %s\n", buf);
+#endif
 		    } 
 		    else 
 		    {
@@ -991,16 +995,21 @@ reload_pttcache(void)
 		} // end of file loop
 		fclose(fp1);
 
-		// decide next aggressive state
-		if (rawid && aggid*3 >= rawid) // if aggressive exceed 1/3
-		    set_aggressive_state(1);
-		else
-		    set_aggressive_state(0);
-
 		if (id >= MAX_MOVIE)
 		    break;
 	    } // end of .DIR loop
 	    fclose(fp);
+
+	    // decide next aggressive state
+	    if (rawid && aggid*3 >= rawid) // if aggressive exceed 1/3
+		set_aggressive_state(1);
+	    else
+		set_aggressive_state(0);
+
+#ifdef _BBS_UTIL_C_
+	    printf("id(%d)/agg(%d)/raw(%d)\n",
+		    id, aggid, rawid);
+#endif
 	}
 	SHM->last_film = id - 1;
 
