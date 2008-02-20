@@ -1,4 +1,4 @@
-/* $Id: proto.h 3907 2008-02-09 17:33:43Z piaip $ */
+/* $Id: proto.h 3931 2008-02-20 14:32:47Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -25,7 +25,6 @@ char *setstate(char *state);
 int m_loginmsg(void);
 int m_mod_board(char *bname);
 int m_newbrd(int whatclass, int recover);
-int scan_register_form(const char *regfile, int automode, int neednum);
 int m_user(void);
 int search_user_bypwd(void);
 int search_user_bybakpwd(void);
