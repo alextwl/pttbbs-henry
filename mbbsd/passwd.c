@@ -1,4 +1,4 @@
-/* $Id: passwd.c 3859 2008-01-23 17:35:17Z kcwu $ */
+/* $Id: passwd.c 3930 2008-02-20 11:49:48Z piaip $ */
 #include "bbs.h"
 
 static int      semid = -1;
@@ -86,6 +86,13 @@ passwd_update(int num, userec_t * buf)
 	   cuser.goodpost = buf->goodpost = u.goodpost;
         if(pwdfd & ALERT_PWD_PERM)	
 	   cuser.userlevel = buf->userlevel = u.userlevel;
+        if(pwdfd & ALERT_PWD_JUSTIFY)	
+	{
+	    memcpy(buf->justify,  u.justify, sizeof(u.justify));
+	    memcpy(cuser.justify, u.justify, sizeof(u.justify));
+	    memcpy(buf->email,  u.email, sizeof(u.email));
+	    memcpy(cuser.email, u.email, sizeof(u.email));
+	}
 	currutmp->alerts &= ~ALERT_PWD;
     }
     if ((pwdfd = open(fn_passwd, O_WRONLY)) < 0)
