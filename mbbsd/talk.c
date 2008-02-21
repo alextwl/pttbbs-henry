@@ -1,4 +1,4 @@
-/* $Id: talk.c 3745 2007-12-26 09:17:52Z piaip $ */
+/* $Id: talk.c 3933 2008-02-21 04:28:13Z piaip $ */
 #include "bbs.h"
 
 #define QCAST   int (*)(const void *, const void *)
@@ -3033,6 +3033,8 @@ userlist(void)
 			/* deny reentrance, which may cause many problems */
 			vmsg("你進入使用者列表前就已經在閱\讀信件了");
 		    } else {
+			// XXX in fact we should check size here...
+			// chkmailbox();
 			m_read();
 			setutmpmode(LUSERS);
 		    }

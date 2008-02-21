@@ -1,4 +1,4 @@
-/* $Id: cache.c 3932 2008-02-21 03:34:04Z piaip $ */
+/* $Id: cache.c 3933 2008-02-21 04:28:13Z piaip $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -948,7 +948,7 @@ reload_pttcache(void)
 
 #ifdef GLOBAL_NOTE_AGGCHKDIR
 		// TODO aggressive: only count '<ÂIºq>' section
-		if (strcmp(item.title, GLOBAL_NOTE_AGGCHKDIR) == 0)
+		if (strcmp(item.title+3, GLOBAL_NOTE_AGGCHKDIR) == 0)
 		    chkagg = 1;
 #endif
 
