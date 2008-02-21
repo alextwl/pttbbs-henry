@@ -1,4 +1,4 @@
-/* $Id: admin.c 3931 2008-02-20 14:32:47Z piaip $ */
+/* $Id: admin.c 3932 2008-02-21 03:34:04Z piaip $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -1846,7 +1846,7 @@ review_register_form(const char *regfile, int dryrun)
 			    ri+1, 
 			    (unum && search_ulist(unum)) ?
 				ANSI_COLOR(1;35) : "" ANSI_COLOR(1),
-			    (unum == 0) ? ANSI_COLOR(1;31) "X" ANSI_RESET :
+			    (unum == 0) ? ANSI_COLOR(1;31) "D" ANSI_RESET :
 			    ( (muser.userlevel & PERM_LOGINOK) ? 
 			      ANSI_COLOR(1;33) "Y" ANSI_RESET : " "),
 			    v);

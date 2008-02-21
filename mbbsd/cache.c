@@ -1,4 +1,4 @@
-/* $Id: cache.c 3929 2008-02-19 05:30:23Z piaip $ */
+/* $Id: cache.c 3932 2008-02-21 03:34:04Z piaip $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -941,8 +941,16 @@ reload_pttcache(void)
 	    // .DIR loop
 	    while (fread(&item, sizeof(item), 1, fp)) {
 
+		int chkagg = 0; // should we check aggressive?
+
 		if (item.title[3] != '<' || item.title[8] != '>')
 		    continue;
+
+#ifdef GLOBAL_NOTE_AGGCHKDIR
+		// TODO aggressive: only count '<ÂIºq>' section
+		if (strcmp(item.title, GLOBAL_NOTE_AGGCHKDIR) == 0)
+		    chkagg = 1;
+#endif
 
 		snprintf(buf, sizeof(buf), "%s/%s/" FN_DIR,
 			pbuf, item.filename);
@@ -970,7 +978,7 @@ reload_pttcache(void)
 			memset(SHM->notes[id], 0, sizeof(SHM->notes[0]));
 			rawid --;
 		    }
-		    else if (filter_aggressive(SHM->notes[id]))
+		    else if (chkagg && filter_aggressive(SHM->notes[id]))
 		    {
 			aggid++;
 			// handle aggressive notes by last detemined state
