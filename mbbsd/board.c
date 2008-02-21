@@ -1,4 +1,4 @@
-/* $Id: board.c 3901 2008-02-04 14:03:14Z piaip $ */
+/* $Id: board.c 3934 2008-02-21 12:17:13Z piaip $ */
 #include "bbs.h"
 
 /* personal board state
@@ -1654,6 +1654,7 @@ choose_board(int newflag)
 	case 'L':
 	    if ((HasUserPerm(PERM_SYSOP) ||
 			(HasUserPerm(PERM_SYSSUPERSUBOP) && GROUPOP())) && IN_CLASS()) {
+		// TODO XXX why need symlink here? Can we remove it?
 		if (make_symbolic_link_interactively(class_bid) < 0)
 		    break;
 		brdnum = -1;
