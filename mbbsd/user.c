@@ -1,4 +1,4 @@
-/* $Id: user.c 3928 2008-02-19 03:18:16Z piaip $ */
+/* $Id: user.c 3945 2008-02-24 03:34:47Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -680,6 +680,16 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 
     fail = 0;
     mail_changed = money_changed = perm_changed = 0;
+
+    {
+	// verify unum
+	int xuid =  getuser(u->userid, &x);
+	if (xuid != unum)
+	{
+	    vmsg("系統錯誤: 使用者資料號碼 (unum) 不合。請至 " GLOBAL_BUGREPORT "報告。");
+	    return;
+	}
+    }
 
     memcpy(&x, u, sizeof(userec_t));
     ans = getans(adminmode ?
