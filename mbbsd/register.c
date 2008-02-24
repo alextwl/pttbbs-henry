@@ -1,5 +1,8 @@
-/* $Id: register.c 3409 2006-09-01 00:41:55Z kcwu $ */
+/* $Id: register.c 3930 2008-02-20 11:49:48Z piaip $ */
 #include "bbs.h"
+
+// prototype of crypt()
+char *crypt(const char *key, const char *salt);
 
 char           *
 genpasswd(char *pw)
@@ -86,8 +89,10 @@ compute_user_value(const userec_t * urec, time4_t clock)
     value = (clock - urec->lastlogin) / 60;	/* minutes */
 
     /* new user should register in 30 mins */
+    // XXX 目前 new acccount 並不會在 utmp 裡放 str_new...
     if (strcmp(urec->userid, str_new) == 0)
 	return 30 - value;
+
 #if 0
     if (!urec->numlogins)	/* 未 login 成功者，不保留 */
 	return -1;
@@ -131,6 +136,13 @@ setupnewuser(const userec_t *user)
     int             fd, uid;
 
     clock = now;
+
+    // XXX race condition...
+    if (dosearchuser(user->userid, NULL))
+    {
+	vmsg("手腳不夠快，別人已經搶走了！");
+	exit(1);
+    }
 
     /* Lazy method : 先找尋已經清除的過期帳號 */
     if ((uid = dosearchuser("", NULL)) == 0) {
@@ -185,17 +197,21 @@ setupnewuser(const userec_t *user)
     return uid;
 }
 
+// checking functions (in user.c now...)
+char *isvalidname(char *rname);
+
 void
 new_register(void)
 {
     userec_t        newuser;
     char            passbuf[STRLEN];
     int             try, id, uid;
+    char 	   *errmsg = NULL;
 
 #ifdef HAVE_USERAGREEMENT
     more(HAVE_USERAGREEMENT, YEA);
     while( 1 ){
-	getdata(b_lines - 1, 0, "請問您接受這份使用者條款嗎? (yes/no) ",
+	getdata(b_lines, 0, "請問您接受這份使用者條款嗎? (yes/no) ",
 		passbuf, 4, LCECHO);
 	if( passbuf[0] == 'y' )
 	    break;
@@ -206,7 +222,25 @@ new_register(void)
 	vmsg("請輸入 y表示接受, n表示不接受");
     }
 #endif
+
+    // setup newuser
     memset(&newuser, 0, sizeof(newuser));
+    newuser.version = PASSWD_VERSION;
+    newuser.userlevel = PERM_DEFAULT;
+    newuser.uflag = BRDSORT_FLAG | MOVIE_FLAG;
+    newuser.uflag2 = 0;
+    newuser.firstlogin = newuser.lastlogin = now;
+    newuser.money = 0;
+    newuser.pager = PAGER_ON;
+    strlcpy(newuser.lasthost, fromhost, sizeof(newuser.lasthost));
+
+#ifdef DBCSAWARE
+    if(u_detectDBCSAwareEvilClient())
+	newuser.uflag &= ~DBCSAWARE_FLAG;
+    else
+	newuser.uflag |= DBCSAWARE_FLAG;
+#endif
+
     more("etc/register", NA);
     try = 0;
     while (1) {
@@ -228,11 +262,14 @@ new_register(void)
 	    if (minute == 999999) // XXX magic number.  It should be greater than MAX_USERS at least.
 		outs("此代號已經有人使用 是不死之身");
 	    else {
-		prints("此代號已經有人使用 還有%d天才過期 \n", minute / (60 * 24));
+		prints("此代號已經有人使用 還有 %d 天才過期 \n", 
+			minute / (60 * 24) + 1);
 	    }
 	} else
 	    break;
     }
+
+    // XXX 記得最後 create account 前還要再檢查一次 acc
 
     try = 0;
     while (1) {
@@ -240,16 +277,16 @@ new_register(void)
 	    vmsg("您嘗試錯誤的輸入太多，請下次再來吧");
 	    exit(1);
 	}
-	move(18, 0); clrtoeol();
+	move(19, 0); clrtoeol();
 	outs(ANSI_COLOR(1;33) "為避免被偷看，您的密碼並不會顯示在畫面上，直接輸入完後按 Enter 鍵即可。" ANSI_RESET);
-	if ((getdata(19, 0, "請設定密碼：", passbuf,
+	if ((getdata(18, 0, "請設定密碼：", passbuf,
 		     sizeof(passbuf), NOECHO) < 3) ||
 	    !strcmp(passbuf, newuser.userid)) {
 	    outs("密碼太簡單，易遭入侵，至少要 4 個字，請重新輸入\n");
 	    continue;
 	}
 	strlcpy(newuser.passwd, passbuf, PASSLEN);
-	getdata(20, 0, "請檢查密碼：", passbuf, sizeof(passbuf), NOECHO);
+	getdata(19, 0, "請檢查密碼：", passbuf, sizeof(passbuf), NOECHO);
 	if (strncmp(passbuf, newuser.passwd, PASSLEN)) {
 	    outs("密碼輸入錯誤, 請重新輸入密碼.\n");
 	    continue;
@@ -258,20 +295,75 @@ new_register(void)
 	strlcpy(newuser.passwd, genpasswd(passbuf), PASSLEN);
 	break;
     }
-    newuser.version = PASSWD_VERSION;
-    newuser.userlevel = PERM_DEFAULT;
-    newuser.uflag = BRDSORT_FLAG | MOVIE_FLAG;
-    newuser.uflag2 = 0;
-    newuser.firstlogin = newuser.lastlogin = now;
-    newuser.money = 0;
-    newuser.pager = PAGER_ON;
+    // set-up more information.
 
-#ifdef DBCSAWARE
-    if(u_detectDBCSAwareEvilClient())
-	newuser.uflag &= ~DBCSAWARE_FLAG;
-    else
-	newuser.uflag |= DBCSAWARE_FLAG;
-#endif
+    // warning: because currutmp=NULL, we can simply pass newuser.* to getdata.
+    // DON'T DO THIS IF YOUR currutmp != NULL.
+    try = 0;
+    while (strlen(newuser.nickname) < 2)
+    {
+	if (++try > 10) {
+	    vmsg("您嘗試錯誤的輸入太多，請下次再來吧");
+	    exit(1);
+	}
+	getdata(19, 0, "綽號暱稱：", newuser.nickname,
+		sizeof(newuser.nickname), DOECHO);
+    }
+
+    try = 0;
+    while (strlen(newuser.realname) < 4)
+    {
+	if (++try > 10) {
+	    vmsg("您嘗試錯誤的輸入太多，請下次再來吧");
+	    exit(1);
+	}
+	getdata(20, 0, "真實姓名：", newuser.realname,
+		sizeof(newuser.realname), DOECHO);
+
+	if ((errmsg = isvalidname(newuser.realname)))
+	{
+	    memset(newuser.realname, 0, sizeof(newuser.realname));
+	    vmsg(errmsg); 
+	}
+    }
+
+    try = 0;
+    while (strlen(newuser.address) < 8)
+    {
+	// do not use isvalidaddr to check,
+	// because that requires foreign info.
+	if (++try > 10) {
+	    vmsg("您嘗試錯誤的輸入太多，請下次再來吧");
+	    exit(1);
+	}
+	getdata(21, 0, "聯絡地址：", newuser.address,
+		sizeof(newuser.address), DOECHO);
+    }
+
+    try = 0;
+    while (newuser.year < 40) // magic number 40: see user.c
+    {
+	char birthday[sizeof("mmmm/yy/dd ")];
+	int y, m, d;
+
+	if (++try > 20) {
+	    vmsg("您嘗試錯誤的輸入太多，請下次再來吧");
+	    exit(1);
+	}
+	getdata(22, 0, "生日 (西元年/月/日, 如 1984/02/29)：", birthday,
+		sizeof(birthday), DOECHO);
+
+	if (ParseDate(birthday, &y, &m, &d)) {
+	    vmsg("日期格式不正確");
+	    continue;
+	} else if (y < 1940) {
+	    vmsg("你真的有那麼老嗎？");
+	    continue;
+	}
+	newuser.year  = (unsigned char)(y-1900);
+	newuser.month = (unsigned char)m;
+	newuser.day   = (unsigned char)d;
+    }
 
     setupnewuser(&newuser);
 
@@ -282,40 +374,73 @@ new_register(void)
     log_usies("REGISTER", fromhost);
 }
 
+void 
+check_birthday(void)
+{
+    // check birthday
+    int changed = 0;
+   
+    while (cuser.year < 40) // magic number 40: see user.c
+    {
+	char birthday[sizeof("mmmm/yy/dd ")];
+	int y, m, d;
+
+	clear();
+	stand_title("輸入生日");
+	move(2,0);
+	outs("本站為配合實行內容分級制度，請您輸入正確的生日資訊。");
+
+	getdata(5, 0, "生日 (西元年/月/日, 如 1984/02/29)：", birthday,
+		sizeof(birthday), DOECHO);
+
+	if (ParseDate(birthday, &y, &m, &d)) {
+	    vmsg("日期格式不正確");
+	    continue;
+	} else if (y < 1940) {
+	    vmsg("你真的有那麼老嗎？");
+	    continue;
+	}
+	cuser.year  = (unsigned char)(y-1900);
+	cuser.month = (unsigned char)m;
+	cuser.day   = (unsigned char)d;
+	changed = 1;
+    }
+
+    if (changed) {
+	clear();
+	resolve_over18();
+    }
+}
 
 void
 check_register(void)
 {
-    char           *ptr = NULL;
+    char fn[PATHLEN];
+
+    check_birthday();
 
     if (HasUserPerm(PERM_LOGINOK))
 	return;
+
+    // see admin.c
+    setuserfile(fn, "justify.reject");
+
 
     /* 
      * 避免使用者被退回註冊單後，在知道退回的原因之前，
      * 又送出一次註冊單。
      */ 
+    if (dashf(fn))
+    {
+	more(fn, NA);
+	move(b_lines-3, 0);
+	outs("上次註冊單審查失敗。\n"
+	     "請重新申請並照上面指示正確填寫註冊單。");
+	while(getans("請輸入 y 繼續: ") != 'y');
+	unlink(fn);
+    } else
     if (ISNEWMAIL(currutmp))
 	m_read();
-
-    stand_title("請詳細填寫個人資料");
-
-    while (strlen(cuser.nickname) < 2)
-	getdata(2, 0, "綽號暱稱：", cuser.nickname,
-		sizeof(cuser.nickname), DOECHO);
-
-    for (ptr = cuser.nickname; *ptr; ptr++) {
-	if (*ptr == 9)		/* TAB convert */
-	    *ptr = ' ';
-    }
-    while (strlen(cuser.realname) < 4)
-	getdata(4, 0, "真實姓名：", cuser.realname,
-		sizeof(cuser.realname), DOECHO);
-
-    while (strlen(cuser.address) < 8)
-	getdata(6, 0, "聯絡地址：", cuser.address,
-		sizeof(cuser.address), DOECHO);
-
 
     if (!HasUserPerm(PERM_SYSOP)) {
 	/* 回覆過身份認證信函，或曾經 E-mail post 過 */

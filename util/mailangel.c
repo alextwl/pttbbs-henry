@@ -1,4 +1,4 @@
-/* $Id: mailangel.c 3223 2005-10-13 15:22:21Z ptt $ */
+/* $Id: mailangel.c 3673 2007-12-12 01:42:23Z kcwu $ */
 #include "bbs.h"
 
 #ifndef PLAY_ANGEL
@@ -10,14 +10,6 @@ int *list;
 int count;
 char *mailto = NULL;
 char *mailfile = NULL;
-
-int ListCmp(const void * a, const void * b){
-    return *(int*)b - *(int*)a;
-}
-
-int RejCmp(const void * a, const void * b){
-    return strcasecmp(SHM->userid[*(int*)a - 1], SHM->userid[*(int*)b - 1]);
-}
 
 void readData();
 void sendResult();

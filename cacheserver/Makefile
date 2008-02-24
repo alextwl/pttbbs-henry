@@ -1,8 +1,10 @@
-# $Id: Makefile 3482 2007-02-03 13:10:31Z wens $
-.include "../pttbbs.mk"
+# $Id: Makefile 3559 2007-09-19 17:21:55Z kcwu $
+SRCROOT=	..
+.include "$(SRCROOT)/pttbbs.mk"
 
 PROGRAMS=	utmpserver utmpsync utmpserver2 utmpserver3 authserver
-UTILOBJ=	../util/util_stuff.o ../util/util_var.o ../util/util_file.o ../util/util_cache.o ../util/util_passwd.o ../util/util_record.o ../util/util_osdep.o ../util/util_args.o
+UTILDIR=	$(SRCROOT)/util
+UTILOBJ=	$(UTILDIR)/util_stuff.o $(UTILDIR)/util_var.o $(UTILDIR)/util_file.o $(UTILDIR)/util_cache.o $(UTILDIR)/util_passwd.o $(UTILDIR)/util_record.o $(UTILDIR)/util_osdep.o $(UTILDIR)/util_args.o
 
 all:	${PROGRAMS}
 

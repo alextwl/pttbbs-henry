@@ -1,4 +1,4 @@
-/* $Id: expire.c 3529 2007-06-01 18:10:00Z kcwu $ */
+/* $Id: expire.c 3863 2008-01-25 05:32:23Z wens $ */
 /* 自動砍信工具程式 */
 
 #include "bbs.h"
@@ -145,8 +145,10 @@ void expire(life_t *brd)
 		}
 		else {
 		    ++nDelete;
-		    setbfile(fname, brd->bname, head.filename);
-		    callrm(fname);
+		    if (head.filename[0] != '\0') {
+			setbfile(fname, brd->bname, head.filename);
+			callrm(fname);
+		    }
 		    total--;
 		}
 	    }

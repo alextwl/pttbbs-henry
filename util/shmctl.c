@@ -1,4 +1,4 @@
-/* $Id: shmctl.c 3516 2007-05-27 14:08:15Z kcwu $ */
+/* $Id: shmctl.c 3584 2007-10-16 17:05:46Z kcwu $ */
 #include "bbs.h"
 #include <sys/wait.h>
 #include <string.h>
@@ -66,7 +66,8 @@ int utmpfix(int argc, char **argv)
     int     i, fast = 0, nownum = SHM->UTMPnumber;
     int     which, nactive = 0, dofork = 1, daemonsleep = 0;
     time_t  now;
-    char    *clean, buf[1024];
+    const char    *clean;
+    char buf[1024];
     IDLE_t  idle[USHM_SIZE];
     char    changeflag = 0;
     time_t  idletimeout = IDLE_TIMEOUT;
@@ -571,7 +572,7 @@ int utmpnum(int argc, char **argv)
     return 0;
 }
 
-char    *GV2str[] = {"dymaxactive", "toomanyusers",
+const char    *GV2str[] = {"dymaxactive", "toomanyusers",
 		     "noonlineuser","now", "nWelcomes", "shutdown", NULL};
 int showglobal(int argc, char **argv)
 {
@@ -980,24 +981,24 @@ int torb(int argc, char **argv)
     return 0;
 }
 
+void lockbcache(void)
+{
+    int     i;
+    for( i = 0 ; i < 10 && SHM->Bbusystate ; ++i ){
+	printf("SHM->Bbusystate is currently locked (value: %d). "
+		"please wait... ", SHM->Bbusystate);
+	sleep(1);
+    }
+    if( i == 10 )
+	puts("steal bcache lock\n");
+    SHM->Bbusystate = 1;
+}
+void unlockbcache(void)
+{
+    SHM->Bbusystate = 0;
+}
 int fixbcache(int argc, char **argv)
 {
-    void lockbcache(void)
-    {
-	int     i;
-	for( i = 0 ; i < 10 && SHM->Bbusystate ; ++i ){
-	    printf("SHM->Bbusystate is currently locked (value: %d). "
-		   "please wait... ", SHM->Bbusystate);
-	    sleep(1);
-	}
-	if( i == 10 )
-	    puts("steal bcache lock\n");
-	SHM->Bbusystate = 1;
-    }
-    void unlockbcache(void)
-    {
-	SHM->Bbusystate = 0;
-    }
     int     n, fd, bid, changed = 0;
     boardheader_t bh;
 
@@ -1088,7 +1089,7 @@ int showstat(int argc, char *argv[])
 {
     int i;
     int flag_clear=0;
-    char *stat_desc[]={
+    const char *stat_desc[]={
 	"STAT_LOGIN",
 	"STAT_SHELLLOGIN",
 	"STAT_VEDIT",
@@ -1132,7 +1133,7 @@ int showstat(int argc, char *argv[])
     if(argv[1] && strcmp(argv[1],"-c")==0)
 	flag_clear=1;
     for(i=0; i<STAT_NUM; i++) {
-	char *desc= i*sizeof(char*)<sizeof(stat_desc)?stat_desc[i]:"?";
+	const char *desc= i*sizeof(char*)<sizeof(stat_desc)?stat_desc[i]:"?";
 	printf("%s:\t%d\n", desc, SHM->statistic[i]);
     }
     if(flag_clear)
@@ -1145,9 +1146,9 @@ int dummy(int argc, char *argv[])
     return 0;
 }
 
-struct {
+struct Cmd {
     int     (*func)(int, char **);
-    char    *cmd, *descript;
+    const char    *cmd, *descript;
 } cmd[] = { 
     {dummy,      "\b\b\b\bStart daemon:", ""},
     {utmpsortd,  "utmpsortd",  "utmp sorting daemon"},

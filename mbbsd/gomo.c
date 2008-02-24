@@ -1,4 +1,4 @@
-/* $Id: gomo.c 3523 2007-05-30 15:42:18Z scw $ */
+/* $Id: gomo.c 3722 2007-12-21 17:18:33Z piaip $ */
 #include "bbs.h"
 #include "gomo.h"
 
@@ -279,12 +279,13 @@ static void
 gomo_drawline(const ChessInfo* info, int line)
 {
     const static char* const BoardPic[] = {
-	"¢z", "¢s", "¢{",
-	"¢u", "¢q", "¢t",
-	"¢|", "¢r", "¢}"
+	"ùÝ", "ùç", "ùç", "ùß",
+	"ùò", "¢q", "¢q", "ùô",
+	"ùò", "¢q", "¡Ï", "ùô",
+	"ùã", "ùí", "ùí", "ùå",
     };
     const static int BoardPicIndex[] =
-    { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2 };
+    { 0, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 3 };
 
     board_p board = (board_p) info->board;
 
@@ -298,8 +299,7 @@ gomo_drawline(const ChessInfo* info, int line)
     } else if (line >= 2 && line <= 16) {
 	const int board_line = line - 2;
 	const char* const* const pics =
-	    board_line == 0  ? &BoardPic[0] :
-	    board_line == BRDSIZ - 1 ? &BoardPic[6] : &BoardPic[3];
+	    &BoardPic[BoardPicIndex[board_line] * 4];
 	int i;
 
 	prints("%3d" ANSI_COLOR(30;43), 17 - line);
@@ -420,11 +420,18 @@ gomo_gameend(ChessInfo* info, ChessGameResult result)
 static void
 gomo_genlog(ChessInfo* info, FILE* fp, ChessGameResult result)
 {
+    char buf[ANSILINELEN] = "";
     const int nStep = info->history.used;
-    int       i;
+    int   i, x, y;
 
+    getyx(&y, &x);
     for (i = 1; i <= 18; i++)
-	fprintf(fp, "%.*s\n", big_picture[i].len, big_picture[i].data);
+    {
+	move(i, 0);
+	inansistr(buf, sizeof(buf)-1);
+	fprintf(fp, "%s\n", buf);
+    }
+    move(y, x);
 
     fprintf(fp, "\n");
     fprintf(fp, "«ö z ¥i¶i¤J¥´ÃÐ¼Ò¦¡\n");

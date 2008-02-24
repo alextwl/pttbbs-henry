@@ -1,5 +1,8 @@
-/* $Id: kaede.c 3459 2006-12-26 06:35:16Z victor $ */
+/* $Id: kaede.c 3819 2008-01-10 18:01:34Z piaip $ */
 #include "bbs.h"
+
+// TODO move stuff to libbbs(or util)/string.c, ...
+// this file can be removed (or not?)
 
 char           *
 Ptt_prints(char *str, size_t size, int mode)
@@ -18,54 +21,37 @@ Ptt_prints(char *str, size_t size, int mode)
 	    else{
 		/* Note, w will increased by copied length after */
 		switch( str[++r] ){
-		case 's':
-		    strlcpy(strbuf+w, cuser.userid, size-w);
-		    w += strlen(strbuf+w);
-		    break;
-		case 't':
+
+			// secure content
+			
+		case 't':	// current time
 		    strlcpy(strbuf+w, Cdate(&now), size-w);
 		    w += strlen(strbuf+w);
 		    break;
-		case 'u':
+		case 'u':	// current online users
 		    w += snprintf(&strbuf[w], size - w,
 				  "%d", SHM->UTMPnumber);
 		    break;
 
-		    /* disabled for security issue.
-		     * we support only entries can be queried by others now.
-		     */
-#ifdef LOW_SECURITY
-		case 'b':
-		    w += snprintf(&strbuf[w], size - w,
-				  "%d/%d", cuser.month, cuser.day);
+			// insecure content
+		
+		case 's':	// current user id
+		    strlcpy(strbuf+w, cuser.userid, size-w);
+		    w += strlen(strbuf+w);
 		    break;
-		case 'm':
-		    w += snprintf(&strbuf[w], size - w,
-				  "%d", cuser.money);
-		    break;
-#else
-
-#if 0
-		case 'm':
-		    w += snprintf(&strbuf[w], size - w,
-				  "%s", money_level(cuser.money));
-		    break;
-#endif
-
-#endif
-
-		case 'l':
-		    w += snprintf(&strbuf[w], size - w,
-				  "%d", cuser.numlogins);
-		    break;
-		case 'p':
-		    w += snprintf(&strbuf[w], size - w,
-				  "%d", cuser.numposts);
-		    break;
-		case 'n':
+		case 'n':	// current user nickname
 		    strlcpy(strbuf+w, cuser.nickname, size-w);
 		    w += strlen(strbuf+w);
 		    break;
+		case 'l':	// current user logins
+		    w += snprintf(&strbuf[w], size - w,
+				  "%d", cuser.numlogins);
+		    break;
+		case 'p':	// current user posts
+		    w += snprintf(&strbuf[w], size - w,
+				  "%d", cuser.numposts);
+		    break;
+
 		/* It's saver not to send these undefined escape string. 
 		default:
 		    strbuf[w++] = ESC_CHR;
@@ -80,105 +66,100 @@ Ptt_prints(char *str, size_t size, int mode)
     return str;
 }
 
-int
-Rename(const char *src, const char *dst)
+// utility from screen.c
+void
+outs_n(const char *str, int n)
 {
-    char            buf[256];
-    if (rename(src, dst) == 0)
-	return 0;
-    if (!strchr(src, ';') && !strchr(dst, ';'))
-	// Ptt 防不正常指令 // XXX 這樣是不夠的
-    {
-	snprintf(buf, sizeof(buf), "/bin/mv %s %s", src, dst);
-	system(buf);
+    while (*str && n--) {
+	outc(*str++);
     }
-    return -1;
 }
 
-int
-Copy(const char *src, const char *dst)
+// XXX left-right (for large term)
+// TODO someday please add ANSI detection version
+void 
+outslr(const char *left, int leftlen, const char *right, int rightlen)
 {
-    int fi, fo, bytes;
-    char buf[8192];
-    fi=open(src, O_RDONLY);
-    if(fi<0) return -1;
-    fo=open(dst, O_WRONLY | O_TRUNC | O_CREAT, 0600);
-    if(fo<0) {close(fi); return -1;}
-    while((bytes=read(fi, buf, sizeof(buf)))>0)
-         write(fo, buf, bytes);
-    close(fo);
-    close(fi);
-    return 0;  
-}
+    if (left == NULL)
+	left = "";
+    if (right == NULL)
+	right = "";
+    if(*left && leftlen < 0)
+	leftlen = strlen(left);
+    if(*right && rightlen < 0)
+	rightlen = strlen(right);
+    // now calculate padding
+    rightlen = t_columns - leftlen - rightlen;
+    outs(left);
 
-int
-CopyN(const char *src, const char *dst, int n)
-{
-    int fi, fo, bytes;
-    char buf[8192];
-
-    fi=open(src, O_RDONLY);
-    if(fi<0) return -1;
-
-    fo=open(dst, O_WRONLY | O_TRUNC | O_CREAT, 0600);
-    if(fo<0) {close(fi); return -1;}
-
-    while(n > 0 && (bytes=read(fi, buf, sizeof(buf)))>0)
+    // ignore right msg if we need to.
+    if(rightlen >= 0)
     {
-	 n -= bytes;
-	 if (n < 0)
-	     bytes += n;
-         write(fo, buf, bytes);
+	while(--rightlen > 0)
+	    outc(' ');
+	outs(right);
+    } else {
+	rightlen = t_columns - leftlen;
+	while(--rightlen > 0)
+	    outc(' ');
     }
-    close(fo);
-    close(fi);
-    return 0;  
 }
 
-/* append data from tail of src (starting point=off) to dst */
-int
-AppendTail(const char *src, const char *dst, int off)
+
+/* Jaky */
+void
+out_lines(const char *str, int line)
 {
-    int fi, fo, bytes;
-    char buf[8192];
-
-    fi=open(src, O_RDONLY);
-    if(fi<0) return -1;
-
-    fo=open(dst, O_WRONLY | O_APPEND | O_CREAT, 0600);
-    if(fo<0) {close(fi); return -1;}
-    
-    if(off > 0)
-	lseek(fi, (off_t)off, SEEK_SET);
-
-    while((bytes=read(fi, buf, sizeof(buf)))>0)
-    {
-         write(fo, buf, bytes);
-    }
-    close(fo);
-    close(fi);
-    return 0;  
+	int y, x;
+	getyx(&y, &x);
+    while (*str && line) {
+		if (*str == '\n')
+		{
+			move(++y, 0);
+			line--;
+		} else 
+		{
+			outc(*str);
+		}
+		str++;
+	}
 }
 
-int
-Link(const char *src, const char *dst)
+void
+outmsg(const char *msg)
 {
-    if (strcmp(src, BBSHOME "/home") == 0)
-	return 1;
-    if (symlink(src, dst) == 0)
-	return 0;
-
-    return Copy(src, dst);
+    move(b_lines - msg_occupied, 0);
+    clrtoeol();
+    outs(msg);
 }
 
-char           *
-my_ctime(const time4_t * t, char *ans, int len)
+void
+outmsglr(const char *msg, int llen, const char *rmsg, int rlen)
 {
-    struct tm      *tp;
-
-    tp = localtime4((time4_t*)t);
-    snprintf(ans, len,
-	     "%02d/%02d/%02d %02d:%02d:%02d", (tp->tm_year % 100),
-	     tp->tm_mon + 1, tp->tm_mday, tp->tm_hour, tp->tm_min, tp->tm_sec);
-    return ans;
+    move(b_lines - msg_occupied, 0);
+    clrtoeol();
+    outslr(msg, llen, rmsg, rlen);
+    outs(ANSI_RESET ANSI_CLRTOEND);
 }
+
+void
+prints(const char *fmt,...)
+{
+    va_list         args;
+    char            buff[1024];
+
+    va_start(args, fmt);
+    vsnprintf(buff, sizeof(buff), fmt, args);
+    va_end(args);
+    outs(buff);
+}
+
+void
+mouts(int y, int x, const char *str)
+{
+    move(y, x);
+    clrtoeol();
+    outs(str);
+}
+
+// vim:ts=4

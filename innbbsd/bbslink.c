@@ -165,6 +165,7 @@ is_outgo_post(board, filename, userid, nickname, subject)
 /*
  * woju Cross-fs rename()
  */
+/*
 int
 Rename(const char *src, const char *dst)
 {
@@ -177,6 +178,7 @@ Rename(const char *src, const char *dst)
     return system(cmd);
 
 }
+*/
 
 void
 bbslink_un_lock(file)

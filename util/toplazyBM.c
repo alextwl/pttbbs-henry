@@ -1,4 +1,4 @@
-/* $Id: toplazyBM.c 3237 2005-11-02 03:06:24Z scw $ */
+/* $Id: toplazyBM.c 3673 2007-12-12 01:42:23Z kcwu $ */
 #define _UTIL_C_
 #include "bbs.h"
 #define OUTFILE  BBSHOME "/etc/toplazyBM"
@@ -28,17 +28,6 @@ int bmlostdays_cmp(const void *va, const void *vb)
     if (a->lostdays > b->lostdays) return -1;
     else if (a->lostdays == b->lostdays) return 0;
     else return 1;
-}
-
-int LINK(char* src, char* dst)
-{
-    char cmd[200];
-    if(symlink(src,dst) == -1)	
-    {	
-	sprintf(cmd, "/bin/cp -R %s %s", src, dst);
-	return system(cmd);
-    }
-    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -182,8 +171,8 @@ int main(int argc, char *argv[])
 		lostbms[i].bmname[0], lostbms[i].bmname);
 	stampfile(genbuf, &mymail);
 
-	strcpy(mymail.owner, "[山城人事局]");
-	if (lostdays <= 30)
+	strcpy(mymail.owner, "[" BBSMNAME "警察局]");
+	if (lostdays <= 90)
 	    sprintf(mymail.title,
 		    "\033[32m版主通知\033[m %s版版主%s",
 		    lostbms[i].title, lostbms[i].bmname);
@@ -194,9 +183,9 @@ int main(int argc, char *argv[])
 
 	unlink(genbuf);
 	if (lostdays <= 30)
-	    LINK(OUTFILE, genbuf);
+	    Link(OUTFILE, genbuf);
 	else
-	    LINK(FIREFILE, genbuf);
+	    Link(FIREFILE, genbuf);
 
 	sprintf(genbuf, BBSHOME "/home/%c/%s/.DIR", 
 		lostbms[i].bmname[0], lostbms[i].bmname);

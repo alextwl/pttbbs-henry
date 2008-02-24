@@ -1,4 +1,4 @@
-/* $Id: syspost.c 3440 2006-10-03 07:06:27Z wens $ */
+/* $Id: syspost.c 3910 2008-02-13 13:26:49Z piaip $ */
 #include "bbs.h"
 
 int
@@ -57,45 +57,37 @@ post_file(const char *bname, const char *title, const char *filename, const char
 void
 post_change_perm(int oldperm, int newperm, const char *sysopid, const char *userid)
 {
-    FILE           *fp;
-    fileheader_t    fhdr;
-    char            genbuf[200], reason[30];
-    int             i, flag = 0;
+    char genbuf[(NUMPERMS+1) * STRLEN*2] = "", reason[30] = "";
+    char title[TTLEN+1];
+    char *s = genbuf;
+    int  i, flag = 0;
 
-    setbpath(genbuf, "Security");
-    stampfile(genbuf, &fhdr);
-    if (!(fp = fopen(genbuf, "w")))
-	return;
-
-    fprintf(fp, "作者: [系統安全局] 看板: Security\n"
-	    "標題: [公安報告] 站長修改權限報告\n"
-	    "時間: %s\n", ctime4(&now));
+    // generate log (warning: each line should <= STRLEN*2)
     for (i = 0; i < NUMPERMS; i++) {
 	if (((oldperm >> i) & 1) != ((newperm >> i) & 1)) {
-	    fprintf(fp, "   站長" ANSI_COLOR(1;32) "%s%s%s%s" ANSI_RESET "的權限\n",
+	    sprintf(s, "   站長" ANSI_COLOR(1;32) "%s%s%s%s" ANSI_RESET "的權限\n",
 		    sysopid,
 	       (((oldperm >> i) & 1) ? ANSI_COLOR(1;33) "關閉" : ANSI_COLOR(1;33) "開啟"),
 		    userid, str_permid[i]);
+	    s += strlen(s);
 	    flag++;
 	}
     }
 
-    if (flag) {
-	clrtobot();
-	clear();
-	while (!getdata(5, 0, "請輸入理由以示負責：",
-			    reason, sizeof(reason), DOECHO));
-	fprintf(fp, "\n   " ANSI_COLOR(1;37) "站長%s修改權限理由是：%s" ANSI_RESET,
-		cuser.userid, reason);
-	fclose(fp);
+    if (!flag) // nothing changed
+	return;
 
-	snprintf(fhdr.title, sizeof(fhdr.title),
-		 "[公安報告] 站長%s修改%s權限報告",
-		 cuser.userid, userid);
-	strlcpy(fhdr.owner, "[系統安全局]", sizeof(fhdr.owner));
-	append_record("boards/S/Security/.DIR", &fhdr, sizeof(fhdr));
-    } else
-	fclose(fp);
+    clrtobot();
+    clear();
+    while (!getdata(5, 0, "請輸入理由以示負責：",
+		reason, sizeof(reason), DOECHO));
+    sprintf(s, "\n   " ANSI_COLOR(1;37) "站長%s修改權限理由是：%s" ANSI_RESET,
+	    cuser.userid, reason);
+
+    snprintf(title, sizeof(title), "[公安報告] 站長%s修改%s權限報告",
+	    cuser.userid, userid);
+
+    post_msg(GLOBAL_SECURITY, title, genbuf, "[系統安全局]");
 }
 
 void
@@ -114,7 +106,7 @@ post_violatelaw(const char *crime, const char *police, const char *reason, const
 	    police, crime, reason, result);
 
     if (!strstr(police, "警察")) {
-	post_msg("PoliceLog", title, msg, "[山城法院]");
+	post_msg("PoliceLog", title, msg, "[" BBSMNAME "法院]");
 
 	snprintf(msg, sizeof(msg), 
 		ANSI_COLOR(1;32) "%s" ANSI_RESET "判決：\n"
@@ -123,7 +115,7 @@ post_violatelaw(const char *crime, const char *police, const char *reason, const
 		"站務警察", crime, reason, result);
     }
 
-    post_msg("Violation", title, msg, "[山城法院]");
+    post_msg("ViolateLaw", title, msg, "[" BBSMNAME "法院]");
 }
 
 void

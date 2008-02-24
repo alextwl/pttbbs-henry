@@ -1,4 +1,4 @@
-/* $Id: topsong.c 3546 2007-06-18 17:14:53Z kcwu $ */
+/* $Id: topsong.c 3673 2007-12-12 01:42:23Z kcwu $ */
 #include "bbs.h"
 
 #define MAX_SONGS 300
@@ -25,15 +25,6 @@ topsong(void)
     return 0;
 }
 
-static int
-strip_blank(char *cbuf, char *buf)
-{
-    for (; *buf; buf++)
-	if (*buf != ' ')
-	    *cbuf++ = *buf;
-    *cbuf = 0;
-    return 0;
-}
 
 void
 sortsong(void)

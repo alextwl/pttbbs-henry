@@ -1,4 +1,4 @@
-/* $Id: common.h 3172 2005-09-15 09:00:55Z piaip $ */
+/* $Id: common.h 3912 2008-02-13 15:43:44Z piaip $ */
 #ifndef INCLUDE_COMMON_H
 #define INCLUDE_COMMON_H
 
@@ -16,6 +16,7 @@
 #define FN_CANVOTE      "can_vote"
 #define FN_VISABLE      "visable"
 #define FN_USIES        "usies"         /* BBS log */
+#define FN_DIR		".DIR"
 #define FN_BOARD        ".BRD"       /* board list */
 #define FN_USEBOARD     "usboard"       /* 看板統計 */
 #define FN_NOTE_ANS     "note.ans"
@@ -33,8 +34,6 @@
 #define FN_BOARDHELP	"etc/board.help"
 
 #define MSG_DEL_CANCEL  "取消刪除"
-#define MSG_CLOAKED     "哈哈！我隱形了！看不到勒... :P"
-#define MSG_UNCLOAK     "我要重現江湖了...."
 #define MSG_BIG_BOY     "我是大帥哥! ^o^Y"
 #define MSG_BIG_GIRL    "世紀大美女 *^-^*"
 #define MSG_LITTLE_BOY  "我是底迪啦... =)"
@@ -43,7 +42,6 @@
 #define MSG_WOMAN       "叫我小阿姨!! /:>"
 #define MSG_PLANT       "植物也有性別喔.."
 #define MSG_MIME        "礦物總沒性別了吧"
-#define MSG_PASSWD      "請輸入您的密碼: "
 
 #define MSG_CLOAKED     "哈哈！我隱形了！看不到勒... :P"
 #define MSG_UNCLOAK     "我要重現江湖了...."
@@ -66,8 +64,8 @@
 #define MSG_SURE_NY     "請您確定(Y/N)？[N] "
 #define MSG_SURE_YN     "請您確定(Y/N)？[Y] "
 
-#define MSG_BID         "請輸入看板名稱："
-#define MSG_UID         "請輸入使用者代號："
+#define MSG_BID         "請輸入看板名稱: "
+#define MSG_UID         "請輸入使用者代號: "
 #define MSG_PASSWD      "請輸入您的密碼: "
 
 #define MSG_BIG_BOY     "我是大帥哥! ^o^Y"
@@ -93,15 +91,19 @@
 #define STR_POST1       "看板:"
 #define STR_POST2       "站內:"
 
+/* AIDS */
+#define AID_DISPLAYNAME	"文章代碼(AID)"
+/* end of AIDS */
+
 /* LONG MESSAGES */
 #define MSG_SELECT_BOARD ANSI_COLOR(7) "【 選擇看板 】" ANSI_RESET "\n" \
-			"請輸入看板名稱(按空白鍵自動搜尋)："
+			"請輸入看板名稱(按空白鍵自動搜尋): "
 
 #define MSG_POSTER_LEN (78)
 #define MSG_POSTER      ANSI_COLOR(34;46) " 文章選讀 "\
 	ANSI_COLOR(31;47) " (y)"	ANSI_COLOR(30) "回信"\
-	ANSI_COLOR(31) "(X)" 	ANSI_COLOR(30) "推文"\
-	ANSI_COLOR(31) "(x)" 	ANSI_COLOR(30) "轉錄  "\
+	ANSI_COLOR(31) "(X%)" 	ANSI_COLOR(30) "推文"\
+	ANSI_COLOR(31) "(x)" 	ANSI_COLOR(30) "轉錄 "\
 	ANSI_COLOR(31) "(=[]<>)" 	ANSI_COLOR(30) "相關主題 "\
 	ANSI_COLOR(31) "(/?a)" 	ANSI_COLOR(30) "搜尋標題/作者  "\
 	ANSI_COLOR(31) "(V)" 	ANSI_COLOR(30) "投票 "\
@@ -132,10 +134,6 @@
 	""
 #endif
 
-#define MSG_SHORTULIST  ANSI_COLOR(7) \
-    "使用者代號    目前狀態   │使用者代號    目前狀態   │"\
-    "使用者代號    目前狀態  " ANSI_RESET ANSI_CLRTOEND
-
 #define MSG_SEPERATOR   "\
 ───────────────────────────────────────"
 
@@ -143,6 +141,7 @@
 #define NOECHO       0
 #define DOECHO       1
 #define LCECHO       2
+#define NUMECHO	     4
 
 #define YEA  1		       /* Booleans  (Yep, for true and false) */
 #define NA   0
@@ -227,7 +226,8 @@
 #define I_TIMEOUT   (-2)       /* Used for the getchar routine select call */
 #define I_OTHERDATA (-333)     /* interface, (-3) will conflict with chinese */
 
-#define MAX_MODES 127
+#define MAX_MODES	(127)
+#define MAX_RECOMMENDS  (100)
 
 #ifndef MIN
 #define	MIN(a,b)	(((a)<(b))?(a):(b))
@@ -248,9 +248,30 @@
 #define REPLYING        0
 #define RECVINREPLYING  1
 
-#define LOG_CREAT       1
-#define LOG_VF          2
+/* ----------------------------------------------------- */
+/* 編輯器選項                                            */
+/* ----------------------------------------------------- */
+#define EDITFLAG_TEXTONLY   (0x00000001)
+#define EDITFLAG_UPLOAD	    (0x00000002)
+#define EDITFLAG_ALLOWLARGE (0x00000004)
+#define EDITFLAG_ALLOWTITLE (0x00000008)
 
+/* ----------------------------------------------------- */
+/* Grayout Levels                                        */
+/* ----------------------------------------------------- */
+#define GRAYOUT_COLORBOLD (-2)
+#define GRAYOUT_BOLD (-1)
+#define GRAYOUT_DARK (0)
+#define GRAYOUT_NORM (1)
+#define GRAYOUT_COLORNORM (+2)
+
+/* Typeahead */
+#define TYPEAHEAD_NONE	(-1)
+#define TYPEAHEAD_STDIN	(0)
+
+/* ----------------------------------------------------- */
+/* Macros                                                */
+/* ----------------------------------------------------- */
 
 #if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
     #define __builtin_expect(exp,c) (exp)

@@ -1,4 +1,4 @@
-/* $Id: edit.c 3483 2007-02-05 09:47:59Z mhsin $ */
+/* $Id: edit.c 3912 2008-02-13 15:43:44Z piaip $ */
 /**
  * edit.c, 用來提供 bbs上的文字編輯器, 即 ve.
  * 現在這一個是惡搞過的版本, 比較不穩定, 用比較多的 cpu, 但是可以省下許多
@@ -22,8 +22,29 @@
  * and/or blockline 錯誤. 甚至把 blockline 砍掉會 access 到已被 free 掉的 
  * memory. 可能要改成標記模式 readonly, 或是做某些動作時自動取消標記模式
  * (blockln=-1)
+ *
+ * FIXME 20071201 piaip
+ * block selection 不知何時已變為 line level 而非 character level 了，
+ * 這樣也比較好寫，所以把 blockpnt 拿掉吧！
+ *
+ * 20071230 piaip
+ * BBSmovie 有人作出了 1.9G 的檔案, 看來要分 hard limit 跟 soft limit
+ * [第 7426572/7426572 頁 (100%)  目前顯示: 第 163384551~163384573 行]
+ * 當日調查 BBSmovie 看板與精華區，平均檔案皆在 5M 以下
+ * 最大的為 16M 的 Haruhi OP (avi 轉檔 with massive ANSI)
+ * [第 2953/2953 頁 (100%)  目前顯示: 第 64942~64964 行]
+ * 另外互動迷宮的大小為
+ * [第 1408/1408 頁 (100%)  目前顯示: 第 30940~30962 行]
+ * 是以定義:
+ * 32M 為 size limit 
+ * 1M 為 line limit
+ * 又，忽然發現之前 totaln 之類都是 short... 所以 65536 就夠了?
+ * 後註: 似乎是用 announce 的 append 作出來的，有看到 > --- <- mark。
  */
 #include "bbs.h"
+
+#define EDIT_SIZE_LIMIT (32768*1024)
+#define EDIT_LINE_LIMIT (65530) // (1048576)
 
 #if 0
 #define register 
@@ -128,18 +149,17 @@ typedef struct editor_internal_t {
     textline_t *deleted_line;	/* deleted line. Just keep one deleted line. */
     textline_t *oldcurrline;
 
-    short currln;		/* current line of the article. */
+    int   currln;		/* current line of the article. */
     short currpnt;		/* current column of the article. */
-    short totaln;		/* total lines of the article. */
-    short curr_window_line;	/* current line to the window. */
+    int   totaln;		/* total lines of the article. */
+    int   curr_window_line;	/* current line to the window. */
     short last_margin;
     short edit_margin;		/* when the cursor moves out of range (say,
 				   t_columns), shift this length of the string
 				   so you won't see the first edit_margin-th
 				   character. */
     short lastindent;
-    short blockln;		/* the row you started to select block. */
-    short blockpnt;		/* the column you started to select block. */
+    int  blockln;		/* the row you started to select block. */
     char insert_c;		/* insert this character when shift something
 				   in order to compensate the new space. */
     char last_phone_mode;
@@ -154,7 +174,10 @@ typedef struct editor_internal_t {
     char raw_mode		:1;
 
     char *searched_string;
+    char *sitesig_string;
     char *(*substr_fp) ();
+
+    char synparser;		// syntax parser
 
     struct editor_internal_t *prev;
 
@@ -252,7 +275,6 @@ int fix_cursor(char *str, int pos, unsigned int dir)
 
 #endif
 
-
 /* 記憶體管理與編輯處理 */
 static void
 indigestion(int i)
@@ -301,6 +323,8 @@ edit_buffer_destructor(void)
 
     if (curr_buf->searched_string != NULL)
 	free(curr_buf->searched_string);
+    if (curr_buf->sitesig_string != NULL)
+	free(curr_buf->sitesig_string);
 }
 
 static inline void
@@ -700,22 +724,6 @@ delete_line(textline_t * line, int saved)
     }
 }
 
-static int
-ask(const char *prompt)
-{
-    int ch;
-
-    move(0, 0);
-    clrtoeol();
-    standout();
-    outs(prompt);
-    standend();
-    ch = igetch();
-    move(0, 0);
-    clrtoeol();
-    return (ch);
-}
-
 /**
  * Return the indent space number according to CURRENT line and the FORMER
  * line. It'll be the first line contains non-space character.
@@ -1055,15 +1063,27 @@ delete_char(void)
 }
 
 static void
-load_file(FILE * fp)
+load_file(FILE * fp, off_t offSig)
 {
     char buf[WRAPMARGIN + 2];
     int indent_mode0 = curr_buf->indent_mode;
+    size_t szread = 0;
 
     assert(fp);
     curr_buf->indent_mode = 0;
     while (fgets(buf, sizeof(buf), fp))
-	insert_string(buf);
+    {
+	szread += strlen(buf);
+	if (offSig < 0 || szread <= offSig)
+	{
+	    insert_string(buf);
+	}
+	else
+	{
+	    // this is the site sig
+	    break;
+	}
+    }
     curr_buf->indent_mode = indent_mode0;
 }
 
@@ -1091,6 +1111,12 @@ read_tmpbuf(int n)
     char           *tmpf;
     char            ans[4] = "y";
 
+    if (curr_buf->totaln >= EDIT_LINE_LIMIT)
+    {
+	vmsg("檔案已超過最大限制，無法再讀入暫存檔。");
+	return;
+    }
+
     if (0 <= n && n <= 9) {
 	tmpfname[4] = '0' + n;
 	tmpf = tmpfname;
@@ -1103,7 +1129,7 @@ read_tmpbuf(int n)
     if (n != 0 && n != 5 && more(fp_tmpbuf, NA) != -1)
 	getdata(b_lines - 1, 0, "確定讀入嗎(Y/N)?[Y]", ans, sizeof(ans), LCECHO);
     if (*ans != 'n' && (fp = fopen(fp_tmpbuf, "r"))) {
-	load_file(fp);
+	load_file(fp, -1);
 	fclose(fp);
 	while (curr_buf->curr_window_line >= b_lines) {
 	    curr_buf->curr_window_line--;
@@ -1118,6 +1144,7 @@ write_tmpbuf(void)
     FILE           *fp;
     char            fp_tmpbuf[80], ans[4];
     textline_t     *p;
+    off_t	    sz = 0;
 
     setuserfile(fp_tmpbuf, ask_tmpbuf(3));
     if (dashf(fp_tmpbuf)) {
@@ -1127,6 +1154,15 @@ write_tmpbuf(void)
 
 	if (ans[0] == 'q')
 	    return;
+    }
+    if (ans[0] != 'w') // 'a'
+    {
+	sz = dashs(fp_tmpbuf);
+	if (sz > EDIT_SIZE_LIMIT)
+	{
+	    vmsg("暫存檔已超過大小限制，無法再附加。");
+	    return;
+	}
     }
     if ((fp = fopen(fp_tmpbuf, (ans[0] == 'w' ? "w" : "a+")))) {
 	for (p = curr_buf->firstline; p; p = p->next) {
@@ -1260,7 +1296,7 @@ static void
 do_quote(void)
 {
     int             op;
-    char            buf[256];
+    char            buf[512];
 
     getdata(b_lines - 1, 0, "請問要引用原文嗎(Y/N/All/Repost)？[Y] ",
 	    buf, 3, LCECHO);
@@ -1273,7 +1309,7 @@ do_quote(void)
 	    char           *ptr;
 	    int             indent_mode0 = curr_buf->indent_mode;
 
-	    fgets(buf, 256, inf);
+	    fgets(buf, sizeof(buf), inf);
 	    if ((ptr = strrchr(buf, ')')))
 		ptr[1] = '\0';
 	    else if ((ptr = strrchr(buf, '\n')))
@@ -1300,29 +1336,29 @@ do_quote(void)
 	    insert_string("》之銘言：\n");
 
 	    if (op != 'a')	/* 去掉 header */
-		while (fgets(buf, 256, inf) && buf[0] != '\n');
+		while (fgets(buf, sizeof(buf), inf) && buf[0] != '\n');
 	    /* FIXME by MH:
 	         如果 header 到內文中間沒有空行分隔，會造成 All 以外的模式
 	         都引不到內文。
 	     */
 
 	    if (op == 'a')
-		while (fgets(buf, 256, inf)) {
+		while (fgets(buf, sizeof(buf), inf)) {
 		    insert_char(':');
 		    insert_char(' ');
 		    quote_strip_ansi_inline((unsigned char *)buf);
 		    insert_string(buf);
 		}
 	    else if (op == 'r')
-		while (fgets(buf, 256, inf)) {
+		while (fgets(buf, sizeof(buf), inf)) {
 		    /* repost, keep anything */
 		    // quote_strip_ansi_inline((unsigned char *)buf);
 		    insert_string(buf);
 		}
 	    else {
 		if (curredit & EDIT_LIST)	/* 去掉 mail list 之 header */
-		    while (fgets(buf, 256, inf) && (!strncmp(buf, "※ ", 3)));
-		while (fgets(buf, 256, inf)) {
+		    while (fgets(buf, sizeof(buf), inf) && (!strncmp(buf, "※ ", 3)));
+		while (fgets(buf, sizeof(buf), inf)) {
 		    if (!strcmp(buf, "--\n"))
 			break;
 		    if (!garbage_line(buf)) {
@@ -1383,10 +1419,16 @@ check_quote(void)
 }
 
 /* 檔案處理：讀檔、存檔、標題、簽名檔 */
+off_t loadsitesig(const char *fname);
+
 static void
-read_file(const char *fpath)
+read_file(const char *fpath, int splitSig)
 {
-    FILE           *fp;
+    FILE  *fp;
+    off_t offSig = -1;
+
+    if (splitSig)
+	offSig = loadsitesig(fpath);
 
     if ((fp = fopen(fpath, "r")) == NULL) {
 	int fd;
@@ -1397,7 +1439,7 @@ read_file(const char *fpath)
 	indigestion(4);
 	abort_bbs(0);
     }
-    load_file(fp);
+    load_file(fp, offSig);
     fclose(fp);
 }
 
@@ -1479,6 +1521,48 @@ write_header(FILE * fp,  char *mytitle) // FIXME unused
     }
     mytitle[72] = '\0';
     fprintf(fp, "標題: %s\n時間: %s\n", mytitle, ctime4(&now));
+}
+
+off_t
+loadsitesig(const char *fname)
+{
+    int fd = 0;
+    off_t sz = 0, ret = -1;
+    char *start, *sp;
+
+    sz = dashs(fname);
+    if (sz < 1)
+	return -1;
+    fd = open(fname, O_RDONLY);
+    if (fd < 0)
+	return -1;
+    start = (char*)mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0);
+    if (start)
+    {
+	sp = start + sz - 4 - 1; // 4 = \n--\n
+	while (sp > start)
+	{
+	    if ((*sp == '\n' && strncmp(sp, "\n--\n", 4) == 0) ||
+		(*sp == '\r' && strncmp(sp, "\r--\r", 4) == 0) )
+	    {
+		size_t szSig = sz - (sp-start+1);
+		ret = sp - start + 1;
+		// allocate string
+		curr_buf->sitesig_string = (char*) malloc (szSig + 1);
+		if (curr_buf->sitesig_string)
+		{
+		    memcpy(curr_buf->sitesig_string, sp+1, szSig);
+		    curr_buf->sitesig_string[szSig] = 0;
+		}
+		break;
+	    }
+	    sp --;
+	}
+	munmap(start, sz);
+    }
+    
+    close(fd);
+    return ret;
 }
 
 void
@@ -1580,8 +1664,12 @@ browse_sigs:
 #endif
 }
 
+#ifdef EXP_EDIT_UPLOAD
+static void upload_file(void);
+#endif // EXP_EDIT_UPLOAD
+
 static int
-write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
+write_file(char *fpath, int saveheader, int *islocal, char *mytitle, int upload, int chtitle)
 {
     struct tm      *ptime;
     FILE           *fp = NULL;
@@ -1590,24 +1678,51 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
     int             aborted = 0, line = 0, checksum[3], sum = 0, po = 1;
 
     stand_title("檔案處理");
+    move(1,0);
+
+#ifdef EDIT_UPLOAD_ALLOWALL
+    upload = 1;
+#endif // EDIT_UPLOAD_ALLOWALL
+
+    // common trail
+
     if (currstat == SMAIL)
-	msg = "[S]儲存 (A)放棄 (T)改標題 (E)繼續 (R/W/D)讀寫刪暫存檔？";
+	outs("[S]儲存");
     else if (local_article)
-	msg = "[L]站內信件 (S)儲存 (A)放棄 (T)改標題 (E)繼續 "
-	    "(R/W/D)讀寫刪暫存檔？";
+	outs("[L]站內信件 (S)儲存");
     else
-	msg = "[S]儲存 (L)站內信件 (A)放棄 (T)改標題 (E)繼續 "
-	    "(R/W/D)讀寫刪暫存檔？";
-    getdata(1, 0, msg, ans, 2, LCECHO);
+	outs("[S]儲存 (L)站內信件");
+
+#ifdef EXP_EDIT_UPLOAD
+    if (upload)
+	outs(" (U)上傳資料");
+#endif // EXP_EDIT_UPLOAD
+
+    if (chtitle)
+	outs(" (T)改標題");
+
+    outs(" (A)放棄 (E)繼續 (R/W/D)讀寫刪暫存檔");
+
+    getdata(2, 0, "確定要儲存檔案嗎？ ", ans, 2, LCECHO);
+
+    // avoid lots pots
+    sleep(1);
 
     switch (ans[0]) {
     case 'a':
 	outs("文章" ANSI_COLOR(1) " 沒有 " ANSI_RESET "存入");
 	aborted = -1;
 	break;
+    case 'e':
+	return KEEP_EDITING;
+#ifdef EXP_EDIT_UPLOAD
+    case 'u':
+	if (upload)
+	    upload_file();
+	return KEEP_EDITING;
+#endif // EXP_EDIT_UPLOAD
     case 'r':
 	read_tmpbuf(-1);
-    case 'e':
 	return KEEP_EDITING;
     case 'w':
 	write_tmpbuf();
@@ -1616,6 +1731,8 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
 	erase_tmpbuf();
 	return KEEP_EDITING;
     case 't':
+	if (!chtitle)
+	    return KEEP_EDITING;
 	move(3, 0);
 	prints("舊標題：%s", mytitle);
 	strlcpy(ans, mytitle, sizeof(ans));
@@ -1658,6 +1775,7 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
 		trim(msg);
 
 		line++;
+
 		/* check crosspost */
 		if (currstat == POSTING && po ) {
 		    int msgsum = StringHash(msg);
@@ -1684,7 +1802,10 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
     }
     curr_buf->currline = NULL;
 
-    if (postrecord.times > MAX_CROSSNUM-1 && hbflcheck(currbid, currutmp->uid))
+    // what if currbid == 0? add currstat checking.
+    if (currstat == POSTING &&
+	postrecord.times > MAX_CROSSNUM-1 && 
+	!is_hidden_board_friend(currbid, currutmp->uid))
 	anticrosspost();
 
     if (po && sum == 3) {
@@ -1692,27 +1813,38 @@ write_file(char *fpath, int saveheader, int *islocal, char *mytitle)
         if(postrecord.last_bid != currbid)
 	    postrecord.times = 0;
     }
-    if (!aborted) {
-	if (islocal)
-	    *islocal = local_article;
-	if (currstat == POSTING || currstat == SMAIL)
-	{
-	    addsignature(fp, curr_buf->ifuseanony);
-	}
-	else if (currstat == REEDIT
+
+    if (aborted)
+	return aborted;
+
+    if (islocal)
+	*islocal = local_article;
+
+    if (curr_buf->sitesig_string)
+	fprintf(fp, curr_buf->sitesig_string);
+
+    if (currstat == POSTING || currstat == SMAIL)
+    {
+	addsignature(fp, curr_buf->ifuseanony);
+    }
+    else if (currstat == REEDIT)
+    {
 #ifndef ALL_REEDIT_LOG
-		 && strcmp(currboard, str_sysop) == 0
+	// why force signature in SYSOP board?
+	if(strcmp(currboard, GLOBAL_SYSOP) == 0)
 #endif
-	    ) {
+	{
 	    ptime = localtime4(&now);
 	    fprintf(fp,
 		    "※ 編輯: %-15s 來自: %-20s (%02d/%02d %02d:%02d)\n",
 		    cuser.userid, fromhost,
-		    ptime->tm_mon + 1, ptime->tm_mday, ptime->tm_hour, ptime->tm_min);
+		    ptime->tm_mon + 1, ptime->tm_mday, 
+		    ptime->tm_hour, ptime->tm_min);
 	}
-	fclose(fp);
     }
-    return aborted;
+
+    fclose(fp);
+    return 0;
 }
 
 static inline int
@@ -1749,18 +1881,6 @@ setup_block_begin_end(textline_t **begin, textline_t **end)
     }
 }
 
-static inline void
-setup_block_begin_end_number(short *begin, short *end)
-{
-    if (curr_buf->currpnt > curr_buf->blockpnt) {
-	*begin = curr_buf->blockpnt;
-	*end = curr_buf->currpnt;
-    } else {
-	*begin  = curr_buf->currpnt;
-	*end = curr_buf->blockpnt;
-    }
-}
-
 #define BLOCK_TRUNCATE	0
 #define BLOCK_APPEND	1
 /**
@@ -1782,24 +1902,12 @@ block_save_to_file(const char *fname, int mode)
 
     setuserfile(fp_tmpbuf, fname);
     if ((fp = fopen(fp_tmpbuf, mode == BLOCK_APPEND ? "a+" : "w+"))) {
-	if (begin == end && curr_buf->currpnt != curr_buf->blockpnt) {
-	    char buf[WRAPMARGIN + 2];
 
-	    if (curr_buf->currpnt > curr_buf->blockpnt) {
-		strlcpy(buf, begin->data + curr_buf->blockpnt, sizeof(buf));
-		buf[curr_buf->currpnt - curr_buf->blockpnt] = 0;
-	    } else {
-		strlcpy(buf, begin->data + curr_buf->currpnt, sizeof(buf));
-		buf[curr_buf->blockpnt - curr_buf->currpnt] = 0;
-	    }
-	    fputs(buf, fp);
-	} else {
-	    textline_t *p;
+	textline_t *p;
 
-	    for (p = begin; p != end; p = p->next)
-		fprintf(fp, "%s\n", p->data);
-	    fprintf(fp, "%s\n", end->data);
-	}
+	for (p = begin; p != end; p = p->next)
+	    fprintf(fp, "%s\n", p->data);
+	fprintf(fp, "%s\n", end->data);
 	fclose(fp);
     }
 }
@@ -1811,62 +1919,63 @@ static void
 block_delete(void)
 {
     textline_t *begin, *end;
+	textline_t *p;
 
     if (!has_block_selection())
 	return;
 
     setup_block_begin_end(&begin, &end);
 
-    if (begin == end && curr_buf->currpnt != curr_buf->blockpnt) {
-	short min, max;
+    // the block region is (currln, block) or (blockln, currln).
 
-	setup_block_begin_end_number(&min, &max);
-	strcpy(begin->data + min, begin->data + max);
-	begin->len -= max - min;
-	curr_buf->currpnt = min;
+    if (curr_buf->currln > curr_buf->blockln) {
+	// case (blockln, currln)
+	// piaip 2007/1201 在這裡原有 offset-by-one issue
+	// 如果又遇到，請檢查這附近。
+	curr_buf->curr_window_line -= (curr_buf->currln - curr_buf->blockln);
 
+	if (curr_buf->curr_window_line <= 0) {
+	    curr_buf->curr_window_line = 0;
+	    if (end->next)
+		(curr_buf->top_of_win = end->next)->prev = begin->prev;
+	    else
+		curr_buf->top_of_win = (curr_buf->lastline = begin->prev);
+	}
+	curr_buf->currln -= (curr_buf->currln - curr_buf->blockln);
     } else {
-	textline_t *p;
-
-	if (curr_buf->currln >= curr_buf->blockln) {
-	    curr_buf->curr_window_line -= (curr_buf->currln - curr_buf->blockln + 1);
-	    if (curr_buf->curr_window_line < 0) {
-		curr_buf->curr_window_line = 0;
-		if (end->next)
-		    (curr_buf->top_of_win = end->next)->prev = begin->prev;
-		else
-		    curr_buf->top_of_win = (curr_buf->lastline = begin->prev);
-	    }
-	    curr_buf->currln -= (curr_buf->currln - curr_buf->blockln);
-	}
-
-	if (begin->prev)
-	    begin->prev->next = end->next;
-	else if (end->next)
-	    curr_buf->top_of_win = curr_buf->firstline = end->next;
-	else {
-	    curr_buf->currline = curr_buf->top_of_win = curr_buf->firstline = curr_buf->lastline = alloc_line(WRAPMARGIN);
-	    curr_buf->currln = curr_buf->curr_window_line = curr_buf->edit_margin = 0;
-	}
-
-	if (end->next) {
-	    curr_buf->currline = end->next;
-	    curr_buf->currline->prev = begin->prev;
-	}
-	else if (begin->prev) {
-	    curr_buf->currline = (curr_buf->lastline = begin->prev);
-	    curr_buf->currln--;
-	    if (curr_buf->curr_window_line > 0)
-		curr_buf->curr_window_line--;
-	}
-
-	for (p = begin; p != end; curr_buf->totaln--)
-	    free_line((p = p->next)->prev);
-	free_line(end);
-	curr_buf->totaln--;
-
-	curr_buf->currpnt = 0;
+	// case (currln, blockln)
     }
+
+    // adjust buffer after delete
+    if (begin->prev)
+	begin->prev->next = end->next;
+    else if (end->next)
+	curr_buf->top_of_win = curr_buf->firstline = end->next;
+    else {
+	curr_buf->currline = curr_buf->top_of_win = curr_buf->firstline = curr_buf->lastline = alloc_line(WRAPMARGIN);
+	curr_buf->currln = curr_buf->curr_window_line = curr_buf->edit_margin = 0;
+    }
+
+    // adjust current line
+    if (end->next) {
+	curr_buf->currline = end->next;
+	curr_buf->currline->prev = begin->prev;
+    }
+    else if (begin->prev) {
+	curr_buf->currline = (curr_buf->lastline = begin->prev);
+	curr_buf->currln--;
+	if (curr_buf->curr_window_line > 0)
+	    curr_buf->curr_window_line--;
+    }
+
+    // remove buffer
+    for (p = begin; p != end; curr_buf->totaln--)
+	free_line((p = p->next)->prev);
+
+    free_line(end);
+    curr_buf->totaln--;
+
+    curr_buf->currpnt = 0;
 }
 
 static void
@@ -1943,8 +2052,212 @@ static void
 block_select(void)
 {
     curr_buf->blockln = curr_buf->currln;
-    curr_buf->blockpnt = curr_buf->currpnt;
     curr_buf->blockline = curr_buf->currline;
+}
+
+enum {
+    EOATTR_NORMAL   = 0x00,
+    EOATTR_SELECTED = 0x01,	// selected (reverse)
+    EOATTR_MOVIECODE= 0x02,	// pmore movie
+    EOATTR_BBSLUA   = 0x04,	// BBS Lua (header)
+    EOATTR_COMMENT  = 0x08,	// comment syntax
+
+};
+
+static const char *luaKeywords[] = {
+    "and",   "break", "do",  "else", "elseif",
+    "end",   "for",   "if",  "in",   "not",  "or", 
+    "repeat","return","then","until","while",
+    NULL
+};
+
+static const char *luaDataKeywords[] = {
+    "false", "function", "local", "nil", "true",
+    NULL
+};
+
+static const char *luaFunctions[] = {
+    "assert", "print", "tonumber", "tostring", "type",
+    NULL
+};
+
+static const char *luaMath[] = {
+    "abs", "acos", "asin", "atan", "atan2", "ceil", "cos", "cosh", "deg",
+    "exp", "floor", "fmod", "frexp", "ldexp", "log", "log10", "max", "min",
+    "modf", "pi", "pow", "rad", "random", "randomseed", "sin", "sinh", 
+    "sqrt", "tan", "tanh",
+    NULL
+};
+
+static const char *luaTable[] = {
+    "concat", "insert", "maxn", "remove", "sort",
+    NULL
+};
+
+static const char *luaString[] = {
+    "byte", "char", "dump", "find", "format", "gmatch", "gsub", "len", 
+    "lower", "match", "rep", "reverse", "sub", "upper", NULL
+};
+
+static const char *luaBbs[] = {
+    "ANSI_COLOR", "ANSI_RESET", "ESC", "addstr", "clear", "clock",
+    "clrtobot", "clrtoeol", "color", "ctime", "getch","getdata",
+    "getmaxyx", "getstr", "getyx", "interface", "kball", "kbhit", "kbreset", 
+    "move", "moverel", "now", "outs", "pause", "print", "rect", "refresh",
+    "setattr", "sitename", "sleep", "strip_ansi", "time", "title", 
+    "userid", "usernick",
+    NULL
+};
+
+static const char *luaToc[] = {
+    "author", "date", "interface", "latestref", 
+    "notes", "title", "version",
+    NULL
+};
+
+static const char *luaBit[] = {
+    "arshift", "band", "bnot", "bor", "bxor", "cast", "lshift", "rshift",
+    NULL
+};
+
+static const char *luaStore[] = {
+    "USER", "GLOBAL", "iolimit", "limit", "load", "save",
+    NULL
+};
+
+static const char *luaLibs[] = {
+    "bbs", "bit", "math", "store", "string", "table", "toc",
+    NULL
+};
+static const char**luaLibAPI[] = {
+    luaBbs, luaBit, luaMath, luaStore, luaString, luaTable, luaToc,
+    NULL
+};
+
+int synLuaKeyword(const char *text, int n, char *wlen)
+{
+    int i = 0;
+    const char **tbl = NULL;
+    if (*text >= 'A' && *text <= 'Z')
+    {
+	// normal identifier
+	while (n-- > 0 && (isalnum(*text) || *text == '_'))
+	{
+	    text++; 
+	    (*wlen) ++;
+	}
+	return 0;
+    }
+    if (*text >= '0' && *text <= '9')
+    {
+	// digits
+	while (n-- > 0 && (isdigit(*text) || *text == '.' || *text == 'x'))
+	{
+	    text++; 
+	    (*wlen) ++;
+	}
+	return 5;
+    }
+    if (*text == '#')
+    {
+	text++;
+	(*wlen) ++;
+	// length of identifier
+	while (n-- > 0 && (isalnum(*text) || *text == '_'))
+	{
+	    text++; 
+	    (*wlen) ++;
+	}
+	return -2;
+    }
+
+    // ignore non-identifiers
+    if (!(*text >= 'a' && *text <= 'z'))
+	return 0;
+
+    // 1st, try keywords
+    for (i = 0; luaKeywords[i] && *text >= *luaKeywords[i]; i++)
+    {
+	int l = strlen(luaKeywords[i]);
+	if (n < l)
+	    continue;
+	if (isalnum(text[l]))
+	    continue;
+	if (strncmp(text, luaKeywords[i], l) == 0)
+	{
+	    *wlen = l;
+	    return 3;
+	}
+    }
+    for (i = 0; luaDataKeywords[i] && *text >= *luaDataKeywords[i]; i++)
+    {
+	int l = strlen(luaDataKeywords[i]);
+	if (n < l)
+	    continue;
+	if (isalnum(text[l]))
+	    continue;
+	if (strncmp(text, luaDataKeywords[i], l) == 0)
+	{
+	    *wlen = l;
+	    return 2;
+	}
+    }
+    for (i = 0; luaFunctions[i] && *text >= *luaFunctions[i]; i++)
+    {
+	int l = strlen(luaFunctions[i]);
+	if (n < l)
+	    continue;
+	if (isalnum(text[l]))
+	    continue;
+	if (strncmp(text, luaFunctions[i], l) == 0)
+	{
+	    *wlen = l;
+	    return 6;
+	}
+    }
+    for (i = 0; luaLibs[i]; i++)
+    {
+	int l = strlen(luaLibs[i]);
+	if (n < l)
+	    continue;
+	if (text[l] != '.' && text[l] != ':')
+	    continue;
+	if (strncmp(text, luaLibs[i], l) == 0)
+	{
+	    *wlen = l+1;
+	    text += l; text ++;
+	    n -= l; n--;
+	    break;
+	}
+    }
+
+    tbl = luaLibAPI[i];
+    if (!tbl)
+    {
+	// calcualte wlen
+	while (n-- > 0 && (isalnum(*text) || *text == '_'))
+	{
+	    text++; 
+	    (*wlen) ++;
+	}
+	return 0;
+    }
+
+    for (i = 0; tbl[i]; i++)
+    {
+	int l = strlen(tbl[i]);
+	if (n < l)
+	    continue;
+	if (isalnum(text[l]))
+	    continue;
+	if (strncmp(text, tbl[i], l) == 0)
+	{
+	    *wlen += l;
+	    return 6;
+	}
+    }
+    // luaLib. only
+    return -6;
 }
 
 /**
@@ -1953,19 +2266,56 @@ block_select(void)
  * FIXME column could not start from 0
  */
 
-void
-edit_outs(const char *text)
-{
-    edit_outs_n(text, scr_cols);
-}
-
-void
-edit_outs_n(const char *text, int n)
+static void
+edit_outs_attr_n(const char *text, int n, int attr)
 {
     int    column = 0;
-
     register unsigned char inAnsi = 0;
     register unsigned char ch;
+    int doReset = 0;
+    const char *reset = ANSI_RESET;
+
+    // syntax attributes
+    char fComment = 0,
+	 fSingleQuote = 0,
+	 fDoubleQuote = 0,
+	 fSquareQuote = 0,
+	 fWord = 0;
+
+#ifdef COLORED_SELECTION
+    if ((attr & EOATTR_SELECTED) && 
+	(attr & ~EOATTR_SELECTED))
+    {
+	reset = ANSI_COLOR(0;7;36);
+	doReset = 1;
+	outs(reset);
+    }
+    else 
+#endif // if not defined, color by  priority - selection first
+    if (attr & EOATTR_SELECTED)
+    {
+	reset = ANSI_COLOR(0;7);
+	doReset = 1;
+	outs(reset);
+    }
+    else if (attr & EOATTR_MOVIECODE)
+    {
+	reset = ANSI_COLOR(0;36);
+	doReset = 1;
+	outs(reset);
+    }
+    else if (attr & EOATTR_BBSLUA)
+    {
+	reset = ANSI_COLOR(0;1;31);
+	doReset = 1;
+	outs(reset);
+    }
+    else if (attr & EOATTR_COMMENT)
+    {
+	reset = ANSI_COLOR(0;1;34);
+	doReset = 1;
+	outs(reset);
+    }
 
 #ifdef DBCSAWARE
     /* 0 = N/A, 1 = leading byte printed, 2 = ansi in middle */
@@ -1974,7 +2324,7 @@ edit_outs_n(const char *text, int n)
 
     while ((ch = *text++) && (++column < t_columns) && n-- > 0)
     {
-	if(inAnsi)
+	if(inAnsi == 1)
 	{
 	    if(ch == ESC_CHR)
 		outc('*');
@@ -1985,11 +2335,11 @@ edit_outs_n(const char *text, int n)
 		if(!ANSI_IN_ESCAPE(ch))
 		{
 		    inAnsi = 0;
-		    outs(ANSI_RESET);
+		    outs(reset);
 		}
 	    }
 
-	}
+	} 
 	else if(ch == ESC_CHR)
 	{
 	    inAnsi = 1;
@@ -1997,8 +2347,8 @@ edit_outs_n(const char *text, int n)
 	    if(isDBCS == 1)
 	    {
 		isDBCS = 2;
-		outs(//ESC_STR "[1D"
-			ANSI_COLOR(1;33) "?" ANSI_RESET);
+		outs(ANSI_COLOR(1;33) "?");
+		outs(reset);
 	    }
 #endif
 	    outs(ANSI_COLOR(1) "*");
@@ -2011,7 +2361,8 @@ edit_outs_n(const char *text, int n)
 	    else if (isDBCS == 2)
 	    {
 		/* ansi in middle. */
-		outs(ANSI_COLOR(0;33) "?" ANSI_RESET);
+		outs(ANSI_COLOR(0;33) "?");
+		outs(reset);
 		isDBCS = 0;
 		continue;
 	    }
@@ -2024,42 +2375,111 @@ edit_outs_n(const char *text, int n)
 			continue;
 		}
 #endif
+	    // Lua Parser!
+	    if (!attr && curr_buf->synparser && !fComment)
+	    {
+		// syntax highlight!
+		if (fSquareQuote) {
+		    if (ch == ']' && n > 0 && *(text) == ']')
+		    {
+			fSquareQuote = 0;
+			doReset = 0;
+			// directly print quotes
+			outc(ch); outc(ch);
+			text++, n--;
+			outs(ANSI_RESET);
+			continue;
+		    }
+		} else if (fSingleQuote) {
+		    if (ch == '\'')
+		    {
+			fSingleQuote = 0;
+			doReset = 0;
+			// directly print quotes
+			outc(ch);
+			outs(ANSI_RESET);
+			continue;
+		    }
+		} else if (fDoubleQuote) {
+		    if (ch == '"')
+		    {
+			fDoubleQuote = 0;
+			doReset = 0;
+			// directly print quotes
+			outc(ch);
+			outs(ANSI_RESET);
+			continue;
+		    }
+		} else if (ch == '-' && n > 0 && *(text) == '-') {
+		    fComment = 1;
+		    doReset = 1;
+		    outs(ANSI_COLOR(0;1;34)); 
+		} else if (ch == '[' && n > 0 && *(text) == '[') {
+		    fSquareQuote = 1;
+		    doReset = 1;
+		    fWord = 0;
+		    outs(ANSI_COLOR(1;35));
+		} else if (ch == '\'' || ch == '"') {
+		    if (ch == '"')
+			fDoubleQuote = 1;
+		    else
+			fSingleQuote = 1;
+		    doReset = 1;
+		    fWord = 0;
+		    outs(ANSI_COLOR(1;35));
+		} else {
+		    // normal words
+		    if (fWord)
+		    {
+			// inside a word.
+			if (--fWord <= 0){
+			    fWord = 0;
+			    doReset = 0;
+			    outc(ch);
+			    outs(ANSI_RESET);
+			    continue;
+			}
+		    } else if (isalnum(tolower(ch)) || ch == '#') {
+			char attr[] = ANSI_COLOR(0;1;37);
+			int x = synLuaKeyword(text-1, n+1, &fWord);
+			if (fWord > 0)
+			    fWord --;
+			if (x != 0)
+			{
+			    // sorry, fixed string here.
+			    // 7 = *[0;1;3?
+			    if (x<0) {  attr[4] = '0'; x= -x; }
+			    attr[7] = '0' + x;
+			    prints(attr);
+			    doReset = 1;
+			}
+			if (!fWord)
+			{
+			    outc(ch);
+			    outs(ANSI_RESET);
+			    doReset = 0;
+			    continue;
+			}
+		    }
+		}
+	    }
 	    outc(ch);
 	}
     } 
 
-    if(inAnsi)
+    // this must be ANSI_RESET, not "reset".
+    if(inAnsi || doReset)
 	outs(ANSI_RESET);
 }
 
 static void
-edit_ansi_outs(const char *str)
+edit_outs_attr(const char *text, int attr)
 {
-    char c;
-    while ((c = *str++)) {
-	if(c == ESC_CHR && *str == '*')
-	{
-	    // ptt prints
-	    /* Because moving within ptt_prints is too hard
-	     * let's just display it as-is.
-	     */
-	    outc('*');
-	    /*
-	    char buf[64] = ESC_STR "*x";
-
-	    str ++;
-	    buf[2] = *str++;
-	    Ptt_prints(buf, NO_RELOAD);
-	    outs(buf);
-	    */
-	} else {
-	    outc(c);
-	}
-    }
+    edit_outs_attr_n(text, scr_cols, attr);
 }
 
 static void
-edit_ansi_outs_n(const char *str, int n)
+edit_ansi_outs_n(const char *str, int n, int attr)
 {
     char c;
     while (n-- > 0 && (c = *str++)) {
@@ -2070,36 +2490,81 @@ edit_ansi_outs_n(const char *str, int n)
 	     * let's just display it as-is.
 	     */
 	    outc('*');
-	    /*
-	    char buf[64] = ESC_STR "*x";
-
-	    str ++;
-	    buf[2] = *str++;
-	    Ptt_prints(buf, NO_RELOAD);
-	    if(strlen(buf) > n+1)
-		buf[n+1] = 0;
-	    outs(buf);
-	    n -= strlen(buf);
-	    */
 	} else {
 	    outc(c);
 	}
     }
 }
 
-static inline void
-display_textline_internal(textline_t *p, int i, int min, int max)
+static void
+edit_ansi_outs(const char *str, int attr)
 {
-    char inblock;
+    return edit_ansi_outs_n(str, strlen(str), attr);
+}
+
+// old compatible API
+void
+edit_outs(const char *text)
+{
+    edit_outs_attr(text, 0);
+}
+
+void
+edit_outs_n(const char *text, int n)
+{
+    edit_outs_attr_n(text, n, 0);
+}
+
+
+#define PMORE_USE_ASCII_MOVIE // disable this if you don't enable ascii movie
+
+#ifdef PMORE_USE_ASCII_MOVIE
+// pmore movie header support
+unsigned char *
+    mf_movieFrameHeader(unsigned char *p, unsigned char *end);
+
+#endif // PMORE_USE_ASCII_MOVIE
+
+static int 
+detect_attr(const char *ps, size_t len)
+{
+    int attr = 0;
+
+#ifdef PMORE_USE_ASCII_MOVIE
+    if (mf_movieFrameHeader((unsigned char*)ps, (unsigned char*)ps+len))
+	attr |= EOATTR_MOVIECODE;
+#endif
+#ifdef USE_BBSLUA
+    if (bbslua_isHeader(ps, ps + len))
+    {
+	attr |= EOATTR_BBSLUA;
+	if (!curr_buf->synparser)
+	{
+	    curr_buf->synparser = 1;
+	    // if you need indent, toggle by hotkey.
+	    // enabling indent by default may cause trouble to copy pasters
+	    // curr_buf->indent_mode = 1;
+	}
+    }
+#endif
+    return attr;
+}
+
+static inline void
+display_textline_internal(textline_t *p, int i)
+{
     short tmp;
-    void (*output)(const char *);
-    void (*output_n)(const char *, int);
+    void (*output)(const char *, int)	    = edit_outs_attr;
+    void (*output_n)(const char *, int, int)= edit_outs_attr_n;
+
+    int attr = EOATTR_NORMAL;
 
     move(i, 0);
     clrtoeol();
 
     if (!p) {
 	outc('~');
+	outs(ANSI_CLRTOEND);
 	return;
     }
 
@@ -2107,87 +2572,68 @@ display_textline_internal(textline_t *p, int i, int min, int max)
 	output = edit_ansi_outs;
 	output_n = edit_ansi_outs_n;
     }
-    else {
-	output = edit_outs;
-	output_n = edit_outs_n;
-    }
 
     tmp = curr_buf->currln - curr_buf->curr_window_line + i;
 
-    /* if line 'i' is in block's range */
-    if (has_block_selection() && (
-		(curr_buf->blockln <= curr_buf->currln &&
-		 curr_buf->blockln <= tmp && tmp <= curr_buf->currln) ||
-		(curr_buf->currln <= tmp && tmp <= curr_buf->blockln)) ) {
-	outs(ANSI_COLOR(7));
-	inblock = 1;
-    } else
-	inblock = 0;
+    // parse attribute of line 
+    
+    // selected attribute?
+    if (has_block_selection() && 
+	    ( (curr_buf->blockln <= curr_buf->currln &&
+	       curr_buf->blockln <= tmp && tmp <= curr_buf->currln) ||
+	      (curr_buf->currln <= tmp && tmp <= curr_buf->blockln)) ) 
+    {
+	// outs(ANSI_COLOR(7)); // remove me when EOATTR is ready...
+	attr |= EOATTR_SELECTED;
+    }
 
-    if (curr_buf->currln == curr_buf->blockln && p == curr_buf->currline && max > min) {
-	outs(ANSI_RESET);
-	(*output_n)(p->data, min);
-	outs(ANSI_COLOR(7));
-	(*output_n)(p->data + min, max - min);
-	outs(ANSI_RESET);
-	(*output)(p->data + max);
-    } else
+    attr |= detect_attr(p->data, p->len);
 
 #ifdef DBCSAWARE
-	if(mbcs_mode && curr_buf->edit_margin > 0)
+    if(mbcs_mode && curr_buf->edit_margin > 0)
+    {
+	if(curr_buf->edit_margin >= p->len)
 	{
-	    if(curr_buf->edit_margin >= p->len)
+	    (*output)("", attr);
+	} else {
+
+	    int newpnt = curr_buf->edit_margin;
+	    unsigned char *pdata = (unsigned char*)
+		(&p->data[0] + curr_buf->edit_margin);
+
+	    if(mbcs_mode)
+		newpnt = fix_cursor(p->data, newpnt, FC_LEFT);
+
+	    if(newpnt == curr_buf->edit_margin-1)
 	    {
-		(*output)("");
-	    } else {
-		int newpnt = curr_buf->edit_margin;
-		unsigned char *pdata = (unsigned char*)(&p->data[0] + curr_buf->edit_margin);
-		if(mbcs_mode)
-		    newpnt = fix_cursor(p->data, newpnt, FC_LEFT);
-		if(newpnt == curr_buf->edit_margin-1)
-		{
-		    /* this should be always 'outs'? */
-		    // (*output)(ANSI_COLOR(1) "<" ANSI_RESET);
-		    outs(ANSI_COLOR(1) "<" ANSI_RESET);
-		    pdata++;
-		}
-		(*output)((char*)pdata);
+		/* this should be always 'outs'? */
+		// (*output)(ANSI_COLOR(1) "<" ANSI_RESET);
+		outs(ANSI_COLOR(1) "<" ANSI_RESET);
+		pdata++;
 	    }
+	    (*output)((char*)pdata, attr);
+	}
 
-	} else
+    } else
 #endif
-	(*output)((curr_buf->edit_margin < p->len) ? &p->data[curr_buf->edit_margin] : "");
+    (*output)((curr_buf->edit_margin < p->len) ? 
+	    &p->data[curr_buf->edit_margin] : "", attr);
 
-    if (inblock)
+    if (attr)
 	outs(ANSI_RESET);
-}
-/**
- * given a textline_t 'text' and the line number 'n' in the content,
- * display this line.
- *
- * this is not called... why? */
-/*
-static void
-display_textline(textline_t *text, int n)
-{
-    short begin, end;
 
-    setup_block_begin_end_number(&begin, &end);
-    display_textline_internal(text, n, begin, end);
+    // workaround poor terminal
+    outs(ANSI_CLRTOEND);
 }
-*/
 
 static void
 refresh_window(void)
 {
     register textline_t *p;
     register int    i;
-    short           begin, end;
-
-    setup_block_begin_end_number(&begin, &end);
 
     for (p = curr_buf->top_of_win, i = 0; i < b_lines; i++) {
-	display_textline_internal(p, i, begin, end);
+	display_textline_internal(p, i);
 
 	if (p)
 	    p = p->next;
@@ -2712,9 +3158,81 @@ phone_mode_filter(char ch)
     return 0;
 }
 
+#ifdef EXP_EDIT_UPLOAD
+
+static void
+upload_file(void)
+{
+    size_t szdata = 0;
+    int c = 1;
+    char promptmsg = 0;
+
+    clear();
+    block_cancel();
+    stand_title("上傳文字檔案");
+    move(3,0);
+    outs("利用本服務您可以上傳較大的文字檔 (但不計入稿費)。\n"
+	 "\n"
+	 "上傳期間您打的字暫時不會出現在螢幕上，除了 Ctrl-U 會被轉換為 ANSI \n"
+	 "控制碼的 ESC 外，其它特殊鍵一律沒有作用。\n"
+	 "\n"
+	 "請在您的電腦本機端複製好內容後貼上即可開始傳送。\n");
+
+    do {
+	if (!num_in_buf())
+	{
+	    move(10, 0); clrtobot();
+	    prints("\n\n資料接收中... %u 位元組。\n", (unsigned int)szdata);
+	    outs(ANSI_COLOR(1) 
+		    "◆全部完成後按下 End 或 ^X/^Q/^C 即可回到編輯畫面。"
+		    ANSI_RESET "\n");
+	    promptmsg = 0;
+	}
+
+	c = igetch();
+	if (c < 0x100 && isprint2(c))
+	{
+	    insert_char(c);
+	    szdata ++;
+	}
+	else if (c == Ctrl('U') || c == ESC_CHR)
+	{
+	    insert_char(ESC_CHR);
+	    szdata ++;
+	}
+	else if (c == Ctrl('I'))
+	{
+	    insert_tab();
+	    szdata ++;
+	}
+	else if (c == '\r' || c == '\n')
+	{
+	    split(curr_buf->currline, curr_buf->currpnt);
+	    curr_buf->oldcurrline = curr_buf->currline;
+	    szdata ++;
+	    promptmsg = 1;
+	}
+
+	if (!promptmsg)
+	    promptmsg = (szdata && szdata % 1024 == 0);
+
+	// all other keys are ignored.
+    } while (c != KEY_END && c != Ctrl('X') && 
+	     c != Ctrl('C') && c != Ctrl('Q') &&
+	     curr_buf->totaln <= EDIT_LINE_LIMIT &&
+	     szdata <= EDIT_SIZE_LIMIT);
+
+    move(12, 0);
+    prints("傳送結束: 收到 %u 位元組。", (unsigned int)szdata);
+    vmsgf("回到編輯畫面");
+}
+
+#endif // EXP_EDIT_UPLOAD
+
+
 /* 編輯處理：主程式、鍵盤處理 */
 int
-vedit(char *fpath, int saveheader, int *islocal)
+vedit2(char *fpath, int saveheader, int *islocal, int flags)
 {
     char            last = 0;	/* the last key you press */
     int             ch, tmp;
@@ -2744,7 +3262,7 @@ vedit(char *fpath, int saveheader, int *islocal)
 	curr_buf->firstline = curr_buf->lastline = alloc_line(WRAPMARGIN);
 
     if (*fpath) {
-	read_file(fpath);
+	read_file(fpath, (flags & EDITFLAG_TEXTONLY) ? 1 : 0);
     }
 
     if (*quote_file) {
@@ -2811,7 +3329,7 @@ vedit(char *fpath, int saveheader, int *islocal)
              log_file("etc/illegal_money",  LOG_CREAT | LOG_VF,
              ANSI_COLOR(1;33;46) "%s " ANSI_COLOR(37;45) " 用機器人發表文章 " ANSI_COLOR(37) " %s" ANSI_RESET "\n",
              cuser.userid, ctime4(&now));
-             post_violatelaw(cuser.userid, "Ptt系統警察", 
+             post_violatelaw(cuser.userid, BBSMNAME "系統警察", 
                  "用機器人發表文章", "強制離站");
              abort_bbs(0);
 */
@@ -2886,7 +3404,9 @@ vedit(char *fpath, int saveheader, int *islocal)
 	    switch (ch) {
 	    case KEY_F10:
 	    case Ctrl('X'):	/* Save and exit */
-		tmp = write_file(fpath, saveheader, islocal, mytitle);
+		tmp = write_file(fpath, saveheader, islocal, mytitle, 
+			(flags & EDITFLAG_UPLOAD) ? 1 : 0,
+			(flags & EDITFLAG_ALLOWTITLE) ? 1 : 0);
 		if (tmp != KEEP_EDITING) {
 		    strlcpy(save_title, mytitle, sizeof(save_title));
 		    save_title[STRLEN-1] = 0;
@@ -2919,7 +3439,8 @@ vedit(char *fpath, int saveheader, int *islocal)
 		curr_buf->oldcurrline = curr_buf->currline;
 		break;
 	    case Ctrl('Q'):	/* Quit without saving */
-		ch = ask("結束但不儲存 (Y/N)? [N]: ");
+		grayout(0, b_lines-1, GRAYOUT_DARK);
+		ch = vmsg("結束但不儲存 [y/N]? ");
 		if (ch == 'y' || ch == 'Y') {
 		    currutmp->mode = mode0;
 		    currutmp->destuid = destuid0;
@@ -3020,21 +3541,6 @@ vedit(char *fpath, int saveheader, int *islocal)
 		    break;
 		}
 		break;
-#if 0 // DEPRECATED, it's really not a well known expensive feature
-	    case Ctrl('_'):
-		// swap editline and currline's data
-		if (strcmp(editline, curr_buf->currline->data)) {
-		    char            buf[WRAPMARGIN];
-
-		    strlcpy(buf, curr_buf->currline->data, sizeof(buf));
-		    strcpy(curr_buf->currline->data, editline);
-		    strcpy(editline, buf);
-		    curr_buf->currline->len = strlen(curr_buf->currline->data);
-		    curr_buf->currpnt = 0;
-		    curr_buf->line_dirty = 1;
-		}
-		break;
-#endif
 	    case Ctrl('S'):
 	    case KEY_F3:
 		search_str(0);
@@ -3054,9 +3560,19 @@ vedit(char *fpath, int saveheader, int *islocal)
 		break;
 	    case '\r':
 	    case '\n':
+		block_cancel();
+		if (curr_buf->totaln >= EDIT_LINE_LIMIT)
+		{
+		    vmsg("檔案已超過最大限制，無法再增加行數。");
+		    break;
+		}
+
 #ifdef MAX_EDIT_LINE
-		if( curr_buf->totaln == MAX_EDIT_LINE ){
-		    outs("MAX_EDIT_LINE exceed");
+		if(curr_buf->totaln == 
+			((flags & EDITFLAG_ALLOWLARGE) ? 
+			 MAX_EDIT_LINE_LARGE : MAX_EDIT_LINE))
+		{
+		    vmsg("已到達最大行數限制。");
 		    break;
 		}
 #endif
@@ -3069,6 +3585,7 @@ vedit(char *fpath, int saveheader, int *islocal)
 		    setutmpmode(EDITEXP);
 		    a_menu("編輯輔助器", "etc/editexp",
 			   (HasUserPerm(PERM_SYSOP) ? SYSOP : NOBODY),
+			   0,
 			   trans_buffer);
 		    currstat = currstat0;
 		}
@@ -3200,8 +3717,8 @@ vedit(char *fpath, int saveheader, int *islocal)
 	    case Ctrl('A'):
 		curr_buf->currpnt = 0;
 		break;
+	    case Ctrl('O'):	// better not use ^O - UNIX not sending.
 	    case KEY_INS:	/* Toggle insert/overwrite */
-	    case Ctrl('O'):
 		if (has_block_selection() && curr_buf->insert_mode) {
 		    char            ans[4];
 
@@ -3214,6 +3731,7 @@ vedit(char *fpath, int saveheader, int *islocal)
 		break;
 	    case Ctrl('H'):
 	    case '\177':	/* backspace */
+		block_cancel();
 		if (curr_buf->ansimode) {
 		    curr_buf->ansimode = 0;
 		    clear();
@@ -3264,6 +3782,7 @@ vedit(char *fpath, int saveheader, int *islocal)
 		break;
 	    case Ctrl('D'):
 	    case KEY_DEL:	/* delete current character */
+		block_cancel();
 		if (curr_buf->currline->len == curr_buf->currpnt) {
 		    join(curr_buf->currline);
 		    curr_buf->redraw_everything = YEA;
@@ -3288,6 +3807,7 @@ vedit(char *fpath, int saveheader, int *islocal)
 	    case Ctrl('Y'):	/* delete current line */
 		curr_buf->currline->len = curr_buf->currpnt = 0;
 	    case Ctrl('K'):	/* delete to end of line */
+		block_cancel();
 		if (curr_buf->currline->len == 0) {
 		    textline_t     *p = curr_buf->currline->next;
 		    if (!p) {
@@ -3353,7 +3873,12 @@ vedit(char *fpath, int saveheader, int *islocal)
 		if (curr_buf->ansimode)
 		    outs(curr_buf->currline->data);
 		else
-		    edit_outs(&curr_buf->currline->data[curr_buf->edit_margin]);
+		{
+		    int attr = EOATTR_NORMAL;
+		    attr |= detect_attr(curr_buf->currline->data, curr_buf->currline->len);
+		    edit_outs_attr(&curr_buf->currline->data[curr_buf->edit_margin], attr);
+		}
+		outs(ANSI_RESET ANSI_CLRTOEND);
 		edit_msg();
 	    }
 	} /* redraw */
@@ -3362,5 +3887,11 @@ vedit(char *fpath, int saveheader, int *islocal)
     exit_edit_buffer();
 }
 
-/* vim:sw=4
+int
+vedit(char *fpath, int saveheader, int *islocal)
+{
+    return vedit2(fpath, saveheader, islocal, EDITFLAG_ALLOWTITLE);
+}
+
+/* vim:sw=4:nofoldenable
  */

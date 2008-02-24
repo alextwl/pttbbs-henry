@@ -1,7 +1,6 @@
-/* $Id: pttstruct.h 3517 2007-05-27 14:08:24Z kcwu $ */
+/* $Id: pttstruct.h 3930 2008-02-20 11:49:48Z piaip $ */
 #ifndef INCLUDE_STRUCT_H
 #define INCLUDE_STRUCT_H
-
 
 #define IDLEN      12             /* Length of bid/uid */
 
@@ -63,8 +62,8 @@ typedef struct userec_t {
     char    nickname[24];	/* 暱稱 */
     char    passwd[PASSLEN];	/* 密碼 */
     char    padx;
-    unsigned int    uflag;	/* 習慣1 */
-    unsigned int    uflag2;	/* 習慣2 */
+    unsigned int    uflag;	/* 習慣1 , see uflags.h */
+    unsigned int    uflag2;	/* 習慣2 , see uflags.h */
     unsigned int    userlevel;	/* 權限 */
     unsigned int    numlogins;	/* 上站次數 */
     unsigned int    numposts;	/* 文章篇數 */
@@ -119,32 +118,6 @@ typedef struct userec_t {
     time4_t timeviolatelaw; /* 被開罰單時間 */
     char    pad[28];
 } userec_t;
-/* these are flags in userec_t.uflag */
-#define PAGER_FLAG      0x4     /* true if pager was OFF last session */
-#define CLOAK_FLAG      0x8     /* true if cloak was ON last session */
-#define FRIEND_FLAG     0x10    /* true if show friends only */
-#define BRDSORT_FLAG    0x20    /* true if the boards sorted alphabetical */
-#define MOVIE_FLAG      0x40    /* true if show movie */
-
-/* useless flag */
-//#define COLOR_FLAG      0x80    /* true if the color mode open */
-//#define MIND_FLAG       0x100   /* true if mind search mode open <-Heat*/
-
-#define DBCSAWARE_FLAG	0x200	/* true if DBCS-aware enabled. */
-/* please keep this even if you don't have DBCSAWARE features turned on */
-
-/* these are flags in userec_t.uflag2 */
-#define WATER_MASK      000003  /* water mask */
-#define WATER_ORIG      0x0
-#define WATER_NEW       0x1
-#define WATER_OFO       0x2
-#define WATERMODE(mode) ((cuser.uflag2 & WATER_MASK) == mode)
-#define FAVNOHILIGHT    0x10   /* false if hilight favorite */
-#define FAVNEW_FLAG     0x20   /* true if add new board into one's fav */
-#define FOREIGN         0x100  /* true if a foreign */
-#define LIVERIGHT       0x200  /* true if get "liveright" already */
-#define REJ_OUTTAMAIL   0x400 /* true if don't accept outside mails */
-#define REJECT_OUTTAMAIL (cuser.uflag2 & REJ_OUTTAMAIL)
 
 /* flags in userec_t.withme */
 #define WITHME_ALLFLAG	0x55555555
@@ -160,17 +133,6 @@ typedef struct userec_t {
 #define WITHME_NODARK	0x00000200
 #define WITHME_GO	0x00000400
 #define WITHME_NOGO	0x00000800
-
-#ifdef PLAY_ANGEL
-#define REJ_QUESTION    0x800 /* true if don't want to be angel for a while */
-#define REJECT_QUESTION (cuser.uflag2 & REJ_QUESTION)
-#define ANGEL_MASK      0x3000
-#define ANGEL_R_MAEL    0x1000 /* true if reject male */
-#define ANGEL_R_FEMAEL  0x2000 /* true if reject female */
-#define ANGEL_STATUS()  ((cuser.uflag2 & ANGEL_MASK) >> 12)
-#define ANGEL_SET(X)    (cuser.uflag2 = (cuser.uflag2 & ~ANGEL_MASK) | \
-                          (((X) & 3) << 12))
-#endif
 
 #define BTLEN      48             /* Length of board title */
 
@@ -207,36 +169,38 @@ typedef struct boardheader_t {
     unsigned char fastrecommend_pause;	/* 快速連推間隔 */
     unsigned char vote_limit_badpost;   /* 連署 : 劣文上限 */
     unsigned char post_limit_badpost;   /* 發表文章 : 劣文上限 */
-    char    pad3[47];
+    char    pad3[3];
+    time4_t SRexpire;			/* SR Records expire time */
+    char    pad4[40];
 } boardheader_t;
 
-/* 下面是八進位喔 */
-#define BRD_NOZAP       0000000001         /* 不可zap  */
-#define BRD_NOCOUNT     0000000002         /* 不列入統計 */
-#define BRD_NOTRAN      0000000004         /* 不轉信 */
-#define BRD_GROUPBOARD  0000000010         /* 群組板 */
-#define BRD_HIDE        0000000020         /* 隱藏板 (看板好友才可看) */
-#define BRD_POSTMASK    0000000040         /* 限制發表或閱讀 */
-#define BRD_ANONYMOUS   0000000100         /* 匿名板 */
-#define BRD_DEFAULTANONYMOUS 0000000200    /* 預設匿名板 */
-#define BRD_BAD		0000000400         /* 違法改進中看板 */
-#define BRD_VOTEBOARD   0000001000         /* 連署機看板 */
-#define BRD_WARNEL      0000002000         /* 連署機看板 */
-#define BRD_TOP         0000004000         /* 熱門看板群組 */
-#define BRD_NORECOMMEND 0000010000         /* 不可推薦 */
-#define BRD_BLOG        0000020000         /* BLOG */
-#define BRD_BMCOUNT	0000040000	  /* 板主設定列入記錄 */
-#define BRD_SYMBOLIC	0000100000	  /* symbolic link to board */
-#define BRD_NOBOO       0000200000         /* 不可噓 */
-#define BRD_LOCALSAVE   0000400000         /* 預設 Local Save */
-#define BRD_RESTRICTEDPOST 0001000000      /* 板友才能發文 */
-#define BRD_GUESTPOST   0002000000         /* guest能 post */
-#define BRD_COOLDOWN    0004000000         /* 冷靜 */
-#define BRD_CPLOG       0010000000         /* 自動留轉錄記錄 */
-#define BRD_NOFASTRECMD 0020000000         /* 禁止快速推文 */
-#define BRD_IPLOGRECMD  0040000000         /* 推文記錄 IP */
-#define BRD_OVER18      0100000000         /* 十八禁 */
-#define BRD_NOREPLY     0200000000         /* 不可回文 */
+// TODO BRD 快爆了，怎麼辦？ 準備從 pad3 偷一個來當 attr2 吧...
+#define BRD_NOZAP		0x00000001	/* 不可zap */
+#define BRD_NOCOUNT		0x00000002	/* 不列入統計 */
+#define BRD_NOTRAN		0x00000004	/* 不轉信 */
+#define BRD_GROUPBOARD		0x00000008	/* 群組板 */
+#define BRD_HIDE		0x00000010	/* 隱藏板 (看板好友才可看) */
+#define BRD_POSTMASK		0x00000020	/* 限制發表或閱讀 */
+#define BRD_ANONYMOUS		0x00000040	/* 匿名板 */
+#define BRD_DEFAULTANONYMOUS	0x00000080	/* 預設匿名板 */
+#define BRD_BAD			0x00000100	/* 違法改進中看板 */
+#define BRD_VOTEBOARD		0x00000200	/* 連署機看板 */
+#define BRD_WARNEL		0x00000400	/* 連署機看板 */
+#define BRD_TOP			0x00000800	/* 熱門看板群組 */
+#define BRD_NORECOMMEND		0x00001000	/* 不可推薦 */
+#define BRD_BLOG		0x00002000	/* BLOG */
+#define BRD_BMCOUNT		0x00004000	/* 板主設定列入記錄 */
+#define BRD_SYMBOLIC		0x00008000	/* symbolic link to board */
+#define BRD_NOBOO		0x00010000	/* 不可噓 */
+#define BRD_LOCALSAVE		0x00020000	/* 預設 Local Save */
+#define BRD_RESTRICTEDPOST	0x00040000	/* 板友才能發文 */
+#define BRD_GUESTPOST		0x00080000	/* guest能 post */
+#define BRD_COOLDOWN		0x00100000	/* 冷靜 */
+#define BRD_CPLOG		0x00200000	/* 自動留轉錄記錄 */
+#define BRD_NOFASTRECMD		0x00400000	/* 禁止快速推文 */
+#define BRD_IPLOGRECMD		0x00800000	/* 推文記錄 IP */
+#define BRD_OVER18		0x01000000	/* 十八禁 */
+#define BRD_NOREPLY		0x02000000	/* 不可回文 */
 
 #define BRD_LINK_TARGET(x)	((x)->postexpire)
 #define GROUPOP()               (currmode & MODE_GROUPOP)
@@ -254,8 +218,8 @@ typedef struct boardheader_t {
 #define FNLEN      28             /* Length of filename */
 
 typedef struct fileheader_t {
-    char    filename[FNLEN];         /* M.1120582370.A.1EA [19+1] */
-    int	    textlen;		     /* main text length in post */
+    char    filename[FNLEN];         /* M.1120582370.A.1EA [19+1], create time */
+    time4_t modified;		     /* last modified time */
     char    pad;		     /* padding, not used */
     char    recommend;               /* important level */
     char    owner[IDLEN + 2];        /* uid[.] */
@@ -285,13 +249,13 @@ typedef struct fileheader_t {
     char    pad3[3];
 } fileheader_t;
 
-#define FILE_LOCAL      0x1     /* local saved,  non-mail */
-#define FILE_READ       0x1     /* already read, mail only */
-#define FILE_MARKED     0x2     /* non-mail + mail */
-#define FILE_DIGEST     0x4     /* digest,       non-mail */
-#define FILE_REPLIED    0x4     /* replied,      mail only */
-#define FILE_BOTTOM     0x8     /* push_bottom,  non-mail */
-#define FILE_MULTI      0x8     /* multi send,   mail only */
+#define FILE_LOCAL      0x01    /* local saved,  non-mail */
+#define FILE_READ       0x01    /* already read, mail only */
+#define FILE_MARKED     0x02    /* non-mail + mail */
+#define FILE_DIGEST     0x04    /* digest,       non-mail */
+#define FILE_REPLIED    0x04    /* replied,      mail only */
+#define FILE_BOTTOM     0x08    /* push_bottom,  non-mail */
+#define FILE_MULTI      0x08    /* multi send,   mail only */
 #define FILE_SOLVED     0x10    /* problem solved, sysop/BM non-mail only */
 #define FILE_HIDE       0x20    /* hide,	in announce */
 #define FILE_BID        0x20    /* bid,		in non-announce */
@@ -300,32 +264,6 @@ typedef struct fileheader_t {
 #define FILE_ANONYMOUS  0x80    /* anonymous file */
 
 #define STRLEN     80             /* Length of most string data */
-
-
-union xitem_t {
-    struct {                    /* bbs_item */
-	char    fdate[9];       /* [mm/dd/yy] */
-	char    editor[13];      /* user ID */
-	char    fname[31];
-    } B;
-    struct {                    /* gopher_item */
-	char    path[81];
-	char    server[48];
-	int     port;
-    } G;
-};
-
-typedef struct {
-    char    title[63];
-    union   xitem_t X;
-} item_t;
-
-typedef struct {
-    item_t  *item[MAX_ITEMS];
-    char    mtitle[STRLEN];
-    char    *path;
-    int     num, page, now, level;
-} gmenu_t;
 
 #define FAVMAX   1024		  /* Max boards of Myfavorite */
 #define FAVGMAX    32             /* Max groups of Myfavorite */
@@ -346,11 +284,16 @@ typedef struct msgque_t {
     int     msgmode;
 } msgque_t;
 
-#define ALERT_NEW_MAIL        1
-#define ISNEWMAIL(utmp)           utmp->alerts & ALERT_NEW_MAIL
-#define ALERT_PWD_PERM        2
-#define ALERT_PWD_BADPOST     4 
-#define ALERT_PWD (ALERT_PWD_PERM|ALERT_PWD_BADPOST)
+#define ALERT_NEW_MAIL        (0x01)
+#define ISNEWMAIL(utmp)       (utmp->alerts & ALERT_NEW_MAIL)
+#define ALERT_PWD_PERM        (0x02)
+#define ALERT_PWD_BADPOST     (0x04)
+#define ALERT_PWD_GOODPOST    (0x08)
+#define ALERT_PWD_JUSTIFY     (0x10)
+// #define ALERT_PWD_LOGINS      (0x20)
+// #define ALERT_PWD_POSTS       (0x40)
+#define ALERT_PWD_RELOAD      (0x80) // reload entire pwd
+#define ALERT_PWD (ALERT_PWD_PERM|ALERT_PWD_BADPOST|ALERT_PWD_GOODPOST|ALERT_PWD_JUSTIFY|ALERT_PWD_RELOAD)
 /* user data in shm */
 /* use GAP to detect and avoid data overflow and overriding */
 typedef struct userinfo_t {
@@ -453,12 +396,13 @@ typedef struct {
     void *raw_memory;
 } screen_backup_t;
 
+// menu_t 其實是 gmenu_t (deprecated), 精華區專用 menu
 typedef struct {
     int     header_size;
     fileheader_t    *header;
     char    mtitle[STRLEN];
     const char    *path;
-    int     num, page, now, level;
+    int     num, page, now, level, bid;
 } menu_t;
 
 /* Used to pass commands to the readmenu.
@@ -495,7 +439,7 @@ typedef struct keeploc_t {
 } keeploc_t;
 
 #define VALID_USHM_ENTRY(X) ((X) >= 0 && (X) < USHM_SIZE)
-#define USHM_SIZE       ((MAX_ACTIVE)*10/9)
+#define USHM_SIZE       ((MAX_ACTIVE)*41/40)
 /* USHM_SIZE 比 MAX_ACTIVE 大是為了防止檢查人數上限時, 又同時衝進來
  * 會造成找 shm 空位的無窮迴圈. 
  * 又, 因 USHM 中用 hash, 空間稍大時效率較好. */
@@ -658,12 +602,6 @@ struct NameList {
     char (*base)[IDLEN+1];
 };
 
-typedef struct commands_t {
-    int     (*cmdfunc)();
-    int     level;
-    char    *desc;                   /* next/key/description */
-} commands_t;
-
 typedef struct MailQueue {
     char    filepath[FNLEN];
     char    subject[STRLEN];
@@ -708,19 +646,5 @@ typedef struct {
     int     rfriendstat;
 } ocfs_t;
 #endif
-
-// kcwu: for bug tracking
-/* not used right now */
-enum {
-    F_VER,
-    F_EDIT,
-    F_MORE,
-    F_WRITE_REQUEST,
-    F_TALK_REQUEST,
-    F_WATER,
-    F_USERLIST,
-    F_GEM,
-};
-
 
 #endif

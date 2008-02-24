@@ -1,14 +1,14 @@
-/* $Id: convert.c 3083 2005-08-25 05:41:46Z piaip $ */
+/* $Id: convert.c 3625 2007-12-03 19:37:23Z piaip $ */
 #include "bbs.h"
 
 #ifdef CONVERT
 
-unsigned char *gb2big(unsigned char *, int *, int);
-unsigned char *big2gb(unsigned char *, int *, int);
-unsigned char *utf8_uni(unsigned char *, int *, int);
-unsigned char *uni_utf8(unsigned char *, int *, int);
-unsigned char *uni2big(unsigned char *, int *, int);
-unsigned char *big2uni(unsigned char *, int *, int);
+extern unsigned char *gb2big(unsigned char *, int *, int);
+extern unsigned char *big2gb(unsigned char *, int *, int);
+extern unsigned char *utf8_uni(unsigned char *, int *, int);
+extern unsigned char *uni_utf8(unsigned char *, int *, int);
+extern unsigned char *uni2big(unsigned char *, int *, int);
+extern unsigned char *big2uni(unsigned char *, int *, int);
 
 static ssize_t 
 gb_input(void *buf, ssize_t icount)
@@ -95,6 +95,10 @@ read_write_type write_type = (read_write_type)write;
 read_write_type read_type = read;
 convert_type    input_type = norm_input;
 
+// enable this in case some day we want to detect
+// current type. but right now disable for less memory cost
+// int		bbs_convert_type = CONV_NORMAL;
+
 void set_converting_type(int which)
 {
     if (which == CONV_NORMAL) {
@@ -113,6 +117,7 @@ void set_converting_type(int which)
 	write_type = utf8_write;
 	input_type = utf8_input;
     }
+    // bbs_convert_type = which;
 }
 
 #endif

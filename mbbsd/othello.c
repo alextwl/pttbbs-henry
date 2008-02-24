@@ -1,4 +1,4 @@
-/* $Id: othello.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: othello.c 3798 2008-01-06 07:54:16Z piaip $ */
 #include "bbs.h"
 
 #define LOGFILE "etc/othello.log"
@@ -494,12 +494,16 @@ choose(void)
     move(2, 0);
     outs("請選擇難度:");
     move(5, 0);
-    outs("(1) CD-65\n");	/* 想 1 步 */
+    outs("[0] 離開\n");
+    outs("(1) CD-65\n");/* 想 1 步 */
     outs("(2) 嬰兒\n");	/* 想 3 步 */
     outs("(3) 小孩\n");	/* 想 4 步 */
     do {
-	getdata(4, 0, "請選擇一個對象和您對打:(1~3)",
-		thinkstep, sizeof(thinkstep), LCECHO);
+	if (getdata(4, 0, "請選擇一個對象和您對打:(1~3)",
+		thinkstep, sizeof(thinkstep), LCECHO) == 0 ||
+	    thinkstep[0] == '0')
+	    return 0;
+
     } while (thinkstep[0] < '1' || thinkstep[0] > '3');
     clear();
     switch (thinkstep[0]) {
@@ -534,7 +538,13 @@ othello_main(void)
     clear();
     init(od);
     od->think = choose();
-    showtitle("黑白棋", BBSName);
+    if (!od->think)
+    {
+	unlockutmpmode();
+	free(od);
+	return 0;
+    }
+    showtitle("單人黑白棋", BBSName);
     printboard(od);
     od->which_table = random() % NR_TABLE;
     while (true) {

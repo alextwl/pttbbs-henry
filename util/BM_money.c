@@ -1,4 +1,4 @@
-/* $Id: BM_money.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: BM_money.c 3673 2007-12-12 01:42:23Z kcwu $ */
 
 /* 給板主錢的程式 */
 
@@ -13,17 +13,6 @@ extern struct UCACHE *uidshm;
 
 int c, n;
 
-
-
-int Link(const char *src, const char *dst) {
-    char cmd[200];
-
-    if (link(src, dst) == 0)
-	return 0;
-
-    sprintf(cmd, "/bin/cp -R %s %s", src, dst);
-    return system(cmd);
-}
 
 
 int main(int argc, char **argv)

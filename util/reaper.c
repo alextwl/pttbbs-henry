@@ -1,27 +1,16 @@
-/* $Id: reaper.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: reaper.c 3859 2008-01-23 17:35:17Z kcwu $ */
 #define _UTIL_C_
 #include "bbs.h"
 
 time4_t now;
 
-int invalid(char *userid) {
-    int i;
-    
-    if(!isalpha(userid[0]))
-	return 1;
-    
-    for(i = 1; i < IDLEN && userid[i]; i++)
-	if(!isalpha(userid[i]) && !isdigit(userid[i]))
-	    return 1;
-    return 0;
-}
-
-int check(int n, userec_t *u) {
+int check(void *data, int n, userec_t *u) {
     time4_t d;
     char buf[256];
+    (void)data;
     
     if(u->userid[0] != '\0') {
-	if(invalid(u->userid)) {
+	if(!is_validuserid(u->userid)) {
 	    syslog(LOG_ERR, "bad userid(%d): %s", n, u->userid);
 	    u->userid[0] = '\0';
 	} else {
@@ -58,7 +47,7 @@ int main(int argc, char **argv)
     attach_SHM();
     if(passwd_init())
 	exit(1);
-    passwd_apply(check);
+    passwd_apply(NULL, check);
     
     return 0;
 }

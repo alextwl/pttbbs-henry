@@ -1,5 +1,18 @@
-/* $Id: announce.c 3550 2007-07-12 06:02:51Z scw $ */
+/* $Id: announce.c 3858 2008-01-23 16:56:44Z piaip $ */
 #include "bbs.h"
+
+// XXX piaip 2007/12/29
+// 最近發現很多 code 都死在 announce
+// 因為進來要看 lastlevel 而非 currbid
+// user 可能一進 BBS 直殺郵件->mail_cite->進精華區
+// 於是就爆炸 
+// 同理 currboard 也不該用
+// 請改用 me.bid (注意 me.bid 可能為 0, 表示進來的非看板。)
+//
+// XXX 9999 麻煩想個方式改掉
+
+// for max file size limitation here, see edit.c
+#define MAX_FILE_SIZE (32768*1024)
 
 /* copy temp queue operation -------------------------------------- */
 
@@ -160,7 +173,7 @@ a_copyitem(const char *fpath, const char *title, const char *owner, int mode)
 
 #define FHSZ            sizeof(fileheader_t)
 
-static void
+static int
 a_loadname(menu_t * pm)
 {
     char            buf[PATHLEN];
@@ -174,9 +187,14 @@ a_loadname(menu_t * pm)
 
     setadir(buf, pm->path);
     len = get_records(buf, pm->header, FHSZ, pm->page + 1, pm->header_size); // XXX if get_records() return -1
-    assert(len!=-1);
+
+    // if len < 0, the directory is not valid anymore.
+    if (len < 0)
+	return 0;
+
     if (len < pm->header_size)
 	bzero(&pm->header[len], FHSZ * (pm->header_size - len));
+    return 1;
 }
 
 static void
@@ -187,22 +205,30 @@ a_timestamp(char *buf, const time4_t *time)
     sprintf(buf, "%02d/%02d/%02d", pt->tm_mon + 1, pt->tm_mday, (pt->tm_year + 1900) % 100);
 }
 
-static void
+static int
 a_showmenu(menu_t * pm)
 {
     char           *title, *editor;
     int             n;
     fileheader_t   *item;
-    char            buf[PATHLEN];
     time4_t         dtime;
 
     showtitle("精華文章", pm->mtitle);
     prints("   " ANSI_COLOR(1;36) "編號    標      題%56s" ANSI_COLOR(0),
 	   "編    選      日    期");
 
-    if (pm->num) {
-	setadir(buf, pm->path);
-	a_loadname(pm);
+    if (!pm->num)
+    {
+	outs("\n  《精華區》尚在吸取天地間的日月精華中... :)");
+    }
+    else
+    {
+	char buf[PATHLEN];
+
+	// determine if path is valid.
+	if (!a_loadname(pm))
+	    return 0;
+
 	for (n = 0; n < p_lines && pm->page + n < pm->num; n++) {
 	    int flTagged = 0;
 	    item = &pm->header[n];
@@ -225,8 +251,7 @@ a_showmenu(menu_t * pm)
 		   title, editor,
 		   buf);
 	}
-    } else
-	outs("\n  《精華區》尚在吸取天地間的日月精華中... :)");
+    }
 
     move(b_lines, 0);
     if(copyqueue_querysize() > 0)
@@ -263,6 +288,7 @@ a_showmenu(menu_t * pm)
 	 ANSI_COLOR(31) "(k↑j↓)" ANSI_COLOR(30) "移動游標  "
 	 ANSI_COLOR(31) "(enter/→)" ANSI_COLOR(30) "讀取資料  " ANSI_RESET);
     }
+    return 1;
 }
 
 static int
@@ -288,7 +314,9 @@ a_searchtitle(menu_t * pm, int rev)
 	    pos = pm->num - 1;
 	if (pos < pm->page || pos >= pm->page + p_lines) {
 	    pm->page = pos - pos % p_lines;
-	    a_loadname(pm);
+
+	    if (!a_loadname(pm))
+		return pm->now;
 	}
 	if (strcasestr(pm->header[pos - pm->page].title, search_str))
 	    return pos;
@@ -373,7 +401,6 @@ a_additem(menu_t * pm, const fileheader_t * myheader)
 
 #define ADDITEM         0
 #define ADDGROUP        1
-#define ADDLINK         2
 
 static void
 a_newitem(menu_t * pm, int mode)
@@ -381,14 +408,14 @@ a_newitem(menu_t * pm, int mode)
     char    *mesg[3] = {
 	"[新增文章] 請輸入標題：",	/* ADDITEM */
 	"[新增目錄] 請輸入標題：",	/* ADDGROUP */
-	"請輸入標題："		/* ADDLINK */
     };
 
-    char            fpath[PATHLEN], buf[PATHLEN], lpath[PATHLEN];
+    char            fpath[PATHLEN];
     fileheader_t    item;
-    int             d;
 
     strlcpy(fpath, pm->path, sizeof(fpath));
+    if (strlen(pm->path) + FNLEN*2 >= PATHLEN)
+	return;
 
     switch (mode) {
     case ADDITEM:
@@ -400,55 +427,6 @@ a_newitem(menu_t * pm, int mode)
 	stampdir(fpath, &item);
 	strlcpy(item.title, "◆ ", sizeof(item.title));	/* A1BB */
 	break;
-    case ADDLINK:
-	stamplink(fpath, &item);
-	if (!getdata(b_lines - 2, 1, "新增連線：", buf, 61, DOECHO))
-	    return;
-	if (invalid_pname(buf)) {
-	    unlink(fpath);
-	    outs("目的地路徑不合法！");
-	    igetch();
-	    return;
-	}
-	item.title[0] = 0;
-	// XXX Is it alright?
-	// ex: path= "PASSWD"
-	for (d = 0; d <= 3; d++) {
-	    switch (d) {
-	    case 0:
-		snprintf(lpath, sizeof(lpath), BBSHOME "/man/boards/%c/%s/%s",
-			currboard[0], currboard, buf);
-		break;
-	    case 1:
-		snprintf(lpath, sizeof(lpath), BBSHOME "/man/boards/%c/%s",
-			buf[0], buf);
-		break;
-	    case 2:
-		snprintf(lpath, sizeof(lpath), BBSHOME "/%s",
-			buf);
-		break;
-	    case 3:
-		snprintf(lpath, sizeof(lpath), BBSHOME "/etc/%s",
-			buf);
-		break;
-	    }
-	    if (dashf(lpath)) {
-		strlcpy(item.title, "☆ ", sizeof(item.title));	/* A1B3 */
-		break;
-	    } else if (dashd(lpath)) {
-		strlcpy(item.title, "★ ", sizeof(item.title));	/* A1B4 */
-		break;
-	    }
-	    if (!HasUserPerm(PERM_BBSADM) && d == 1)
-		break;
-	}
-
-	if (!item.title[0]) {
-	    unlink(fpath);
-	    outs("目的地路徑不合法！");
-	    igetch();
-	    return;
-	}
     }
 
     if (!getdata(b_lines - 1, 1, mesg[mode], &item.title[3], 55, DOECHO)) {
@@ -460,19 +438,26 @@ a_newitem(menu_t * pm, int mode)
     }
     switch (mode) {
     case ADDITEM:
-	if (vedit(fpath, 0, NULL) == -1) {
-	    unlink(fpath);
-	    pressanykey();
-	    return;
+	{
+	    int edflags = 0;
+# ifdef GLOBAL_BBSMOVIE
+	    if (pm && pm->bid && 
+		strcmp(getbcache(pm->bid)->brdname, 
+			GLOBAL_BBSMOVIE) == 0)
+	    {
+		edflags |= EDITFLAG_UPLOAD;
+		edflags |= EDITFLAG_ALLOWLARGE;
+	    }
+# endif // GLOBAL_BBSMOVIE
+	    if (vedit2(fpath, 0, NULL, edflags) == -1) {
+		unlink(fpath);
+		pressanykey();
+		return;
+	    }
 	}
 	break;
-    case ADDLINK:
-	unlink(fpath);
-	if (symlink(lpath, fpath) == -1) {
-	    outs("無法建立 symbolic link");
-	    igetch();
-	    return;
-	}
+    case ADDGROUP:
+	// do nothing
 	break;
     }
 
@@ -600,44 +585,59 @@ a_appenditem(const menu_t * pm, int isask)
     else
     {
 	CopyQueue *cq = copyqueue_gethead();
+	off_t sz;
 
-	if (dashf(cq->copyfile)) {
-	    snprintf(fname, sizeof(fname), "%s/%s", pm->path,
-		    pm->header[pm->now - pm->page].filename);
-	    if (dashf(fname)) {
-		if (isask) {
-		    snprintf(buf, sizeof(buf),
-			     "確定要將[%s]附加於此嗎(Y/N)？[N] ", cq->copytitle);
-		    getdata(b_lines - 2, 1, buf, ans, sizeof(ans), LCECHO);
-		}
-		if (ans[0] == 'y') {
-		    if ((fp = fopen(fname, "a+"))) {
-			if ((fin = fopen(cq->copyfile, "r"))) {
-			    memset(buf, '-', 74);
-			    buf[74] = '\0';
-			    fprintf(fp, "\n> %s <\n\n", buf);
-			    if (isask)
-				getdata(b_lines - 1, 1,
-					"是否收錄簽名檔部份(Y/N)？[Y] ",
-					ans, sizeof(ans), LCECHO);
-			    while (fgets(buf, sizeof(buf), fin)) {
-				if ((ans[0] == 'n') &&
-				    !strcmp(buf, "--\n"))
-				    break;
-				fputs(buf, fp);
-			    }
-			    fclose(fin);
-			    cq->copyfile[0] = '\0';
-			}
-			fclose(fp);
-		    }
-		}
-	    } else {
-		vmsg("檔案不得附加於此！");
-	    }
-	} else {
+	if (!dashf(cq->copyfile)) {
 	    vmsg("目錄不得附加於檔案後！");
+	    return;
 	}
+
+	snprintf(fname, sizeof(fname), "%s/%s", pm->path,
+		pm->header[pm->now - pm->page].filename);
+
+	if (!dashf(fname)) {
+	    vmsg("檔案不得附加於此！");
+	    return;
+	}
+
+	sz = dashs(fname);
+	if (sz >= MAX_FILE_SIZE)
+	{
+	    vmsg("檔案已超過最大限制，無法再附加");
+	    return;
+	}
+
+	if (isask) {
+	    snprintf(buf, sizeof(buf),
+		    "確定要將[%s]附加於此嗎(Y/N)？[N] ", cq->copytitle);
+	    getdata(b_lines - 2, 1, buf, ans, sizeof(ans), LCECHO);
+	}
+
+	if (ans[0] != 'y' || !(fp = fopen(fname, "a+")))
+	    return;
+
+	if (!(fin = fopen(cq->copyfile, "r"))) {
+	    fclose(fp);
+	    return;
+	}
+
+	memset(buf, '-', 74);
+	buf[74] = '\0';
+	fprintf(fp, "\n> %s <\n\n", buf);
+	if (isask)
+	    getdata(b_lines - 1, 1,
+		    "是否收錄簽名檔部份(Y/N)？[Y] ",
+		    ans, sizeof(ans), LCECHO);
+
+	while (fgets(buf, sizeof(buf), fin)) {
+	    if ((ans[0] == 'n') &&
+		    !strcmp(buf, "--\n"))
+		break;
+	    fputs(buf, fp);
+	}
+	fclose(fin);
+	fclose(fp);
+	cq->copyfile[0] = '\0';
     }
 }
 
@@ -648,7 +648,7 @@ a_pastetagpost(menu_t * pm, int mode)
     boardheader_t  *bh = NULL;
     int             ans = 0, ent = 0, tagnum;
     char            title[TTLEN + 1] = "◇  ";
-    char            dirname[200], buf[200];
+    char            dirname[PATHLEN], buf[PATHLEN];
 
     if (TagBoard == 0){
 	sethomedir(dirname, cuser.userid);
@@ -659,15 +659,40 @@ a_pastetagpost(menu_t * pm, int mode)
     }
     tagnum = TagNum;
 
-    if (!tagnum)
+    // prevent if anything wrong
+    if (tagnum > MAXTAGS || tagnum < 0)
+    {
+	vmsg("內部錯誤。請把你剛剛進行的完整步驟貼到 "
+		GLOBAL_BUGREPORT " 板。");
+	return ans;
+    }
+
+    if (tagnum < 1)
 	return ans;
 
     /* since we use different tag features,
      * copyqueue is not required/used. */
     copyqueue_reset();
 
-    while (tagnum--) {
+    while (tagnum-- > 0) {
+	memset(&fhdr, 0, sizeof(fhdr));
 	EnumTagFhdr(&fhdr, dirname, ent++);
+
+	// XXX many process crashed here as fhdr.filename[0] == 0
+	// let's workaround it? or trace?
+	// if (!fhdr->filename[0])
+        //   continue;
+	
+	if (!fhdr.filename[0])
+	{
+	    grayout(0, b_lines-2, GRAYOUT_DARK);
+	    move(b_lines-1, 0); clrtobot();
+	    prints("第 %d 項處理發生錯誤。 請把你剛剛進行的完整步驟貼到 "
+		    GLOBAL_BUGREPORT " 板。\n", ent);
+	    vmsg("忽略錯誤並繼續進行。");
+	    continue;
+	}
+
 	if (TagBoard == 0) 
 	    sethomefile(buf, cuser.userid, fhdr.filename);
 	else
@@ -736,7 +761,7 @@ a_delrange(menu_t * pm)
 {
     char            fname[PATHLEN];
 
-    snprintf(fname, sizeof(fname), "%s/.DIR", pm->path);
+    snprintf(fname, sizeof(fname), "%s/" FN_DIR, pm->path);
     del_range(0, NULL, fname);
     pm->num = get_num_records(fname, FHSZ);
 }
@@ -810,7 +835,7 @@ a_delete(menu_t * pm)
 		sizeof(backup.title) - 3);
 
 	/* merge setapath(buf, "deleted"); setadir(buf, buf); */
-	snprintf(buf, sizeof(buf), "man/boards/%c/%s/.DIR",
+	snprintf(buf, sizeof(buf), "man/boards/%c/%s/" FN_DIR,
 		 'd', "deleted");
 	append_record(buf, &backup, sizeof(backup));
     } else {			/* Ptt 損毀的項目 */
@@ -984,27 +1009,40 @@ static int
 isvisible_man(const menu_t * me)
 {
     fileheader_t   *fhdr = &me->header[me->now - me->page];
-    if (me->level < MANAGER && ((fhdr->filemode & FILE_BM) ||
-				((fhdr->filemode & FILE_HIDE) &&
-				 /* board friend only effact when
-				  * in board reading mode             */
-				 (currstat == ANNOUNCE ||
-				  hbflcheck(currbid, currutmp->uid))
-				)))
+    /* board friend only effact when in board reading mode */
+    if (me->level >= MANAGER)
+	return 1;
+    if (fhdr->filemode & FILE_BM)
 	return 0;
+    if (fhdr->filemode & FILE_HIDE)
+    {
+	if (currstat == ANNOUNCE ||
+	    !is_hidden_board_friend(me->bid, currutmp->uid))
+	    return 0;
+    }
     return 1;
 }
 int
-a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffer)
+a_menu(const char *maintitle, const char *path, 
+	int lastlevel, int lastbid,
+	char *trans_buffer)
 {
     static char     Fexit;	// 用來跳出 recursion
     menu_t          me;
     char            fname[PATHLEN];
     int             ch, returnvalue = FULLUPDATE;
 
+    // prevent deep resursive directories
+    if (strlen(path) + FNLEN >= PATHLEN)
+    {
+	// it is not save to enter such directory.
+	return returnvalue;
+    }
+
     if(trans_buffer)
 	trans_buffer[0] = '\0';
 
+    memset(&me, 0, sizeof(me));
     Fexit = 0;
     me.header_size = p_lines;
     me.header = (fileheader_t *) calloc(me.header_size, FHSZ);
@@ -1012,6 +1050,7 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
     strlcpy(me.mtitle, maintitle, sizeof(me.mtitle));
     setadir(fname, me.path);
     me.num = get_num_records(fname, FHSZ);
+    me.bid = lastbid;
 
     /* 精華區-tree 中部份結構屬於 cuser ==> BM */
 
@@ -1032,7 +1071,12 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 	if (me.now < me.page || me.now >= me.page + me.header_size) {
 	    me.page = me.now - ((me.page == 10000 && me.now > p_lines / 2) ?
 				(p_lines / 2) : (me.now % p_lines));
-	    a_showmenu(&me);
+	    if (!a_showmenu(&me))
+	    {
+		// some directories are invalid, restart!
+		Fexit = 1;
+		break;
+	    }
 	}
 	ch = cursor_key(2 + me.now - me.page, 0);
 
@@ -1107,24 +1151,34 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 	    snprintf(fname, sizeof(fname),
 		     "%s/%s", path, me.header[me.now - me.page].filename);
 	    if (dashf(fname) && me.level >= MANAGER) {
+		int edflags = 0;
 		*quote_file = 0;
-		if (vedit(fname, NA, NULL) != -1) {
-		    char            fpath[200];
-		    fileheader_t    fhdr;
 
+# ifdef GLOBAL_BBSMOVIE
+		if (me.bid && strcmp(getbcache(me.bid)->brdname, 
+			    GLOBAL_BBSMOVIE) == 0)
+		{
+		    edflags |= EDITFLAG_UPLOAD;
+		    edflags |= EDITFLAG_ALLOWLARGE;
+		}
+# endif // GLOBAL_BBSMOVIE
+
+		if (vedit2(fname, NA, NULL, edflags) != -1) {
+		    char            fpath[PATHLEN];
+		    fileheader_t    fhdr;
 		    strlcpy(fpath, path, sizeof(fpath));
 		    stampfile(fpath, &fhdr);
 		    unlink(fpath);
-		    Rename(fname, fpath);
-		    strlcpy(me.header[me.now - me.page].filename,
-			    fhdr.filename,
-			    sizeof(me.header[me.now - me.page].filename));
+		    strlcpy(fhdr.filename,
+			    me.header[me.now - me.page].filename,
+			    sizeof(fhdr.filename));
 		    strlcpy(me.header[me.now - me.page].owner,
 			    cuser.userid,
 			    sizeof(me.header[me.now - me.page].owner));
 		    setadir(fpath, path);
 		    substitute_record(fpath, me.header + me.now - me.page,
 				      sizeof(fhdr), me.now + 1);
+
 		}
 		me.page = 9999;
 	    }
@@ -1146,7 +1200,7 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 		   須等該資料寫入 .DIR 內再 implement才有效率.
 		 */
 		if( !lastlevel && !HasUserPerm(PERM_SYSOP) &&
-		    (currbid==0 || !is_BM_cache(currbid)) && dashd(fname) )
+		    (me.bid==0 || !is_BM_cache(me.bid)) && dashd(fname) )
 		    vmsg("只有板主才可以拷貝目錄唷!");
 		else
 		    a_copyitem(fname, me.header[me.now - me.page].title, 0, 1);
@@ -1191,8 +1245,7 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 				strlcpy(trans_buffer, fname, PATHLEN);
 				Fexit = 1;
 				if (currstat == OSONG) {
-				    log_file(FN_USSONG, LOG_CREAT | LOG_VF,
-					     "%s\n", fhdr->title);
+				    log_filef(FN_USSONG, LOG_CREAT, "%s\n", fhdr->title);
 				}
 				free(me.header);
 				return FULLUPDATE;
@@ -1221,7 +1274,8 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 			    break;
 		    }
 		} else if (dashd(fname)) {
-		    a_menu(me.header[me.now - me.page].title, fname, me.level, trans_buffer);
+		    a_menu(me.header[me.now - me.page].title, fname, 
+			    me.level, me.bid, trans_buffer);
 		    /* Ptt  強力跳出recursive */
 		    if (Fexit) {
 			free(me.header);
@@ -1250,34 +1304,9 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 
 	    break;
 
-#ifdef BLOG
-	case 'b':
-	    if( !HasUserPerm(PERM_SYSOP) && !is_BM_cache(currbid) )
-		vmsg("只有板主才可以用唷!");
-	    else{
-		char    genbuf[128];
-		snprintf(genbuf, sizeof(genbuf),
-			 "bin/builddb.pl -f -n %d %s", me.now, currboard);
-		system(genbuf);
-		vmsg("資料更新完成");
-	    }
-	    me.page = 9999;
-	    break;
-
-	case 'B':
-	    if( !HasUserPerm(SYSOP) && !is_BM_cache(currbid) )
-		vmsg("只有板主才可以用唷!");
-	    else
-		BlogMain(me.now);
-	    me.page = 9999;
-
-	    break;
-#endif
 	}
 
 	if (me.level >= MANAGER) {
-	    int             page0 = me.page;
-
 	    switch (ch) {
 	    case 'n':
 		a_newitem(&me, ADDITEM);
@@ -1309,9 +1338,28 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 		a_appenditem(&me, 1);
 		me.page = 9999;
 		break;
-	    default:
-		me.page = page0;
+#ifdef BLOG
+	    case 'b':
+		if (me.bid)
+		{
+		    char    genbuf[128];
+		    char *bname = getbcache(me.bid)->brdname;
+		    snprintf(genbuf, sizeof(genbuf),
+			    "bin/builddb.pl -f -n %d %s", me.now, bname);
+		    system(genbuf);
+		    vmsg("資料更新完成");
+		}
+		me.page = 9999;
 		break;
+
+	    case 'B':
+		if (me.bid && me.bid == currbid)
+		{
+		    BlogMain(me.now);
+		};
+		me.page = 9999;
+		break;
+#endif
 	    }
 
 	    if (me.num)
@@ -1345,12 +1393,8 @@ a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffe
 #endif
 		}
 	}
-	if (me.level == SYSOP) {
+	if (me.level >= SYSOP) {
 	    switch (ch) {
-	    case 'l':
-		a_newitem(&me, ADDLINK);
-		me.page = 9999;
-		break;
 	    case 'N':
 		a_showname(&me);
 		me.page = 9999;
@@ -1368,6 +1412,7 @@ Announce(void)
     setutmpmode(ANNOUNCE);
     a_menu(BBSNAME "佈告欄", "man",
 	   ((HasUserPerm(PERM_SYSOP) ) ? SYSOP : NOBODY), 
+	   0,
 	   NULL);
     return 0;
 }
@@ -1379,6 +1424,8 @@ void BlogMain(int num)
     int     oldmode = currutmp->mode;
     char    genbuf[128], exit = 0;
 
+    // WARNING: 要確認 currboard/currbid 已正確設定才能用此API。
+    
     //setutmpmode(BLOGGING); /* will crash someone using old program  */
     sprintf(genbuf, "%s的部落格", currboard);
     showtitle("部落格", genbuf);
@@ -1486,11 +1533,11 @@ void BlogMain(int num)
 	    strlcpy(item.owner, cuser.userid, sizeof(item.owner));
 
 	    setapath(adir, currboard);
-	    strcat(adir, "/.DIR");
+	    strcat(adir, "/" FN_DIR);
 	    append_record(adir, &item, FHSZ);
 
 	    snprintf(buf, sizeof(buf),
-		     "cp -R etc/Blog.Default/.DIR etc/Blog.Default/* %s/",
+		     "cp -R etc/Blog.Default/" FN_DIR " etc/Blog.Default/* %s/",
 		     fpath);
 	    system(buf);
 

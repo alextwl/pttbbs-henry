@@ -1,7 +1,5 @@
-/* $Id: calendar.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: calendar.c 3736 2007-12-24 15:18:15Z piaip $ */
 #include "bbs.h"
-
-#if !defined(PTTBBS_UTIL)
 
 typedef struct event_t {
     int             year, month, day, days;
@@ -15,16 +13,8 @@ MonthDay(int m, int leap)
 {
     int      day[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+    assert(1<=m && m<=12);
     return leap && m == 2 ? 29 : day[m - 1];
-}
-
-static int
-IsLeap(int y)
-{
-    if (y % 400 == 0 || (y % 4 == 0 && y % 100 != 0))
-	return 1;
-    else
-	return 0;
 }
 
 static int
@@ -36,10 +26,13 @@ Days(int y, int m, int d)
 	+ ((y - 1) / 4) - ((y - 1) / 100) + ((y - 1) / 400)
 	+ d - 1;
     for (i = 1; i < m; i++)
-	w += MonthDay(i, IsLeap(y));
+	w += MonthDay(i, is_leap_year(y));
     return w;
 }
 
+/**
+ * return 1 if date is invalid
+ */
 int ParseDate(const char *date, int *year, int *month, int *day)
 {
     char           *y, *m, *d;
@@ -57,15 +50,20 @@ int ParseDate(const char *date, int *year, int *month, int *day)
     *month = atoi(m);
     *day = atoi(d);
     if (*year < 1 || *month < 1 || *month > 12 ||
-	*day < 1 || *day > MonthDay(*month, IsLeap(*year)))
+	*day < 1 || *day > MonthDay(*month, is_leap_year(*year)))
 	return 1;
     return 0;
 }
 
+/**
+ * return 1 if date is invalid
+ */
 static int
 ParseEventDate(const char *date, event_t * t)
 {
     int retval = ParseDate(date, &t->year, &t->month, &t->day);
+    if (retval)
+	return retval;
     t->days = Days(t->year, t->month, t->day);
     return retval;
 }
@@ -233,7 +231,7 @@ GenerateCalendar(char **buf, int y, int m, int today, event_t * e)
     /* initial event */
     for (; e && e->days < first_day; e = e->next);
 
-    d = MonthDay(m, IsLeap(y));
+    d = MonthDay(m, is_leap_year(y));
     for (i = 1; i <= d; i++, w = (w + 1) % 7) {
 	attr1[0] = 0;
 	attr2 = "";
@@ -269,6 +267,37 @@ GenerateCalendar(char **buf, int y, int m, int today, event_t * e)
 	p += sprintf(p, ANSI_RESET);
     }
     return line + 1;
+}
+
+int
+u_editcalendar(void)
+{
+    char            genbuf[200];
+
+    getdata(b_lines - 1, 0, "行事曆 (D)刪除 (E)編輯 (H)說明 [Q]取消？[Q] ",
+	    genbuf, 3, LCECHO);
+
+    if (genbuf[0] == 'e') {
+	int             aborted;
+
+	setutmpmode(EDITPLAN);
+	sethomefile(genbuf, cuser.userid, "calendar");
+	aborted = vedit(genbuf, NA, NULL);
+	if (aborted != -1)
+	    vmsg("行事曆更新完畢");
+	return 0;
+    } else if (genbuf[0] == 'd') {
+	sethomefile(genbuf, cuser.userid, "calendar");
+	unlink(genbuf);
+	vmsg("行事曆刪除完畢");
+    } else if (genbuf[0] == 'h') {
+	move(1, 0);
+	clrtoln(b_lines);
+	move(3, 0);
+	prints("行事曆格式說明:\n編輯時以一行為單位，如:\n\n# 井號開頭的是註解\n2006/05/04 red 上批踢踢!\n\n其中的 red 是指表示的顏色。");
+	pressanykey();
+    }
+    return 0;
 }
 
 int
@@ -324,28 +353,12 @@ calendar(void)
     }
     FreeEvent(head);
     FreeCalBuffer(buf);
-    pressanykey();
+    i = vmsg("請按 e 編輯行事曆，或其它任意鍵離開。");
+    i = tolower(((unsigned char)i) & 0xFF);
+    if (i == 'e')
+    {
+	u_editcalendar();
+    }
     return 0;
 }
 
-#endif
-
-int getHoroscope(int m, int d)
-{
-    if (m > 12 || m < 1)
-	return 1;
-
-    // Return: 1 .. 12
-    // 摩羯 水瓶 雙魚 牡羊 金牛 雙子 巨蟹 獅子 處女 天秤 天蠍 射手
-    const int firstday[12] = {
-	/* Jan. */ 20, 19, 21, 20, 21, 21, 23, 23, 23, 23, 22, 22
-    };
-    if (d >= firstday[m - 1]) {
-	if (m == 12)
-	    return 1;
-	else
-	    return m + 1;
-    }
-    else
-	return m;
-}

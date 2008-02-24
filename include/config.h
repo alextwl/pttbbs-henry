@@ -1,4 +1,4 @@
-/* $Id: config.h 3455 2006-12-19 08:17:21Z scw $ */
+/* $Id: config.h 3867 2008-01-25 16:31:50Z piaip $ */
 #ifndef INCLUDE_CONFIG_H
 #define INCLUDE_CONFIG_H
 
@@ -8,6 +8,21 @@
 #define BBSPROG         BBSHOME "/bin/mbbsd"         /* 主程式 */
 #define BAN_FILE        "BAN"                        /* 關站通告檔 */
 #define LOAD_FILE       "/proc/loadavg"              /* for Linux */
+
+/* 系統名(郵件用)，建議別超過 3 個字元。 詳見 sample/pttbbs.conf */
+#ifndef BBSMNAME
+#define BBSMNAME	"Ptt"
+#endif
+
+/* 系統名(選單用)，建議剛好 4 個字元。 詳見 sample/pttbbs.conf */
+#ifndef BBSMNAME2
+#define BBSMNAME2	"Ｐtt"
+#endif
+
+/* 錢幣名，建議剛好 3 個字元。 詳見 sample/pttbbs.conf */
+#ifndef MONEYNAME
+#define MONEYNAME	"Ptt"
+#endif
 
 #ifndef BBSUSER
 #define BBSUSER "bbs"
@@ -21,6 +36,44 @@
 #define BBSGID (99)
 #endif
 
+/* Default Board Names */
+#ifndef GLOBAL_BUGREPORT
+#define GLOBAL_BUGREPORT "SYSOP"
+#endif
+
+#ifndef GLOBAL_SYSOP
+#define GLOBAL_SYSOP "SYSOP"
+#endif
+
+#ifndef GLOBAL_LAW
+#define GLOBAL_LAW  BBSMNAME "Law"
+#endif
+
+#ifndef GLOBAL_NEWBIE
+#define GLOBAL_NEWBIE BBSMNAME "Newhand"
+#endif
+
+#ifndef GLOBAL_TEST
+#define GLOBAL_TEST "Test"
+#endif
+
+#ifndef GLOBAL_NOTE
+#define GLOBAL_NOTE "Note"
+#endif
+
+#ifndef GLOBAL_SECURITY
+#define GLOBAL_SECURITY "Security"
+#endif
+
+#ifndef GLOBAL_RECORD
+#define GLOBAL_RECORD "Record"
+#endif
+
+#ifndef GLOBAL_FOREIGN
+#define GLOBAL_FOREIGN BBSMNAME "Foreign"
+#endif
+
+/* Environment */
 #ifndef RELAY_SERVER_IP                     /* 寄站外信的 mail server */
 #define RELAY_SERVER_IP    "127.0.0.1"
 #endif
@@ -65,12 +118,20 @@
 #define MAX_EDIT_LINE 2048                  /* 文章最長編輯長度 */
 #endif 
 
+#ifndef MAX_EDIT_LINE_LARGE
+#define MAX_EDIT_LINE_LARGE (32000)
+#endif
+
 #ifndef MAX_LIFE                            /* 最長使用者保留時間(秒) */
 #define MAX_LIFE           (120 * 24 * 60 * 60)
 #endif
 
 #ifndef MAX_FROM
 #define MAX_FROM           (300)            /* 最多故鄉數 */
+#endif
+
+#ifndef DEBUGSLEEP_SECONDS
+#define DEBUGSLEEP_SECONDS (3600)	    /* debug 等待時間 */
 #endif
 
 #ifndef THREAD_SEARCH_RANGE
@@ -153,8 +214,16 @@
 #define HASH_BITS         16             /* userid->uid hashing bits */
 #endif
 
-/* more.c 中文章頁數上限(lines/22), +4 for safe */
+#ifndef VICE_MIN
+#define VICE_MIN	(1)	    /* 最小發票面額 */
+#endif // VICE_MIN
+
+/* (deprecated) more.c 中文章頁數上限(lines/22), +4 for safe */
 #define MAX_PAGES         (MAX_EDIT_LINE / 22 + 4)
+
+/* piaip modules */
+#define USE_PMORE	(1)	// pmore is the only pager now.
+// #define USE_PFTERM	(1)	// pfterm is still experimental
 
 /* 以下還未整理 */
 #define MAX_FRIEND        (256)          /* 載入 cache 之最多朋友數目 */
@@ -185,32 +254,15 @@
 #define NO_WATER_POST           /* 防止BlahBlah式灌水 */
 #define USE_BSMTP               /* 使用opus的BSMTP 寄收信? */
 #define HAVE_ANONYMOUS          /* 提供 Anonymous 板 */
-#undef  POSTNOTIFY              /* 新文章通知功能 */
 #define INTERNET_EMAIL          /* 支援 InterNet Email 功能(含 Forward) */
 #define HAVE_ORIGIN             /* 顯示 author 來自何處 */
-#undef  HAVE_MAILCLEAN          /* 清理所有使用者個人信箱 */
-#undef  HAVE_SUICIDE            /* 提供使用者自殺功能 */
-#undef  HAVE_REPORT             /* 系統追蹤報告 */
 #undef  HAVE_INFO               /* 顯示程式版本說明 */
 #undef  HAVE_LICENSE            /* 顯示 GNU 版權畫面 */
 #define FAST_LOGIN		/* Login 不檢查遠端使用者 */
-#define HAVE_CAL                /* 提供計算機 */
 #undef  HAVE_REPORT             /* 系統追蹤報告 */
 #undef  NEWUSER_LIMIT           /* 新手上路的三天限制 */
 #undef  HAVE_X_BOARDS
 
-#define USE_LYNX   	        /* 使用外部lynx dump ? */
-#undef  USE_PROXY
-#ifdef  USE_PROXY
-#define PROXYSERVER "140.112.28.165"
-#define PROXYPORT   3128
-#endif
-#define LOCAL_PROXY             /* 是否開啟local 的proxy */
-#ifdef  LOCAL_PROXY
-#define HPROXYDAY   1           /* local的proxy refresh天數 */
-#endif
-
-#define SHOWMIND                /* 看見心情 */
 #define SHOWUID                 /* 看見使用者 UID */
 #define SHOWBOARD               /* 看見使用者看板 */
 #define SHOWPID                 /* 看見使用者 PID */
@@ -218,7 +270,6 @@
 #define DOTIMEOUT
 #ifdef  DOTIMEOUT
 #define IDLE_TIMEOUT    (43200) /* 一般情況之 timeout (12hr) */
-#define MONITOR_TIMEOUT (20*60) /* monitor 時之 timeout */
 #define SHOW_IDLE_TIME          /* 顯示閒置時間 */
 #endif
 
@@ -226,21 +277,9 @@
 #define SEM_LEAVE      1       /* leave semaphore */
 #define SEM_RESET      0       /* reset semaphore */
 
-#define MAGIC_KEY       1234    /* 身分認證信函編碼 */
-
 #define SHM_KEY         1228
-#if 0
-#define BRDSHM_KEY      1208
-#define UHASH_KEY       1218	/* userid->uid hash */
-#define UTMPSHM_KEY     2221
-#define PTTSHM_KEY      1220    /* 動態看板 , 節日 */
-#define FROMSHM_KEY     1223    /* whereis, 最多使用者 */
-#endif
 
-#define BRDSEM_KEY      2005    /* semaphore key */
-#define PTTSEM_KEY      2000    /* semaphore key */
-#define FROMSEM_KEY     2003    /* semaphore key */
-#define PASSWDSEM_KEY   2010
+#define PASSWDSEM_KEY   2010	/* semaphore key */
 
 #define NEW_CHATPORT    3838
 #define CHATPORT        5722
@@ -262,11 +301,7 @@
 #define ALLPOST "ALLPOST"
 #define ALLHIDPOST "ALLHIDPOST"
 
-#define MAXTAGS	256
-#define BRC_STRLEN      15	/* Length of board name */
-#define BRC_MAXSIZE     24576
-#define BRC_MAXNUM      80
-
+#define MAXTAGS	255
 #define WRAPMARGIN (511)
 
 #endif

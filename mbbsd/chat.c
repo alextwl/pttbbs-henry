@@ -1,4 +1,4 @@
-/* $Id: chat.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: chat.c 3918 2008-02-14 16:23:29Z piaip $ */
 #include "bbs.h"
 
 #ifndef DBCSAWARE
@@ -116,37 +116,6 @@ chat_recv(struct ChatBuf *cb, int fd, char *chatroom, char *chatid, size_t chati
     return 0;
 }
 
-static int
-printuserent(const userinfo_t * uentp)
-{
-    static char     uline[80];
-    static int      cnt;
-    char            pline[30];
-
-    if (!uentp) {
-	if (cnt)
-	    printchatline(uline);
-	bzero(uline, sizeof(uline));
-	cnt = 0;
-	return 0;
-    }
-    if (!HasUserPerm(PERM_SYSOP) && !HasUserPerm(PERM_SEECLOAK) && uentp->invisible)
-	return 0;
-
-    snprintf(pline, sizeof(pline), "%-13s%c%-10s ", uentp->userid,
-	     uentp->invisible ? '#' : ' ',
-	     modestring(uentp, 1));
-    if (cnt < 2)
-	strlcat(pline, "│", sizeof(pline));
-    strlcat(uline, pline, sizeof(uline));
-    if (++cnt == 3) {
-	printchatline(uline);
-	memset(uline, 0, 80);
-	cnt = 0;
-    }
-    return 0;
-}
-
 static void
 chathelp(const char *cmd, const char *desc)
 {
@@ -168,9 +137,9 @@ chat_help(char *arg)
 	chathelp("[/t]opic <text>", "換個話題");
 	chathelp("[/w]all", "廣播 (站長專用)");
     } else {
+	// chathelp("[/.]help", "chicken 鬥雞用指令");
+	chathelp(" /help op", "談天室管理員專用指令");
 	chathelp("[//]help", "MUD-like 社交動詞");
-	chathelp("[/.]help", "chicken 鬥雞用指令");
-	chathelp("[/h]elp op", "談天室管理員專用指令");
 	chathelp("[/a]ct <msg>", "做一個動作");
 	chathelp("[/b]ye [msg]", "道別");
 	chathelp("[/c]lear", "清除螢幕");
@@ -179,10 +148,12 @@ chat_help(char *arg)
 	chathelp("[/m]sg <id> <msg>", "跟 <id> 說悄悄話");
 	chathelp("[/n]ick <id>", "將談天代號換成 <id>");
 	chathelp("[/p]ager", "切換呼叫器");
-	chathelp("[/q]uery", "查詢網友");
-	chathelp("[/r]oom", "列出一般談天室");
+	chathelp("[/q]uery <id>", "查詢網友");
+	chathelp("[/r]oom ", "列出一般談天室");
 	chathelp("[/w]ho", "列出本談天室使用者");
-	chathelp("[/w]hoin <room>", "列出談天室<room> 的使用者");
+	chathelp(" /whoin <room>", "列出談天室<room> 的使用者");
+	chathelp(" /ignore <userid>", "忽略指定使用者的訊息");
+	chathelp(" /unignore <userid>", "停止忽略指定使用者的訊息");
     }
 }
 
@@ -249,18 +220,6 @@ chat_query(char *arg)
 	printchatline(err_uid);
 }
 
-static void
-chat_users(char* unused)
-{
-    printchatline("");
-    printchatline("【 " BBSNAME "的遊客列表 】");
-    printchatline(msg_shortulist);
-
-    if (apply_ulist(printuserent) == -1)
-	printchatline("空無一人");
-    printuserent(NULL);
-}
-
 typedef struct chat_command_t {
     char           *cmdname;	/* Chatroom command length */
     void            (*cmdfunc) (char *);	/* Pointer to function */
@@ -303,6 +262,7 @@ chat_cmd(char *buf, int fd)
 
 #define MAXLASTCMD 6
 static int      chatid_len = 10;
+static time4_t lastEnter = 0;
 
 int
 t_chat(void)
@@ -317,14 +277,32 @@ t_chat(void)
     struct ChatBuf chatbuf;
 
     if(HasUserPerm(PERM_VIOLATELAW))
-	    {
-	     vmsg("請先繳罰單才能使用聊天室!");
-	     return -1;
-	    }
+    {
+       vmsg("請先繳罰單才能使用聊天室!");
+       return -1;
+    }
+
+    syncnow();
+
+#ifdef CHAT_GAPMINS
+    if ((now - lastEnter)/60 < CHAT_GAPMINS)
+    {
+       vmsg("您才剛離開聊天室，裡面正在整理中。請稍後再試。");
+       return 0;
+    }
+#endif
+
+#ifdef CHAT_REGDAYS
+    if ((now - cuser.firstlogin)/86400 < CHAT_REGDAYS)
+    {
+       vmsg("您還不夠資深喔");
+       return 0;
+    }
+#endif
 
     memset(&chatbuf, 0, sizeof(chatbuf));
-
     outs("                     驅車前往 請梢候........         ");
+
     memset(&sin, 0, sizeof sin);
 #ifdef __FreeBSD__
     sin.sin_len = sizeof(sin);
@@ -355,6 +333,7 @@ t_chat(void)
 	chat_send(cfd, inbuf);
 	if (recv(cfd, inbuf, 3, 0) != 3) {
 	    close(cfd);
+           vmsg("系統錯誤。");
 	    return 0;
 	}
 	if (!strcmp(inbuf, CHAT_LOGIN_OK))
@@ -371,6 +350,8 @@ t_chat(void)
 	clrtoeol();
 	bell();
     }
+    syncnow();
+    lastEnter = now;
 
     add_io(cfd, 0);
 
@@ -387,8 +368,8 @@ t_chat(void)
 
     move(STOP_LINE, 0);
     outs(msg_seperator);
-    move(STOP_LINE, 60);
-    outs(" /help 查詢指令 ");
+    move(STOP_LINE, 56);
+    outs(" /h 查詢指令  /b 離開 ");
     move(1, 0);
     outs(msg_seperator);
     print_chatid(chatid);
@@ -466,6 +447,44 @@ t_chat(void)
 	    }
 	} else if (ch == '\n' || ch == '\r') {
 	    if (*inbuf) {
+
+#ifdef EXP_ANTIFLOOD
+               // prevent flooding */
+               static time4_t lasttime = 0;
+               static int flood = 0;
+
+               /* // debug anti flodding
+               move(b_lines-3, 0); clrtoeol();
+               prints("lasttime=%d, now=%d, flood=%d\n",
+                       lasttime, now, flood);
+               refresh();
+               */
+               syncnow();
+               if (now - lasttime < 3 )
+               {
+                   // 3 秒內洗半面是不行的 ((25-5)/2)
+                   if( ++flood > 10 ){
+                       // flush all input!
+                       drop_input();
+                       while (wait_input(1, 0))
+                       {
+                           if (num_in_buf())
+                               drop_input();
+                           else
+                               tty_read((unsigned char*)inbuf, sizeof(inbuf));
+                       }
+                       drop_input();
+                       vmsg("請勿大量剪貼或造成洗板面的效果。");
+                       // log?
+                       sleep(2);
+                       continue;
+                   }
+               } else {
+                   lasttime = now;
+                   flood = 0;
+               }
+#endif // anti-flood
+
 		chatting = chat_cmd(inbuf, cfd);
 		if (chatting == 0)
 		    chatting = chat_send(cfd, inbuf);
@@ -533,10 +552,10 @@ t_chat(void)
 	} else if (ch == Ctrl('I')) {
 	    screen_backup_t old_screen;
 
-	    screen_backup(&old_screen);
+	    scr_dump(&old_screen);
 	    add_io(0, 0);
 	    t_idle();
-	    screen_restore(&old_screen);
+	    scr_restore(&old_screen);
 	    add_io(cfd, 0);
 	} else if (ch == Ctrl('Q')) {
 	    print_chatid(chatid);

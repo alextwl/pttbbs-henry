@@ -1,30 +1,40 @@
-/* $Id: brc.c 3544 2007-06-18 17:14:03Z kcwu $ */
+/* $Id: brc.c 3640 2007-12-05 13:06:28Z piaip $ */
 #include "bbs.h"
 
 /**
  * 關於本檔案的細節，請見 docs/brc.txt。
+ * v3: add last modified time for comment system. double max size.
+ *     original time_t as 'create'.
  */
 
+// WARNING: Check ../pttbbs.conf, you may have overide these value there
+// TODO MAXSIZE may be better smaller to fit into memory page.
 #ifndef BRC_MAXNUM
-#define BRC_STRLEN      15	/* Length of board name, for old brc */
-#define BRC_MAXSIZE     24576   /* Effective size of brc rc file, 8192 * 3 */
+#define BRC_MAXSIZE     49152   /* Effective size of brc rc file, 8192 * 3 * 2 */
 #define BRC_MAXNUM      80      /* Upper bound of brc_num, size of brc_list  */
 #endif
 
 #define BRC_BLOCKSIZE   1024
 
+// Note: BRC v3 should already support MAX_BOARD > 65535 and BRC_MAXSIZE > 65535,
+// but not widely tested yet.
 #if MAX_BOARD > 65535 || BRC_MAXSIZE > 65535
-#error Max number of boards or BRC_MAXSIZE cannot fit in unsighed short, \
-please rewrite brc.c
+#error Max number of boards or BRC_MAXSIZE cannot fit in unsigned short, \
+please rewrite brc.c (v2)
 #endif
 
-typedef unsigned short brcbid_t;
-typedef unsigned short brcnbrd_t;
+typedef uint32_t brcbid_t;
+typedef uint16_t brcnbrd_t;
+
+typedef struct {
+    time4_t create;
+    time4_t modified;
+} brc_rec;
 
 /* old brc rc file form:
  * board_name     15 bytes
  * brc_num         1 byte, binary integer
- * brc_list       brc_num * sizeof(int) bytes, brc_num binary integer(s) */
+ * brc_list       brc_num * sizeof(brc_rec) bytes  */
 
 static char brc_initialized = 0;
 static time4_t brc_expire_time;
@@ -40,10 +50,10 @@ static int     brc_alloc;
 // read records for currbid
 static int             brc_currbid;
 static int             brc_num;
-static time4_t         brc_list[BRC_MAXNUM];
+static brc_rec         brc_list[BRC_MAXNUM];
 
-static char * const fn_oldboardrc = ".boardrc";
-static char * const fn_brc = ".brc2";
+static char * const fn_brc2= ".brc2";
+static char * const fn_brc = ".brc3";
 
 /**
  * find read records of bid in given buffer region
@@ -74,7 +84,7 @@ brc_findrecord_in(char *begin, char *endp, brcbid_t bid, brcnbrd_t *num)
 	tbid = *(brcbid_t*)tmpp;
 	tmpp += sizeof(brcbid_t);
 	*num = *(brcnbrd_t*)tmpp;
-	tmpp += sizeof(brcnbrd_t) + *num * sizeof(time4_t); /* end of record */
+	tmpp += sizeof(brcnbrd_t) + *num * sizeof(brc_rec); /* end of record */
 
 	if ( tmpp > endp ){
 	    /* dangling, ignore the trailing data */
@@ -90,7 +100,7 @@ brc_findrecord_in(char *begin, char *endp, brcbid_t bid, brcnbrd_t *num)
     return 0;
 }
 
-static time4_t *
+static brc_rec *
 brc_find_record(int bid, int *num)
 {
     char *p;
@@ -98,17 +108,17 @@ brc_find_record(int bid, int *num)
     p = brc_findrecord_in(brc_buf, brc_buf + brc_size, bid, &tnum);
     *num = tnum;
     if (p)
-	return (time4_t*)(p + sizeof(brcbid_t) + sizeof(brcnbrd_t));
+	return (brc_rec*)(p + sizeof(brcbid_t) + sizeof(brcnbrd_t));
     *num = 0;
     return 0;
 }
 
 static char *
 brc_putrecord(char *ptr, char *endp, brcbid_t bid,
-	      brcnbrd_t num, const time4_t *list)
+	      brcnbrd_t num, const brc_rec *list)
 {
     char * tmp;
-    if (num > 0 && list[0] > brc_expire_time &&
+    if (num > 0 && list[0].create > brc_expire_time &&
 	    ptr + sizeof(brcbid_t) + sizeof(brcnbrd_t) < endp) {
 	if (num > BRC_MAXNUM)
 	    num = BRC_MAXNUM;
@@ -119,9 +129,9 @@ brc_putrecord(char *ptr, char *endp, brcbid_t bid,
 	ptr += sizeof(brcbid_t);
 	*(brcnbrd_t*)ptr = num;         /* write in brc_num */
 	ptr += sizeof(brcnbrd_t);
-	tmp = ptr + num * sizeof(time4_t);
+	tmp = ptr + num * sizeof(brc_rec);
 	if (tmp <= endp)
-	    memcpy(ptr, list, num * sizeof(time4_t)); /* write in brc_list */
+	    memcpy(ptr, list, num * sizeof(brc_rec)); /* write in brc_list */
 	ptr = tmp;
     }
     return ptr;
@@ -178,7 +188,7 @@ brc_get_buf(int size){
 }
 
 static inline void
-brc_insert_record(brcbid_t bid, brcnbrd_t num, const time4_t* list)
+brc_insert_record(brcbid_t bid, brcnbrd_t num, const brc_rec* list)
 {
     char           *ptr;
     int             new_size, end_size;
@@ -186,7 +196,7 @@ brc_insert_record(brcbid_t bid, brcnbrd_t num, const time4_t* list)
 
     ptr = brc_findrecord_in(brc_buf, brc_buf + brc_size, bid, &tnum);
 
-    while (num > 0 && list[num - 1] < brc_expire_time)
+    while (num > 0 && list[num - 1].create < brc_expire_time)
 	num--; /* don't write the times before brc_expire_time */
 
     if (!ptr) {
@@ -195,7 +205,7 @@ brc_insert_record(brcbid_t bid, brcnbrd_t num, const time4_t* list)
 	/* put on the beginning */
 	if (num){
 	    new_size = sizeof(brcbid_t) + sizeof(brcnbrd_t)
-		+ num * sizeof(time4_t);
+		+ num * sizeof(brc_rec);
 	    brc_size += new_size;
 	    if (brc_size > brc_alloc && !brc_enlarge_buf())
 		brc_size = BRC_MAXSIZE;
@@ -206,13 +216,13 @@ brc_insert_record(brcbid_t bid, brcnbrd_t num, const time4_t* list)
     } else {
 	/* ptr points to the old current brc list.
 	 * tmpp is the end of it (exclusive).       */
-	int len = sizeof(brcbid_t) + sizeof(brcnbrd_t) + tnum * sizeof(time4_t);
+	int len = sizeof(brcbid_t) + sizeof(brcnbrd_t) + tnum * sizeof(brc_rec);
 	char *tmpp = ptr + len;
 	end_size = brc_buf + brc_size - tmpp;
 	if (num) {
 	    int sindex = ptr - brc_buf;
 	    new_size = (sizeof(brcbid_t) + sizeof(brcnbrd_t)
-			+ num * sizeof(time4_t));
+			+ num * sizeof(brc_rec));
 	    brc_size += new_size - len;
 	    if (brc_size > brc_alloc) {
 		if (brc_enlarge_buf()) {
@@ -246,72 +256,100 @@ brc_update(){
     }
 }
 
-/* return 1 if successfully read from old .boardrc file.
- * otherwise, return 0. */
-inline static void
-read_old_brc(int fd)
+void 
+read_brc2(void)
 {
-    char        brdname[BRC_STRLEN + 1];
-    char       *ptr;
-    brcnbrd_t   num;
-    brcbid_t    bid;
-    brcbid_t    read_brd[512];
-    int         nRead = 0, i;
+    char            brcfile[STRLEN];
+    int             fd;
+    size_t sz2 = 0, sz3 = 0;
+    char	    *cvt = NULL, *cvthead = NULL;
 
-    ptr = brc_buf;
-    brc_size = 0;
-    while (read(fd, brdname, BRC_STRLEN + 1) == BRC_STRLEN + 1) {
-	num = brdname[BRC_STRLEN];
-	brdname[BRC_STRLEN] = 0;
-	bid = getbnum(brdname);
+    // brc v2 is using 16 bit for brcbid_t and brcnbrd_t.
+    uint16_t bid2, num2;
 
-	for (i = 0; i < nRead; ++i)
-	    if (read_brd[i] == bid)
-		break;
-	if (i != nRead){
-	    lseek(fd, num * sizeof(int), SEEK_CUR);
-	    continue;
-	}
-	read_brd[nRead >= 512 ? nRead = 0 : nRead++] = bid;
+    brcbid_t  bid;
+    brcnbrd_t num;
+    time4_t   create;
+    brc_rec   rec;
 
-	*(brcbid_t*)ptr = bid;
-	ptr += sizeof(brcbid_t);
-	*(brcnbrd_t*)ptr = num;
-	ptr += sizeof(brcnbrd_t);
-	if (read(fd, ptr, sizeof(int) * num) != sizeof(int) * num)
+    setuserfile(brcfile, fn_brc2);
+
+    if ((fd = open(brcfile, O_RDONLY)) == -1)
+	return;
+
+    sz2 = dashs(brcfile);
+    sz3 = sz2 * 2; // max double size
+
+    cvthead = cvt = malloc (sz3);
+    memset(cvthead, 0, sz3);
+    // now calculate real sz3
+
+    while (read(fd, &bid2, sizeof(bid2)) > 0)
+    {
+	if (read(fd, &num2, sizeof(num2)) < 1)
 	    break;
 
-	brc_size += sizeof(brcbid_t) + sizeof(brcnbrd_t)
-	    + sizeof(time4_t) * num;
-	ptr += sizeof(time4_t) * num;
+	bid = bid2;
+	num = num2;
+
+	// some brc v2 contains bad structure.
+	// check pointer here.
+	if (cvt + sizeof(brcbid_t) + sizeof(brcnbrd_t) - cvthead >= sz3)
+	    break;
+
+	*(brcbid_t*) cvt = bid; cvt += sizeof(brcbid_t);
+	*(brcnbrd_t*)cvt = num; cvt += sizeof(brcnbrd_t);
+
+	// some brc v2 contains bad structure.
+	// check pointer here.
+	for (; num > 0 && (cvt + sizeof(brc_rec) - cvthead) <= sz3 ; num--)
+	{
+	    if (read(fd, &create, sizeof(create)) < 1)
+		break;
+
+	    rec.create = create;
+	    rec.modified = create;
+
+	    *(brc_rec*)cvt = rec; cvt += sizeof(brc_rec);
+	}
     }
+    close(fd);
+
+    // now cvthead is ready for v3.
+    sz3 = cvt - cvthead;
+    brc_get_buf(sz3);
+    // new size maybe smaller, check brc_alloc instead
+    if (sz3 > brc_alloc)
+	sz3 = brc_alloc;
+    brc_size = sz3;
+    memcpy(brc_buf, cvthead, sz3);
+
+    free(cvthead);
 }
 
 inline static void
 read_brc_buf(void)
 {
-    if (brc_buf == NULL) {
-	char            brcfile[STRLEN];
-	int             fd;
-	struct stat     brcstat;
+    char            brcfile[STRLEN];
+    int             fd;
+    struct stat     brcstat;
 
-	setuserfile(brcfile, fn_brc);
-	if ((fd = open(brcfile, O_RDONLY)) != -1) {
-	    fstat(fd, &brcstat);
-	    brc_get_buf(brcstat.st_size);
-	    brc_size = read(fd, brc_buf, brc_alloc);
-	    close(fd);
-	} else {
-	    setuserfile(brcfile, fn_oldboardrc);
-	    if ((fd = open(brcfile, O_RDONLY)) != -1) {
-		fstat(fd, &brcstat);
-		brc_get_buf(brcstat.st_size);
-		read_old_brc(fd);
-		close(fd);
-	    } else
-		brc_size = 0;
-	}
+    if (brc_buf != NULL)
+	return;
+
+    brc_size = 0;
+    setuserfile(brcfile, fn_brc);
+
+    if ((fd = open(brcfile, O_RDONLY)) == -1)
+    {
+	read_brc2();
+	return;
     }
+
+    fstat(fd, &brcstat);
+    brc_get_buf(brcstat.st_size);
+    brc_size = read(fd, brc_buf, brc_alloc);
+    close(fd);
 }
 
 /* release allocated memory
@@ -379,7 +417,7 @@ brc_initialize(){
  * @return number of read record, 0 if no records
  */
 static int
-brc_read_record(int bid, int *num, time4_t *list){
+brc_read_record(int bid, int *num, brc_rec *list){
     char *ptr;
     brcnbrd_t tnum;
     ptr = brc_findrecord_in(brc_buf, brc_buf + brc_size, bid, &tnum);
@@ -387,10 +425,10 @@ brc_read_record(int bid, int *num, time4_t *list){
     if ( ptr ){
 	assert(0 <= *num && *num <= BRC_MAXNUM);
 	memcpy(list, ptr + sizeof(brcbid_t) + sizeof(brcnbrd_t),
-	       *num * sizeof(time4_t));
+	       *num * sizeof(brc_rec));
 	return *num;
     }
-    list[0] = *num = 1;
+    list[0].create = *num = 1;
     return 0;
 }
 
@@ -421,10 +459,14 @@ brc_initial_board(const char *boardname)
 
 static void
 brc_trunc(int bid, time4_t ftime){
-    brc_insert_record(bid, 1, &ftime);
+    brc_rec r;
+
+    r.create = ftime;
+    r.modified = ftime;
+    brc_insert_record(bid, 1, &r);
     if ( bid == brc_currbid ){
 	brc_num = 1;
-	brc_list[0] = ftime;
+	brc_list[0] = r;
 	brc_changed = 0;
     }
 }
@@ -440,50 +482,71 @@ brc_toggle_all_read(int bid, int is_all_read)
 }
 
 void
-brc_addlist(const char *fname)
+brc_addlist(const char *fname, time4_t modified)
 {
     int             n, i;
-    time4_t         ftime;
+    brc_rec         frec;
 
     assert(currbid == brc_currbid);
     if (!cuser.userlevel)
 	return;
     brc_initialize();
 
-    ftime = atoi(&fname[2]);
-    if (ftime <= brc_expire_time /* too old, don't do any thing  */
+    frec.create = atoi(&fname[2]);
+    frec.modified = modified;
+
+    if (frec.create <= brc_expire_time /* too old, don't do any thing  */
 	 /* || fname[0] != 'M' || fname[1] != '.' */ ) {
 	return;
     }
     if (brc_num <= 0) { /* uninitialized */
-	brc_list[0] = ftime;
+	brc_list[0] = frec;
 	brc_num = 1;
 	brc_changed = 1;
 	return;
     }
-    if ((brc_num == 1) && (ftime < brc_list[0])) /* most when after 'v' */
+    if ((brc_num == 1) && (frec.create < brc_list[0].create)) /* most when after 'v' */
 	return;
     for (n = 0; n < brc_num; n++) { /* using linear search */
-	if (ftime == brc_list[n]) {
+	if (frec.create == brc_list[n].create) {
+	    // check if we got bad value.
+	    if (modified == (time4_t)-1) 
+		return;
+
+	    if (brc_list[n].modified == (time4_t)-1)
+		brc_list[n].modified = 0;
+
+	    // special case here:
+	    // in order to support special system like 'always bottom',
+	    // they may share same create time and different time.
+	    if (brc_list[n].modified < modified)
+	    {
+		brc_list[n].modified = modified;
+		brc_changed = 1;
+	    }
 	    return;
-	} else if (ftime > brc_list[n]) {
+	} else if (frec.create > brc_list[n].create) {
 	    if (brc_num < BRC_MAXNUM)
 		brc_num++;
-	    /* insert ftime into brc_list */
+	    /* insert frec into brc_list */
 	    for (i = brc_num - 1; --i >= n; brc_list[i + 1] = brc_list[i]);
-	    brc_list[n] = ftime;
+	    brc_list[n] = frec;
 	    brc_changed = 1;
 	    return;
 	}
     }
 }
 
+// return:
+//   0 - read
+//   1 - unread (by create)
+//   2 - unread (by modified)
 int
-brc_unread_time(int bid, time4_t ftime)
+brc_unread_time(int bid, time4_t ftime, time4_t modified)
 {
     int             i;
     int	bnum;
-    const time4_t *blist;
+    const brc_rec *blist;
 
     brc_initialize();
     if (ftime <= brc_expire_time) /* too old */
@@ -498,21 +561,36 @@ brc_unread_time(int bid, time4_t ftime)
 
     if (bnum <= 0)
 	return 1;
+
     for (i = 0; i < bnum; i++) { /* using linear search */
-	if (ftime > blist[i])
+	if (ftime > blist[i].create)
 	    return 1;
-	else if (ftime == blist[i])
-	    return 0;
+	else if (ftime == blist[i].create)
+	{
+	    time4_t brcm = blist[i].modified;
+	    if (modified == 0 || brcm == 0)
+		return 0;
+
+	    // bad  case... seems like that someone is making -1.
+	    if (modified == (time4_t)-1 || brcm == (time4_t)-1)
+		return 0;
+
+	    // one case is, some special file headers (ex, 
+	    // always bottom) may cause issue. They share create
+	    // time (filename) and apply different modify time.
+	    // so let's back to 'greater'.
+	    return modified > brcm ? 2 : 0;
+	}
     }
     return 0;
 }
 
 int
-brc_unread(int bid, const char *fname)
+brc_unread(int bid, const char *fname, time4_t modified)
 {
     int             ftime;
 
     ftime = atoi(&fname[2]); /* this will get the time of the file created */
 
-    return brc_unread_time(bid, ftime);
+    return brc_unread_time(bid, ftime, modified);
 }

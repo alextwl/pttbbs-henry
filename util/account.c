@@ -1,4 +1,4 @@
-/* $Id: account.c 3511 2007-05-04 04:21:34Z victor $ */
+/* $Id: account.c 3671 2007-12-12 01:37:48Z kcwu $ */
 #include "bbs.h"
 
 // test
@@ -100,7 +100,7 @@ main(int argc, char **argv)
     int             act[27];	/* 次數/累計時間/pointer */
     time4_t         now;
     struct tm      *ptime;
-    int             per_hour_unit = 10;
+    int             per_hour_unit = 100;
 
     attach_SHM();
     nice(10);
@@ -377,7 +377,7 @@ main(int argc, char **argv)
 	system(buf);
     }
     /* Ptt reset Ptt's share memory */
-    printf("重設Pttcache 與fcache\n");
+    printf("重設cache 與fcache\n");
 
     SHM->Puptime = 0;
     resolve_fcache();

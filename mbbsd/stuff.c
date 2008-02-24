@@ -1,6 +1,5 @@
-/* $Id: stuff.c 3547 2007-06-18 17:15:17Z kcwu $ */
+/* $Id: stuff.c 3906 2008-02-09 04:33:28Z piaip $ */
 #include "bbs.h"
-#include "fnv_hash.h"
 
 /* ----------------------------------------------------- */
 /* set file path for boards/user home                    */
@@ -9,10 +8,8 @@ static const char * const str_home_file = "home/%c/%s/%s";
 static const char * const str_board_file = "boards/%c/%s/%s";
 static const char * const str_board_n_file = "boards/%c/%s/%s.%d";
 
-static char cdate_buffer[32];
 
-#define STR_DOTDIR  ".DIR"
-static const char * const str_dotdir = STR_DOTDIR;
+static const char * const str_dotdir = FN_DIR;
 
 /* XXX set*() all assume buffer size = PATHLEN */
 void
@@ -128,81 +125,6 @@ subject(char *title)
     return title;
 }
 
-/* ----------------------------------------------------- */
-/* 字串轉換檢查函數                                      */
-/* ----------------------------------------------------- */
-/**
- * 將字串 s 轉為小寫存回 t
- * @param t allocated char array
- * @param s
- */
-void
-str_lower(char *t, const char *s)
-{
-    register unsigned char ch;
-
-    do {
-	ch = *s++;
-	*t++ = char_lower(ch);
-    } while (ch);
-}
-
-/**
- * 移除字串 buf 後端多餘的空白。
- * @param buf
- */
-void
-trim(char *buf)
-{				/* remove trailing space */
-    char           *p = buf;
-
-    while (*p)
-	p++;
-    while (--p >= buf) {
-	if (*p == ' ')
-	    *p = '\0';
-	else
-	    break;
-    }
-}
-
-/**
- * 移除 src 的 '\n' 並改成 '\0'
- * @param src
- */
-void chomp(char *src)
-{
-    while(*src){
-	if (*src == '\n')
-	    *src = 0;
-	else
-	    src++;
-    }
-}
-
-/* ----------------------------------------------------- */
-/* 字串檢查函數：英文、數字、檔名、E-mail address        */
-/* ----------------------------------------------------- */
-
-int
-invalid_pname(const char *str)
-{
-    const char           *p1, *p2, *p3;
-
-    p1 = str;
-    while (*p1) {
-	if (!(p2 = strchr(p1, '/')))
-	    p2 = str + strlen(str);
-	if (p1 + 1 > p2 || p1 + strspn(p1, ".") == p2) /* 不允許用 / 開頭, 或是 // 之間只有 . */
-	    return 1;
-	for (p3 = p1; p3 < p2; p3++)
-	    if (not_alnum(*p3) && !strchr("@[]-._", *p3)) /* 只允許 alnum 或這些符號 */
-		return 1;
-	p1 = p2 + (*p2 ? 1 : 0);
-    }
-    return 0;
-}
-
 int is_validuserid(const char *id)
 {
     int len, i;
@@ -213,10 +135,10 @@ int is_validuserid(const char *id)
     if (len < 2 || len>IDLEN)
 	return 0;
 
-    if (not_alpha(id[0]))
+    if (!isalpha(id[0]))
 	return 0;
     for (i = 1; i < len; i++)
-	if (not_alnum(id[i]))
+	if (!isalnum(id[i]))
 	    return 0;
     return 1;
 }
@@ -280,197 +202,12 @@ userid_is_BM(const char *userid, const char *list)
     return 0;
 }
 
-/* ----------------------------------------------------- */
-/* 檔案檢查函數：檔案、目錄、屬於                        */
-/* ----------------------------------------------------- */
-
-/**
- * 傳回 fname 的檔案大小
- * @param fname
- */
-off_t
-dashs(const char *fname)
-{
-    struct stat     st;
-
-    if (!stat(fname, &st))
-	return st.st_size;
-    else
-	return -1;
-}
-
-/**
- * 傳回 fname 的 mtime
- * @param fname
- */
-time4_t
-dasht(const char *fname)
-{
-    struct stat     st;
-
-    if (!stat(fname, &st))
-	return st.st_mtime;
-    else
-	return -1;
-}
-
-/**
- * 傳回 fname 是否為 symbolic link
- * @param fname
- */
-int
-dashl(const char *fname)
-{
-    struct stat     st;
-
-    return (lstat(fname, &st) == 0 && S_ISLNK(st.st_mode));
-}
-
-/**
- * 傳回 fname 是否為一般的檔案
- * @param fname
- */
-int
-dashf(const char *fname)
-{
-    struct stat     st;
-
-    return (stat(fname, &st) == 0 && S_ISREG(st.st_mode));
-}
-
-/**
- * 傳回 fname 是否為目錄
- * @param fname
- */
-int
-dashd(const char *fname)
-{
-    struct stat     st;
-
-    return (stat(fname, &st) == 0 && S_ISDIR(st.st_mode));
-}
-
-#define BUFFER_SIZE	8192
-static int copy_file_to_file(const char *src, const char *dst)
-{
-    char buf[BUFFER_SIZE];
-    int fdr, fdw, len;
-
-    if ((fdr = open(src, O_RDONLY)) < 0)
-	return -1;
-
-    if ((fdw = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0600)) < 0) {
-	close(fdr);
-	return -1;
-    }
-
-    while (1) {
-	len = read(fdr, buf, sizeof(buf));
-	if (len <= 0)
-	    break;
-	write(fdw, buf, len);
-	if (len < BUFFER_SIZE)
-	    break;
-    }
-
-    close(fdr);
-    close(fdw);
-    return 0;
-}
-#undef BUFFER_SIZE
-
-static int copy_file_to_dir(const char *src, const char *dst)
-{
-    char buf[PATHLEN];
-    char *slash;
-    if ((slash = rindex(src, '/')) == NULL)
-	snprintf(buf, PATHLEN, "%s/%s", dst, src);
-    else
-	snprintf(buf, PATHLEN, "%s/%s", dst, slash);
-    return copy_file_to_file(src, buf);
-}
-
-static int copy_dir_to_dir(const char *src, const char *dst)
-{
-    DIR *dir;
-    struct dirent *entry;
-    struct stat st;
-    char buf[PATHLEN], buf2[PATHLEN];
-
-    if (stat(dst, &st) < 0)
-	if (mkdir(dst, 0700) < 0)
-	    return -1;
-
-    if ((dir = opendir(src)) == NULL)
-	return -1;
-
-    while ((entry = readdir(dir)) != NULL) {
-	if (strcmp(entry->d_name, ".") == 0 ||
-	    strcmp(entry->d_name, "..") == 0)
-	    continue;
-	snprintf(buf, PATHLEN, "%s/%s", src, entry->d_name);
-	snprintf(buf2, PATHLEN, "%s/%s", dst, entry->d_name);
-	if (stat(buf, &st) < 0)
-	    continue;
-	if (S_ISDIR(st.st_mode))
-	    mkdir(buf2, 0700);
-	copy_file(buf, buf2);
-    }
-
-    closedir(dir);
-    return 0;
-}
-
-/**
- * copy src to dst (recursively)
- * @param src and dst are file or dir
- * @return -1 if failed
- */
-int copy_file(const char *src, const char *dst)
-{
-    struct stat st;
-
-    if (stat(dst, &st) == 0 && S_ISDIR(st.st_mode)) {
-	if (stat(src, &st) < 0)
-	    return -1;
-	
-    	if (S_ISDIR(st.st_mode))
-	    return copy_dir_to_dir(src, dst);
-	else if (S_ISREG(st.st_mode))
-	    return copy_file_to_dir(src, dst);
-	return -1;
-    }
-    else if (stat(src, &st) == 0 && S_ISDIR(st.st_mode))
-	return copy_dir_to_dir(src, dst);
-    return copy_file_to_file(src, dst);
-}
-
 int
 belong(const char *filelist, const char *key)
 {
     return file_exist_record(filelist, key);
 }
 
-unsigned int
-ipstr2int(const char *ip)
-{
-    unsigned int i, val = 0;
-    char buf[32];
-    char *nil, *p;
-
-    strlcpy(buf, ip, sizeof(buf));
-    p = buf;
-    for (i = 0; i < 4; i++) {
-	nil = strchr(p, '.');
-	if (nil != NULL)
-	    *nil = 0;
-	val *= 256;
-	val += atoi(p);
-	if (nil != NULL)
-	    p = nil + 1;
-    }
-    return val;
-}
 
 #ifndef _BBS_UTIL_C_ /* getdata_buf */
 time4_t
@@ -479,6 +216,7 @@ gettime(int line, time4_t dt, const char*head)
     char            yn[7];
     int i;
     struct tm      *ptime = localtime4(&dt), endtime;
+    time_t          t;
 
     memcpy(&endtime, ptime, sizeof(struct tm));
     snprintf(yn, sizeof(yn), "%4d", ptime->tm_year + 1900);
@@ -486,7 +224,10 @@ gettime(int line, time4_t dt, const char*head)
     i=strlen(head);
     do {
 	getdata_buf(line, i, " 西元年:", yn, 5, LCECHO);
-    } while ((endtime.tm_year = atoi(yn) - 1900) < 0 || endtime.tm_year > 200);
+	// signed:   limited on (2037, ...)
+	// unsigned: limited on (..., 1970)
+	// let's restrict inside the boundary.
+    } while ((endtime.tm_year = atoi(yn) - 1900) < 70 || endtime.tm_year > 135);
     snprintf(yn, sizeof(yn), "%d", ptime->tm_mon + 1);
     do {
 	getdata_buf(line, i+15, "月:", yn, 3, LCECHO);
@@ -499,61 +240,30 @@ gettime(int line, time4_t dt, const char*head)
     do {
 	getdata_buf(line, i+33, "時(0-23):", yn, 3, LCECHO);
     } while ((endtime.tm_hour = atoi(yn)) < 0 || endtime.tm_hour > 23);
-    return mktime(&endtime);
+    t = mktime(&endtime);
+    /* saturation check */
+    if(t < 0)
+      t = 1;
+    if(t > INT_MAX)
+      t = INT_MAX;
+    return t;
 }
+
+// synchronize 'now'
+void syncnow(void)
+{
+#ifdef OUTTA_TIMER
+        now = SHM->GV2.e.now;
+#else
+	now = time(0);
+#endif
+}
+
 #endif
 
-char           *
-Cdate(const time4_t *clock)
-{
-    time_t          temp = (time_t)*clock;
-    struct tm      *mytm = localtime(&temp);
-
-    strftime(cdate_buffer, sizeof(cdate_buffer), "%m/%d/%Y %T %a", mytm);
-    return cdate_buffer;
-}
-
-char           *
-Cdatelite(const time4_t *clock)
-{
-    time_t          temp = (time_t)*clock;
-    struct tm      *mytm = localtime(&temp);
-
-    strftime(cdate_buffer, sizeof(cdate_buffer), "%m/%d/%Y %T", mytm);
-    return cdate_buffer;
-}
-
-char           *
-Cdatedate(const time4_t * clock)
-{
-    time_t          temp = (time_t)*clock;
-    struct tm      *mytm = localtime(&temp);
-
-    strftime(cdate_buffer, sizeof(cdate_buffer), "%m/%d/%Y", mytm);
-    return cdate_buffer;
-}
 
 #ifndef _BBS_UTIL_C_
 /* 這一區都是有關於畫面處理的, 故 _BBS_UTIL_C_ 不須要 */
-static void
-capture_screen(void)
-{
-    char            fname[200];
-    FILE           *fp;
-    int             i;
-
-    getdata(b_lines - 2, 0, "把這個畫面收入到暫存檔？[y/N] ",
-	    fname, 4, LCECHO);
-    if (fname[0] != 'y')
-	return;
-
-    setuserfile(fname, ask_tmpbuf(b_lines - 1));
-    if ((fp = fopen(fname, "w"))) {
-	for (i = 0; i < scr_lns; i++)
-	    fprintf(fp, "%.*s\n", big_picture[i].len, big_picture[i].data);
-	fclose(fp);
-    }
-}
 
 #ifdef PLAY_ANGEL
 void
@@ -563,16 +273,12 @@ pressanykey_or_callangel(){
     outmsg(
 	    ANSI_COLOR(1;34;44) " ▄▄▄▄ " 
 	    ANSI_COLOR(32) "H " ANSI_COLOR(36) "呼叫小天使" ANSI_COLOR(34) 
-	    " ▄▄▄▄" ANSI_COLOR(37;44) " 請按 " ANSI_COLOR(36) "任意鍵 " 
+	    " ▄▄▄▄" ANSI_COLOR(37;44) " 請按 " ANSI_COLOR(36) "空白鍵 " 
 	    ANSI_COLOR(37) "繼續 " ANSI_COLOR(1;34) 
-	    "▄▄▄▄▄" ANSI_COLOR(36) "^T 收錄暫存檔" ANSI_COLOR(34) "▄▄▄ " ANSI_RESET);
+	    "▄▄▄▄▄▄▄▄▄▄▄▄▄▄ " ANSI_RESET);
     do {
 	ch = igetch();
-
-	if (ch == Ctrl('T')) {
-	    capture_screen();
-	    break;
-	}else if (ch == 'h' || ch == 'H'){
+	if (ch == 'h' || ch == 'H'){
 	    CallAngel();
 	    break;
 	}
@@ -591,10 +297,10 @@ char
 getans(const char *fmt,...)
 {
     char   msg[256];
-    char   ans[5];
+    char   ans[3];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(msg , 128, fmt, ap);
+    vsnprintf(msg , sizeof(msg), fmt, ap);
     va_end(ap);
 
     getdata(b_lines, 0, msg, ans, sizeof(ans), LCECHO);
@@ -607,7 +313,7 @@ getkey(const char *fmt,...)
     char   msg[256], i;
     va_list ap;
     va_start(ap, fmt);
-    i = vsnprintf(msg , 128, fmt, ap);
+    i = vsnprintf(msg , sizeof(msg), fmt, ap);
     va_end(ap);
     return vmsg(msg);
 }
@@ -616,14 +322,9 @@ static const char *msg_pressanykey_full =
     ANSI_COLOR(37;44) " 請按" ANSI_COLOR(36) " 任意鍵 " ANSI_COLOR(37) "繼續 " ANSI_COLOR(34);
 #define msg_pressanykey_full_len (18)
 
-static const char *msg_pressanykey_full_trail =
-    ANSI_COLOR(36) 
-    " [^T 收錄暫存檔] "  ANSI_RESET;
-#define msg_pressanykey_full_trail_len (18) /* 4 for head */
-
+    // what is 200/1431/506/201?
 static const char* msg_pressanykey_trail =
-    ANSI_COLOR(33;46) " " ANSI_COLOR(200) ANSI_COLOR(1431) ANSI_COLOR(506) 
-    "[按任意鍵繼續]" ANSI_COLOR(201) " " ANSI_RESET;
+    ANSI_COLOR(33;46) " [按任意鍵繼續] " ANSI_RESET;
 #define msg_pressanykey_trail_len (16+1+4) /* 4 for head */
 
 int
@@ -649,16 +350,16 @@ vmsg(const char *msg)
 	    outs("▄"), pad+=2;
 	outs(msg_pressanykey_full), pad+= msg_pressanykey_full_len;
 	/* pad now points to position of current cursor. */
-	pad = t_columns - msg_pressanykey_full_trail_len - pad;
+	pad = t_columns - pad -2 ;
 	/* pad is now those left . */
 	if (pad > 0)
 	{
 	    for (i = 0; i <= pad-2; i += 2)
 		outs("▄");
 	    if (i == pad-1)
-		outc(' ');
+		outs(" ");
 	}
-	outs(msg_pressanykey_full_trail);
+	outs(ANSI_RESET);
     } else {
 	/* msg_pressanykey_trail */ 
 	outs(ANSI_COLOR(1;36;44) " ◆ ");
@@ -673,9 +374,7 @@ vmsg(const char *msg)
     }
 
     do {
-	if( (i = igetch()) == Ctrl('T') )
-	    if(cuser.userid[0]) // if already login
-		capture_screen();
+	i = igetch();
     } while( i == 0 );
 
     move(b_lines, 0);
@@ -689,7 +388,7 @@ vmsgf(const char *fmt,...)
     char   msg[256];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(msg, sizeof(msg)-1, fmt, ap);
+    vsnprintf(msg, sizeof(msg), fmt, ap);
     va_end(ap);
     msg[sizeof(msg)-1] = 0;
     return vmsg(msg);
@@ -712,11 +411,15 @@ show_file(const char *filename, int y, int lines, int mode)
 
     if (y >= 0)
 	move(y, 0);
-    clrtoline(lines + y);
+    clrtoln(lines + y);
     if ((fp = fopen(filename, "r"))) {
 	while (fgets(buf, sizeof(buf), fp) && lines--)
+	{
+	    move(y++, 0);
 	    outs(Ptt_prints(buf, sizeof(buf), mode));
+	}
 	fclose(fp);
+	outs(ANSI_RESET); // prevent some broken Welcome file
     } else
 	return 0;
     return 1;
@@ -734,45 +437,15 @@ bell(void)
 int
 search_num(int ch, int max)
 {
-    int             clen = 1;
-    int             x, y;
-    char            genbuf[10];
+    int  clen = 1, y = b_lines - msg_occupied;
+    char genbuf[10];
 
-    outmsg(ANSI_COLOR(7) " 跳至第幾項：" ANSI_RESET);
-    outc(ch);
-    genbuf[0] = ch;
-    getyx(&y, &x);
-    x--;
-    while ((ch = igetch()) != '\r') {
-	if (ch == 'q' || ch == 'e')
-	    return -1;
-	if (ch == '\n')
-	    break;
-	if (ch == '\177' || ch == Ctrl('H')) {
-	    if (clen == 0) {
-		bell();
-		continue;
-	    }
-	    clen--;
-	    move(y, x + clen);
-	    outc(' ');
-	    move(y, x + clen);
-	    continue;
-	}
-	if (!isdigit(ch)) {
-	    bell();
-	    continue;
-	}
-	if (x + clen >= scr_cols || clen >= 6) {
-	    bell();
-	    continue;
-	}
-	genbuf[clen++] = ch;
-	outc(ch);
-    }
+    genbuf[0] = ch; genbuf[1] = 0;
+    clen = getdata_buf(y, 0, 
+	    " 跳至第幾項: ", genbuf, sizeof(genbuf)-1, NUMECHO);
+
+    move(y, 0); clrtoeol();
     genbuf[clen] = '\0';
-    move(b_lines, 0);
-    clrtoeol();
     if (genbuf[0] == '\0')
 	return -1;
     clen = atoi(genbuf);
@@ -855,40 +528,11 @@ log_user(const char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    vsnprintf(msg , 128, fmt, ap);
+    vsnprintf(msg , sizeof(msg), fmt, ap);
     va_end(ap);
 
     sethomefile(filename, cuser.userid, "USERLOG");
-    return log_file(filename, LOG_CREAT | LOG_VF,
-		    "%s: %s %s", cuser.userid, msg,  Cdate(&now));
-}
-
-int
-log_file(const char *fn, int flag, const char *fmt,...)
-{
-    int        fd;
-    char       msg[256];
-    const char *realmsg;
-    if( !(flag & LOG_VF) ){
-	realmsg = fmt;
-    }
-    else{
-	va_list ap;
-	va_start(ap, fmt);
-	vsnprintf(msg , 128, fmt, ap);
-	va_end(ap);
-	realmsg = msg;
-    }
-
-    if( (fd = open(fn, O_APPEND | O_WRONLY | ((flag & LOG_CREAT)? O_CREAT : 0),
-		   ((flag & LOG_CREAT) ? 0664 : 0))) < 0 )
-	return -1;
-    if( write(fd, realmsg, strlen(realmsg)) < 0 ){
-	close(fd);
-	return -1;
-    }
-    close(fd);
-    return 0;
+    return log_filef(filename, LOG_CREAT, "%s: %s %s", cuser.userid, msg,  Cdate(&now));
 }
 
 void
@@ -955,10 +599,11 @@ void FREE(void *ptr)
 }
 #endif
 
+
 unsigned
-StringHash(const char *s)
+DBCS_StringHash(const char *s)
 {
-    return fnv1a_32_strcase(s, FNV1_32_INIT);
+    return fnv1a_32_dbcs_strcase(s, FNV1_32_INIT);
 }
 
 inline int *intbsearch(int key, const int *base0, int nmemb)
@@ -1002,120 +647,160 @@ uintbsearch(const unsigned int key, const unsigned int *base0, const int nmemb)
     return (NULL);
 }
 
-int qsort_intcompar(const void *a, const void *b)
+/* AIDS */
+aidu_t fn2aidu(char *fn)
 {
-    return *(int *)a - *(int *)b;
+  aidu_t aidu = 0;
+  aidu_t type = 0;
+  aidu_t v1 = 0;
+  aidu_t v2 = 0;
+  char *sp = fn;
+
+  if(fn == NULL)
+    return 0;
+
+  switch(*(sp ++))
+  {
+    case 'M':
+      type = 0;
+      break;
+    case 'G':
+      type = 1;
+      break;
+    default:
+      return 0;
+      break;
+  }
+
+  if(*(sp ++) != '.')
+    return 0;
+  v1 = strtoul(sp, &sp, 10);
+  if(sp == NULL)
+    return 0;
+  if(*sp != '.' || *(sp + 1) != 'A')
+    return 0;
+  sp += 2;
+  if(*(sp ++) == '.')
+  {
+    v2 = strtoul(sp, &sp, 16);
+    if(sp == NULL)
+      return 0;
+  }
+  aidu = ((type & 0xf) << 44) | ((v1 & 0xffffffff) << 12) | (v2 & 0xfff);
+
+  return aidu;
 }
 
-#ifdef TIMET64
-char           *
-ctime4(const time4_t *clock)
+/* IMPORTANT:
+ *   size of buf must be at least 8+1 bytes
+ */
+char *aidu2aidc(char *buf, aidu_t aidu)
 {
-    time_t temp = (time_t)*clock;
-    
-    return ctime(&temp);
+  const char aidu2aidc_table[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
+  const int aidu2aidc_tablesize = sizeof(aidu2aidc_table) - 1;
+  char *sp = buf + 8;
+  aidu_t v;
+
+  *(sp --) = '\0';
+  while(sp >= buf)
+  {
+    /* FIXME: 能保證 aidu2aidc_tablesize 是 2 的冪次的話，
+              這裡可以改用 bitwise operation 做 */
+    v = aidu % aidu2aidc_tablesize;
+    aidu = aidu / aidu2aidc_tablesize;
+    *(sp --) = aidu2aidc_table[v];
+  }
+  return buf;
 }
 
-struct tm *localtime4(const time4_t *t)
+/* IMPORTANT:
+ *   size of fn must be at least FNLEN bytes
+ */
+char *aidu2fn(char *fn, aidu_t aidu)
 {
-    if( t == NULL )
-	return localtime(NULL);
-    else {
-	time_t  temp = (time_t)*t;
-	return localtime(&temp);
-    }
+  aidu_t type = ((aidu >> 44) & 0xf);
+  aidu_t v1 = ((aidu >> 12) & 0xffffffff);
+  aidu_t v2 = (aidu & 0xfff);
+
+  if(fn == NULL)
+    return NULL;
+  snprintf(fn, FNLEN - 1, "%c.%d.A.%03X", ((type == 0) ? 'M' : 'G'), (unsigned int)v1, (unsigned int)v2);
+  fn[FNLEN - 1] = '\0';
+  return fn;
 }
 
-time4_t time4(time4_t *ptr)
+aidu_t aidc2aidu(char *aidc)
 {
-    if( ptr == NULL )
-	return time(NULL);
+  char *sp = aidc;
+  aidu_t aidu = 0;
+
+  if(aidc == NULL)
+    return 0;
+
+  while(*sp != '\0' && /* ignore trailing spaces */ *sp != ' ')
+  {
+    aidu_t v = 0;
+    /* FIXME: 查表法會不會比較快？ */
+    if(*sp >= '0' && *sp <= '9')
+      v = *sp - '0';
+    else if(*sp >= 'A' && *sp <= 'Z')
+      v = *sp - 'A' + 10;
+    else if(*sp >= 'a' && *sp <= 'z')
+      v = *sp - 'a' + 36;
+    else if(*sp == '-')
+      v = 62;
+    else if(*sp == '_')
+      v = 63;
     else
-	return *ptr = (time4_t)time(NULL);
-}
-#endif
+      return 0;
+    aidu <<= 6;
+    aidu |= (v & 0x3f);
+    sp ++;
+  }
 
-#ifdef OUTTACACHE
-int tobind(const char * host, int port)
+  return aidu;
+}
+
+int search_aidu(char *bfile, aidu_t aidu)
 {
-    int     sockfd, val = 1;
-    struct  sockaddr_in     servaddr;
+  char fn[FNLEN];
+  int fd;
+  fileheader_t fhs[64];
+  int len, i;
+  int pos = 0;
+  int found = 0;
+  int lastpos = 0;
 
-    if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
-	perror("socket()");
-	exit(1);
-    }
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
-	       (char *)&val, sizeof(val));
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    if (host == NULL || host[0] == 0)
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    else if (inet_aton(host, &servaddr.sin_addr) == 0) {
-	perror("inet_aton()");
-	exit(1);
-    }
-    servaddr.sin_port = htons(port);
-    if( bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
-	perror("bind()");
-	exit(1);
-    }
-    if( listen(sockfd, 5) < 0 ) {
-	perror("listen()");
-	exit(1);
-    }
+  if(aidu2fn(fn, aidu) == NULL)
+    return -1;
+  if((fd = open(bfile, O_RDONLY, 0)) < 0)
+    return -1;
 
-    return sockfd;
+  while(!found && (len = read(fd, fhs, sizeof(fhs))) > 0)
+  {
+    len /= sizeof(fileheader_t);
+    for(i = 0; i < len; i ++)
+    {
+      int l;
+      if(strcmp(fhs[i].filename, fn) == 0 ||
+         ((aidu & 0xfff) == 0 && (l = strlen(fhs[i].filename)) > 6 &&
+          strncmp(fhs[i].filename, fn, l) == 0))
+      {
+        if(fhs[i].filemode & FILE_BOTTOM)
+        {
+          lastpos = pos;
+        }
+        else
+        {
+          found = 1;
+          break;
+        }
+      }
+      pos ++;
+    }
+  }
+  close(fd);
+
+  return (found ? pos : (lastpos ? lastpos : -1));
 }
-
-int toconnect(const char *host, int port)
-{
-    int    sock;
-    struct sockaddr_in serv_name;
-    if( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
-        perror("socket");
-        return -1;
-    }
-
-    serv_name.sin_family = AF_INET;
-    serv_name.sin_addr.s_addr = inet_addr(host);
-    serv_name.sin_port = htons(port);
-    if( connect(sock, (struct sockaddr*)&serv_name, sizeof(serv_name)) < 0 ){
-        close(sock);
-        return -1;
-    }
-    return sock;
-}
-
-/**
- * same as read(2), but read until exactly size len 
- */
-int toread(int fd, void *buf, int len)
-{
-    int     l;
-    for( l = 0 ; len > 0 ; )
-	if( (l = read(fd, buf, len)) <= 0 )
-	    return -1;
-	else{
-	    buf += l;
-	    len -= l;
-	}
-    return l;
-}
-
-/**
- * same as write(2), but write until exactly size len 
- */
-int towrite(int fd, const void *buf, int len)
-{
-    int     l;
-    for( l = 0 ; len > 0 ; )
-	if( (l = write(fd, buf, len)) <= 0 )
-	    return -1;
-	else{
-	    buf += l;
-	    len -= l;
-	}
-    return l;
-}
-#endif
+/* end of AIDS */

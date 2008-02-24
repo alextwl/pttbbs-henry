@@ -1,5 +1,6 @@
-# $Id: Makefile 2721 2005-05-15 04:02:44Z in2 $
-.include "../pttbbs.mk"
+# $Id: Makefile 3673 2007-12-12 01:42:23Z kcwu $
+SRCROOT=	..
+.include "$(SRCROOT)/pttbbs.mk"
 
 VERSION=	0.50-pttpatch
 ADMINUSER?=	root@your.domain.name
@@ -29,7 +30,7 @@ PROGS=		bbslink		bbsnnrp		ctlinnbbsd	\
 all:	${PROGS}
 
 # bbs util
-UTIL_DIR=	../util
+UTIL_DIR=	$(SRCROOT)/util
 UTIL_OBJS=	\
 	util_cache.o	util_record.o	util_passwd.o	util_var.o	\
 	util_stuff.o	util_osdep.o	util_args.o	util_file.o
@@ -41,6 +42,8 @@ ${UTIL_DIR}/${fn}:	# FIXME: dependency
 	cd ${UTIL_DIR}; make ${fn}
 .endfor
 
+LINK_UTIL_OBJS+=  $(SRCROOT)/src/libbbsutil/libbbsutil.a \
+	$(SRCROOT)/src/libbbs/libbbs.a
 
 echobbslib.o:	echobbslib.c
 	${CC} ${CFLAGS} -DWITH_ECHOMAIL -c echobbslib.c

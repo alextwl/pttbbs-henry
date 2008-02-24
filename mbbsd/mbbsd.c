@@ -1,8 +1,4 @@
-/* $Id: mbbsd.c 3545 2007-06-18 17:14:32Z kcwu $ */
-#ifdef DEBUG
-#define TELOPTS
-#define TELCMDS
-#endif
+/* $Id: mbbsd.c 3941 2008-02-23 02:43:40Z piaip $ */
 #include "bbs.h"
 #include "banip.h"
 
@@ -28,16 +24,42 @@ void big2uni_init(void*);
 void uni2big_init(void*);
 #endif
 
+//////////////////////////////////////////////////////////////////
+// Site Optimization
+// override these macro if you need more optimization, 
+// based on OS/lib/package...
+#ifndef OPTIMIZE_LISTEN_SOCKET
+#define OPTIMIZE_LISTEN_SOCKET(sock,sz)
+#endif
+
+#ifndef XAUTH_HOST
+#define XAUTH_HOST(x) x
+#endif
+
+#ifndef XAUTH_GETREMOTENAME
+#define XAUTH_GETREMOTENAME(x) x
+#endif
+
+#ifndef XAUTH_TRYREMOTENAME
+#define XAUTH_TRYREMOTENAME()
+#endif
+
 #if 0
 static jmp_buf  byebye;
 #endif
 
 static char     remoteusername[40] = "?";
-
 static unsigned char enter_uflag;
 static int      use_shell_login_mode = 0;
+static int      listen_port = 23;
+
 #ifdef DETECT_CLIENT
 Fnv32_t client_code=FNV1_32_INIT;
+
+void UpdateClientCode(unsigned char c)
+{
+    FNV1A_CHAR(c, client_code);
+}
 #endif
 
 #ifdef USE_RFORK
@@ -123,12 +145,12 @@ log_usies(const char *mode, const char *mesg)
 {
     now = time(NULL);
     if (!mesg)
-        log_file(FN_USIES, LOG_CREAT | LOG_VF, 
+        log_filef(FN_USIES, LOG_CREAT, 
                  "%s %s %-12s Stay:%d (%s)\n",
                  Cdate(&now), mode, cuser.userid ,
                  (int)(now - login_start_time) / 60, cuser.nickname);
     else
-        log_file(FN_USIES, LOG_CREAT | LOG_VF,
+        log_filef(FN_USIES, LOG_CREAT,
                  "%s %s %-12s %s\n",
                  Cdate(&now), mode, cuser.userid, mesg);
 
@@ -257,8 +279,15 @@ abort_bbs_debug(int sig)
     sigaddset(&sigset, SIGXCPU);
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-#define CRASH_MSG ANSI_COLOR(0) "\r\n程式異常, 立刻斷線. 請洽 PttBug 板詳述你發生的問題.\r\n"
-#define XCPU_MSG ANSI_COLOR(0) "\r\n程式耗用過多計算資源, 立刻斷線. 可能是 (a)執行太多耗用資源的動作 或 (b)程式掉入無窮迴圈. 請洽 PttBug 板詳述你發生的問題.\r\n"
+#define CRASH_MSG ANSI_COLOR(0) \
+    "\r\n程式異常, 立刻斷線. \r\n" \
+    "請洽 " GLOBAL_BUGREPORT " 板詳述問題發生經過。\r\n"
+
+#define XCPU_MSG ANSI_COLOR(0) \
+    "\r\n程式耗用過多計算資源, 立刻斷線。\r\n" \
+    "可能是 (a)執行太多耗用資源的動作 或 (b)程式掉入無窮迴圈. "\
+    "請洽 " GLOBAL_BUGREPORT " 板詳述問題發生經過。\r\n"
+
     if(sig==SIGXCPU)
 	write(1, XCPU_MSG, sizeof(XCPU_MSG));
     else
@@ -270,8 +299,8 @@ abort_bbs_debug(int sig)
 
     /* log */
     /* assume vsnprintf() in log_file() is signal-safe, is it? */
-    log_file("log/crash.log", LOG_VF|LOG_CREAT, 
-	    "%ld %d %d %.12s\n", time4(NULL), getpid(), sig, cuser.userid);
+    log_filef("log/crash.log", LOG_CREAT, 
+	    "%d %d %d %.12s\n", time4(NULL), getpid(), sig, cuser.userid);
 
     /* try logout... not a good idea, maybe crash again. now disabled */
     /*
@@ -291,7 +320,7 @@ abort_bbs_debug(int sig)
     if(currutmp && strncmp(cuser.userid, currutmp->userid, IDLEN) == EQUSTR)
 	currutmp->mode = DEBUGSLEEPING;
 
-    sleep(3600);		/* wait 60 mins for debug */
+    sleep(DEBUGSLEEP_SECONDS);
 #endif
 
     exit(0);
@@ -312,12 +341,8 @@ talk_request(int sig)
     bell();
     if (currutmp->msgcount) {
 	char            timebuf[100];
-#ifdef OUTTA_TIMER
-	now = SHM->GV2.e.now;
-#else
-	now = time(0);
-#endif
 
+	syncnow();
 	move(0, 0);
 	clrtoeol();
 	prints(ANSI_COLOR(33;41) "★%s" ANSI_COLOR(34;47) " [%s] %s " ANSI_COLOR(0) "",
@@ -332,11 +357,11 @@ talk_request(int sig)
 
 	currutmp->mode = 0;
 	currutmp->chatid[0] = 1;
-	screen_backup(&old_screen);
+	scr_dump(&old_screen);
 	talkreply();
 	currutmp->mode = mode0;
 	currutmp->chatid[0] = c0;
-	screen_restore(&old_screen);
+	scr_restore(&old_screen);
     }
 }
 
@@ -441,11 +466,7 @@ write_request(int sig)
 	return;
     reentrant_write_request = 1;
 #endif
-#ifdef OUTTA_TIMER
-    now = SHM->GV2.e.now;
-#else
-    now = time(0);
-#endif
+    syncnow();
     check_water_init();
     if (WATERMODE(WATER_OFO)) {
 	/* 如果目前正在回水球模式的話, 就不能進行 add_history() ,
@@ -576,7 +597,7 @@ multi_user_check(void)
 	if(ui == NULL)
 	    return;
 
-	getdata(b_lines - 1, 0, "您想刪除其他重複的 login (Y/N)嗎？[Y] ",
+	getdata(b_lines - 1, 0, "您想刪除其他重複的 login 嗎？[Y/n] ",
 		genbuf, 3, LCECHO);
 
 	usleep(random()%1000000);
@@ -669,8 +690,9 @@ login_query(void)
 #else
     show_file("etc/Welcome", 1, -1, NO_RELOAD);
 #endif
-    output("1", 1);
-
+    // XXX why output("1", 1); here?
+    // this output has been here since rev 1...
+    // output("1", 1);
 
     attempts = 0;
     while (1) {
@@ -680,22 +702,32 @@ login_query(void)
 	    exit(1);
 	}
 	bzero(&cuser, sizeof(cuser));
+
 #ifdef DEBUG
 	move(19, 0);
 	prints("current pid: %d ", getpid());
 #endif
-	getdata(20, 0, "請輸入代號，或以[guest]參觀，以[new]註冊：",
-		uid, sizeof(uid), DOECHO);
+
+	if (getdata(20, 0, "請輸入代號，或以[guest]參觀，以[new]註冊: ",
+		uid, sizeof(uid), DOECHO) < 1)
+	{
+	    // got nothing 
+	    outs("請重新輸入。\n");
+	    continue;
+	}
+
 #ifdef CONVERT
 	/* switch to gb mode if uid end with '.' */
 	len = strlen(uid);
 	if (uid[0] && uid[len - 1] == '.') {
 	    set_converting_type(CONV_GB);
 	    uid[len - 1] = 0;
+	    redrawwin();
 	}
 	else if (uid[0] && uid[len - 1] == ',') {
 	    set_converting_type(CONV_UTF8);
 	    uid[len - 1] = 0;
+	    redrawwin();
 	}
 	else if (len >= IDLEN + 1)
 	    uid[IDLEN] = 0;
@@ -705,6 +737,7 @@ login_query(void)
 #ifdef LOGINASNEW
 	    new_register();
 	    mkuserdir(cuser.userid);
+	    reginit_fav();
 	    break;
 #else
 	    outs("本系統目前無法以 new 註冊, 請用 guest 進入\n");
@@ -719,6 +752,12 @@ login_query(void)
             if (initcuser(uid)< 1) exit (0) ;
 	    cuser.userlevel = 0;
 	    cuser.uflag = PAGER_FLAG | BRDSORT_FLAG | MOVIE_FLAG;
+	    cuser.uflag2= 0; // we don't need FAVNEW_FLAG or anything else.
+
+#ifdef GUEST_DEFAULT_DBCS_NOINTRESC
+	    cuser.uflag |= DBCS_NOINTRESC;
+#endif
+	    // can we prevent mkuserdir() here?
 	    mkuserdir(cuser.userid);
 	    break;
 
@@ -758,9 +797,10 @@ login_query(void)
 			PERM_CLOAK | PERM_SEECLOAK | PERM_XEMPT |
 			PERM_SYSOPHIDE | PERM_BM | PERM_ACCOUNTS |
 			PERM_CHATROOM | PERM_BOARD | PERM_SYSOP | PERM_BBSADM;
-		    mkuserdir(cuser.userid);
 #endif
 		}
+		/* 早該有 home 了, 不知道為何有的帳號會沒有, 被砍掉了? */
+		mkuserdir(cuser.userid);
 		break;
 	    }
 	}
@@ -995,7 +1035,7 @@ inline static void check_bad_login(void)
 	outs("通常並沒有辦法知道該ip是誰所有, "
 		"以及其意圖(是不小心按錯或有意測您密碼)\n"
 		"若您有帳號被盜用疑慮, 請經常更改您的密碼或使用加密連線");
-	if (getans("您要刪除以上錯誤嘗試的記錄嗎(Y/N)?[N]") == 'y')
+	if (getans("您要刪除以上錯誤嘗試的記錄嗎? [y/N] ") == 'y')
 	    unlink(genbuf);
     }
 }
@@ -1004,9 +1044,9 @@ inline static void birthday_make_a_wish(const struct tm *ptime, const struct tm 
 {
     if (tmp->tm_mday != ptime->tm_mday) {
 	more("etc/birth.post", YEA);
-	brc_initial_board("Chat");
-	set_board();
-	do_post();
+	if (enter_board("Chat")==0) {
+	    do_post();
+	}
     }
 }
 
@@ -1080,13 +1120,6 @@ user_login(void)
     /* 初始化: random number 增加user跟時間的差異 */
     mysrand();
 
-    /* check if over18 */
-    if( (ptime.tm_year - cuser.year) >= 18 ||
-	(ptime.tm_year - cuser.year == 17 &&
-	 ((ptime.tm_mon+1) > cuser.month ||
-	  ((ptime.tm_mon+1) == cuser.month &&  ptime.tm_mday > cuser.day))) )
-	over18 = 1;
-
     log_usies("ENTER", fromhost);
 #ifndef VALGRIND
     setproctitle("%s: %s", margs, cuser.userid);
@@ -1112,6 +1145,7 @@ user_login(void)
     setup_utmp(LOGIN);
     enter_uflag = cuser.uflag;
     lasttime = *localtime4(&cuser.lastlogin);
+    redrawwin();
 
     /* XUE's DENY LOGIN 08252007 */
     if (HasUserPerm(PERM_NOLOGIN)){
@@ -1164,6 +1198,7 @@ user_login(void)
 	move(t_lines - 4, 0);
 	clrtobot();
 	welcome_msg();
+	resolve_over18();
 
 	if( ifbirth ){
 	    birthday_make_a_wish(&ptime, &lasttime);
@@ -1185,7 +1220,12 @@ user_login(void)
 	pressanykey();
 #endif
     } else {
-	pressanykey();
+	// XXX no userlevel, no guest - what is this?
+	// clear();
+	// outs("此帳號停權中");
+	// pressanykey();
+	// exit(1);
+
 	check_mailbox_quota();
     }
 
@@ -1315,7 +1355,6 @@ start_client(void)
     auto_close_polls();		/* 自動開票 */
 
     Signal(SIGALRM, SIG_IGN);
-
     main_menu();
 }
 
@@ -1349,7 +1388,7 @@ getremotename(const struct sockaddr_in * from, char *rhost, char *rname)
     /* get remote host name */
 
 #ifdef FAST_LOGIN
-    strcpy(rhost, (char *)inet_ntoa(from->sin_addr));
+    XAUTH_HOST(strcpy(rhost, (char *)inet_ntoa(from->sin_addr)));
 #else
     struct sockaddr_in our_sin;
     struct sockaddr_in rmt_sin;
@@ -1470,6 +1509,8 @@ bind_port(int port)
     sz = 4096;
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, (void*)&sz, sizeof(sz));
 
+    OPTIMIZE_LISTEN_SOCKET(sock, sz);
+
     xsin.sin_family = AF_INET;
     xsin.sin_addr.s_addr = htonl(INADDR_ANY);
     xsin.sin_port = htons(port);
@@ -1571,15 +1612,11 @@ shell_login(int argc, char *argv[], char *envp[])
     return 1;
 }
 
-void telnet_init(void);
-unsigned int telnet_handler(unsigned char c) ;
-
 static int
 daemon_login(int argc, char *argv[], char *envp[])
 {
     int             msock, csock;	/* socket for Master and Child */
     FILE           *fp;
-    int             listen_port = 23;
     int             len_of_sock_addr, overloading = 0, i;
     char            buf[256];
 #if OVERLOADBLOCKFDS
@@ -1675,6 +1712,8 @@ daemon_login(int argc, char *argv[], char *envp[])
 	    continue;
 	}
 
+	XAUTH_TRYREMOTENAME();
+
 	overloading = check_ban_and_load(csock);
 #if OVERLOADBLOCKFDS
 	if( (!overloading && nblocked) ||
@@ -1714,7 +1753,8 @@ daemon_login(int argc, char *argv[], char *envp[])
     dup2(csock, 0);
     close(csock);
 
-    getremotename(&xsin, fromhost, remoteusername);
+    XAUTH_GETREMOTENAME(getremotename(&xsin, fromhost, remoteusername));
+
     if( check_banip(fromhost) ){
 	sleep(10);
 	exit(0);
@@ -1794,314 +1834,5 @@ static int check_banip(char *host)
     return uintbsearch(thisip, &banip[1], banip[0]) ? 1 : 0;
 }
 
-/* ------- piaip's implementation of TELNET protocol ------- */
-
-enum TELNET_IAC_STATES {
-	IAC_NONE,
-	IAC_COMMAND,
-	IAC_WAIT_OPT,
-	IAC_WAIT_SE,
-	IAC_PROCESS_OPT,
-	IAC_ERROR
-};
-
-static unsigned char iac_state = 0; /* as byte to reduce memory */
-
-#define TELNET_IAC_MAXLEN (16)
-/* We don't reply to most commands, so this maxlen can be minimal.
- * Warning: if you want to support ENV passing or other long commands,
- * remember to increase this value. Howver, some poorly implemented
- * terminals like xxMan may not follow the protocols and user will hang
- * on those terminals when IACs were sent.
- */
-
-void
-telnet_init(void)
-{
-    /* We are the boss. We don't respect to client.
-     * It's client's responsibility to follow us.
-     * Please write these codes in i-dont-care opt handlers.
-     */
-    const char telnet_init_cmds[] = {
-	/* retrieve terminal type and throw away.
-	 * why? because without this, clients enter line mode.
-	 */
-	IAC, DO, TELOPT_TTYPE,
-	IAC, SB, TELOPT_TTYPE, TELQUAL_SEND, IAC, SE,
-
-	/* i'm a smart term with resize ability. */
-	IAC, DO, TELOPT_NAWS,
-
-	/* i will echo. */
-	IAC, WILL, TELOPT_ECHO,
-	/* supress ga. */
-	IAC, WILL, TELOPT_SGA,
-	/* 8 bit binary. */
-	IAC, WILL, TELOPT_BINARY,
-	IAC, DO,   TELOPT_BINARY,
-    };
-
-    raw_connection = 1;
-    write(0, telnet_init_cmds, sizeof(telnet_init_cmds));
-}
-
-/* tty_read
- * read from tty, process telnet commands if raw connection.
- * return: >0 = length, <=0 means read more, abort/eof is automatically processed.
- */
-ssize_t
-tty_read(unsigned char *buf, size_t max)
-{
-    ssize_t l = read(0, buf, max);
-
-    if(l == 0 || (l < 0 && !(errno == EINTR || errno == EAGAIN)))
-	abort_bbs(0);
-
-    if(!raw_connection)
-	return l;
-
-    /* process buffer */
-    if (l > 0) {
-	unsigned char *buf2 = buf;
-	size_t i = 0, i2 = 0;
-
-	/* prescan. because IAC is rare, 
-	 * this cost is worthy. */
-	if (iac_state == IAC_NONE && memchr(buf, IAC, l) == NULL)
-	    return l;
-
-	/* we have to look into the buffer. */
-	for (i = 0; i < l; i++, buf++)
-	    if(telnet_handler(*buf) == 0)
-		*(buf2++) = *buf;
-	    else
-		i2 ++;
-	l = (i2 == l) ? -1L : l - i2;
-    }
-    return l;
-}
-
-/* input:  raw character
- * output: telnet command if c was handled, otherwise zero.
- */
-unsigned int 
-telnet_handler(unsigned char c) 
-{
-    static unsigned char iac_quote = 0; /* as byte to reduce memory */
-    static unsigned char iac_opt_req = 0;
-
-    static unsigned char iac_buf[TELNET_IAC_MAXLEN];
-    static unsigned int  iac_buflen = 0;
-
-    /* we have to quote all IACs. */
-    if(c == IAC && !iac_quote) {
-	iac_quote = 1;
-	return NOP;
-    }
-
-#ifdef DETECT_CLIENT
-    /* hash client telnet sequences */
-    if(cuser.userid[0]==0) {
-	if(iac_state == IAC_WAIT_SE) {
-	    // skip suboption
-	} else {
-	    if(iac_quote)
-		FNV1A_CHAR(IAC, client_code);
-	    FNV1A_CHAR(c, client_code);
-	}
-    }
-#endif
-
-    /* a special case is the top level iac. otherwise, iac is just a quote. */
-    if (iac_quote) {
-	if(iac_state == IAC_NONE)
-	    iac_state = IAC_COMMAND;
-	if(iac_state == IAC_WAIT_SE && c == SE)
-	    iac_state = IAC_PROCESS_OPT;
-	iac_quote = 0;
-    }
-
-    /* now, let's process commands by state */
-    switch(iac_state) {
-
-	case IAC_NONE:
-	    return 0;
-
-	case IAC_COMMAND:
-#ifdef DEBUG
-	    {
-		int cx = c; /* to make compiler happy */
-		write(0, "-", 1);
-		if(TELCMD_OK(cx))
-		    write(0, TELCMD(c), strlen(TELCMD(c)));
-		write(0, " ", 1);
-	    }
-#endif
-	    iac_state = IAC_NONE; /* by default we restore state. */
-	    switch(c) {
-		case IAC:
-		    return 0;
-
-		/* we don't want to process these. or maybe in future. */
-		case BREAK:           /* break */
-		case ABORT:           /* Abort process */
-		case SUSP:            /* Suspend process */
-		case AO:              /* abort output--but let prog finish */
-		case IP:              /* interrupt process--permanently */
-		case EOR:             /* end of record (transparent mode) */
-		case DM:              /* data mark--for connect. cleaning */
-		case xEOF:            /* End of file: EOF is already used... */
-		    return NOP;
-
-		case NOP:             /* nop */
-		    return NOP;
-
-		/* we should process these, but maybe in future. */
-		case GA:              /* you may reverse the line */
-		case EL:              /* erase the current line */
-		case EC:              /* erase the current character */
-		    return NOP;
-
-		/* good */
-		case AYT:             /* are you there */
-		    {
-			    const char *alive = "I'm still alive, loading: ";
-			    char buf[STRLEN];
-
-			    /* respond as fast as we can */
-			    write(0, alive, strlen(alive));
-			    cpuload(buf);
-			    write(0, buf, strlen(buf));
-			    write(0, "\r\n", 2);
-		    }
-		    return NOP;
-
-		case DONT:            /* you are not to use option */
-		case DO:              /* please, you use option */
-		case WONT:            /* I won't use option */
-		case WILL:            /* I will use option */
-		    iac_opt_req = c;
-		    iac_state = IAC_WAIT_OPT;
-		    return NOP;
-
-		case SB:              /* interpret as subnegotiation */
-		    iac_state = IAC_WAIT_SE;
-		    iac_buflen = 0;
-		    return NOP;
-
-		case SE:              /* end sub negotiation */
-		default:
-		    return NOP;
-	    }
-	    return 1;
-
-	case IAC_WAIT_OPT:
-#ifdef DEBUG
-	    write(0, "-", 1);
-	    if(TELOPT_OK(c))
-		write(0, TELOPT(c), strlen(TELOPT(c)));
-	    write(0, " ", 1);
-#endif
-	    iac_state = IAC_NONE;
-	    /*
-	     * According to RFC, there're some tricky steps to prevent loop.
-	     * However because we have a poor term which does not allow 
-	     * most abilities, let's be a strong boss here.
-	     *
-	     * Although my old imeplementation worked, it's even better to follow this:
-	     * http://www.tcpipguide.com/free/t_TelnetOptionsandOptionNegotiation-3.htm
-	     */
-	    switch(c) {
-		/* i-dont-care: i don't care about what client is. 
-		 * these should be clamed in init and
-		 * client must follow me. */
-		case TELOPT_TTYPE:	/* termtype or line. */
-		case TELOPT_NAWS:       /* resize terminal */
-		case TELOPT_SGA:	/* supress GA */
-		case TELOPT_ECHO:       /* echo */
-		case TELOPT_BINARY:	/* we are CJK. */
-		    break;
-
-		/* i-dont-agree: i don't understand/agree these.
-		 * according to RFC, saying NO stopped further
-		 * requests so there'll not be endless loop. */
-		case TELOPT_RCP:         /* prepare to reconnect */
-		default:
-		    if (iac_opt_req == WILL || iac_opt_req == DO)
-		    {
-			/* unknown option, reply with won't */
-			unsigned char cmd[3] = { IAC, DONT, 0 };
-			if(iac_opt_req == DO) cmd[1] = WONT;
-			cmd[2] = c;
-			write(0, cmd, sizeof(cmd));
-		    }
-		    break;
-	    }
-	    return 1;
-
-	case IAC_WAIT_SE:
-	    iac_buf[iac_buflen++] = c;
-	    /* no need to convert state because previous quoting will do. */
-		    
-	    if(iac_buflen == TELNET_IAC_MAXLEN) {
-		/* may be broken protocol?
-		 * whether finished or not, break for safety 
-		 * or user may be frozen.
-		 */
-		iac_state = IAC_NONE;
-		return 0;
-	    }
-	    return 1;
-
-	case IAC_PROCESS_OPT:
-	    iac_state = IAC_NONE;
-#ifdef DEBUG
-	    write(0, "-", 1);
-	    if(TELOPT_OK(iac_buf[0]))
-		write(0, TELOPT(iac_buf[0]), strlen(TELOPT(iac_buf[0])));
-	    write(0, " ", 1);
-#endif
-	    switch(iac_buf[0]) {
-
-		/* resize terminal */
-		case TELOPT_NAWS:
-		    {
-			int w = (iac_buf[1] << 8) + (iac_buf[2]);
-			int h = (iac_buf[3] << 8) + (iac_buf[4]);
-			term_resize(w, h);
-#ifdef DETECT_CLIENT
-			if(cuser.userid[0]==0) {
-			    FNV1A_CHAR(iac_buf[0], client_code);
-			    if(w==80 && h==24)
-				FNV1A_CHAR(1, client_code);
-			    else if(w==80)
-				FNV1A_CHAR(2, client_code);
-			    else if(h==24)
-				FNV1A_CHAR(3, client_code);
-			    else
-				FNV1A_CHAR(4, client_code);
-			    FNV1A_CHAR(IAC, client_code);
-			    FNV1A_CHAR(SE, client_code);
-			}
-#endif
-		    }
-		    break;
-
-		default:
-#ifdef DETECT_CLIENT
-		    if(cuser.userid[0]==0) {
-			int i;
-			for(i=0;i<iac_buflen;i++)
-			    FNV1A_CHAR(iac_buf[i], client_code);
-			FNV1A_CHAR(IAC, client_code);
-			FNV1A_CHAR(SE, client_code);
-		    }
-#endif
-		    break;
-	    }
-	    return 1;
-    }
-    return 1; /* never reached */
-}
 /* vim: sw=4 
  */

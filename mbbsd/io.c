@@ -1,19 +1,47 @@
-/* $Id: io.c 3513 2007-05-08 17:01:45Z kcwu $ */
+/* $Id: io.c 3921 2008-02-15 01:51:10Z piaip $ */
 #include "bbs.h"
 
-#define OBUFSIZE  2048
+//kcwu: 80x24 一般使用者名單 1.9k, 含 header 2.4k
+// 一般文章推文頁約 2590 bytes
+#define OBUFSIZE  3072
 #define IBUFSIZE  128
+
+/* realXbuf is Xbuf+3 because hz convert library requires buf[-2]. */
+#define CVTGAP	  (3)
 
 #ifdef DEBUG
 #define register
 #endif
 
-/* realXbuf is Xbuf+3 because hz convert library requires buf[-2]. */
-static unsigned char real_outbuf[OBUFSIZE+6] = "   ", real_inbuf[IBUFSIZE+6] = "   ";
-static unsigned char *outbuf = real_outbuf + 3, *inbuf = real_inbuf + 3;
+static unsigned char real_outbuf[OBUFSIZE + CVTGAP*2] = "   ", 
+		     real_inbuf [IBUFSIZE + CVTGAP*2] = "   ";
+
+// use defines instead - it is discovered that sometimes the input/output buffer was overflow,
+// without knowing why.
+// static unsigned char *outbuf = real_outbuf + 3, *inbuf = real_inbuf + 3;
+#define inbuf  (real_inbuf +CVTGAP)
+#define outbuf (real_outbuf+CVTGAP)
 
 static int      obufsize = 0, ibufsize = 0;
 static int      icurrchar = 0;
+
+#ifdef DBG_OUTRPT
+// output counter
+static unsigned long szTotalOutput = 0, szLastOutput = 0;
+extern unsigned char fakeEscape;
+unsigned char fakeEscape = 0;
+
+unsigned char fakeEscFilter(unsigned char c)
+{
+    if (!fakeEscape) return c;
+    if (c == ESC_CHR) return '*';
+    else if (c == '\n') return 'N';
+    else if (c == '\r') return 'R';
+    else if (c == '\b') return 'B';
+    else if (c == '\t') return 'I';
+    return c;
+}
+#endif // DBG_OUTRPT
 
 /* ----------------------------------------------------- */
 /* convert routines                                      */
@@ -57,20 +85,37 @@ oflush(void)
 #endif
 	obufsize = 0;
     }
+
+#ifdef DBG_OUTRPT
+    // if (0)
+    {
+	static char xbuf[128];
+	sprintf(xbuf, ESC_STR "[s" ESC_STR "[H" " [%lu/%lu] " ESC_STR "[u",
+		szLastOutput, szTotalOutput);
+	write(1, xbuf, strlen(xbuf));
+	szLastOutput = 0; 
+    }
+#endif // DBG_OUTRPT
+
+    fsync(1);
 }
 
-void
-init_buf(void)
-{
-
-    memset(inbuf, 0, IBUFSIZE);
-}
 void
 output(const char *s, int len)
 {
-    /* Invalid if len >= OBUFSIZE */
+#ifdef DBG_OUTRPT
+    int i = 0;
+    if (fakeEscape)
+	for (i = 0; i < obufsize; i++)
+	    outbuf[i] = fakeEscFilter(outbuf[i]);
 
+    szTotalOutput += len; 
+    szLastOutput  += len;
+#endif // DBG_OUTRPT
+
+    /* Invalid if len >= OBUFSIZE */
     assert(len<OBUFSIZE);
+
     if (obufsize + len > OBUFSIZE) {
 	STATINC(STAT_SYSWRITESOCKET);
 #ifdef CONVERT
@@ -87,6 +132,13 @@ output(const char *s, int len)
 int
 ochar(int c)
 {
+
+#ifdef DBG_OUTRPT
+    c = fakeEscFilter(c);
+    szTotalOutput ++; 
+    szLastOutput ++;
+#endif // DBG_OUTRPT
+
     if (obufsize > OBUFSIZE - 1) {
 	STATINC(STAT_SYSWRITESOCKET);
 	/* suppose one byte data doesn't need to be converted. */
@@ -121,7 +173,15 @@ add_io(int fd, int timeout)
 int
 num_in_buf(void)
 {
+    if (ibufsize <= icurrchar)
+	return 0;
     return ibufsize - icurrchar;
+}
+
+int
+input_isfull(void)
+{
+    return ibufsize >= IBUFSIZE;
 }
 
 /*
@@ -167,20 +227,12 @@ dogetch(void)
 	    }
 
 	    if (len == 0){
-#ifdef OUTTA_TIMER
-		now = SHM->GV2.e.now;
-#else
-		now = time(0);
-#endif
+		syncnow();
 		return I_TIMEOUT;
 	    }
 
 	    if (i_newfd && FD_ISSET(i_newfd, &readfds)){
-#ifdef OUTTA_TIMER
-		now = SHM->GV2.e.now;
-#else
-		now = time(0);
-#endif
+		syncnow();
 		return I_OTHERDATA;
 	    }
 	}
@@ -200,6 +252,17 @@ dogetch(void)
 	    if(len > 0)
 		len = input_wrapper(inbuf, len);
 #endif
+#ifdef DBG_OUTRPT
+	    // if (0)
+	    {
+		static char xbuf[128];
+		sprintf(xbuf, ESC_STR "[s" ESC_STR "[2;1H [%ld] " 
+			ESC_STR "[u", len);
+		write(1, xbuf, strlen(xbuf));
+		fsync(1);
+	    }
+#endif // DBG_OUTRPT
+
 	} while (len <= 0);
 
 	ibufsize = len;
@@ -207,16 +270,21 @@ dogetch(void)
     }
 
     if (currutmp) {
-#ifdef OUTTA_TIMER
-	now = SHM->GV2.e.now;
-#else
-	now = time(0);
-#endif
+	syncnow();
 	/* 3 秒內超過兩 byte 才算 active, anti-antiidle.
 	 * 不過方向鍵等組合鍵不止 1 byte */
 	if (now - lastact < 3)
 	    currutmp->lastact = now;
 	lastact = now;
+    }
+
+    // CR LF are treated as one.
+    if (inbuf[icurrchar] == Ctrl('M'))
+    {
+	if (++icurrchar < ibufsize &&
+	    inbuf[icurrchar] == Ctrl('J'))
+	    icurrchar ++;
+	return Ctrl('M');
     }
     return (unsigned char)inbuf[icurrchar++];
 }
@@ -270,13 +338,14 @@ _debug_check_keyinput()
 	move(b_lines, 0);
 	if(dbcsaware)
 	{
-	    prints( ANSI_COLOR(7) "游標在此" ANSI_RESET
+	    outs( ANSI_COLOR(7) "游標在此" ANSI_RESET
 		    " 測試中文模式會不會亂送鍵。 'q' 離開, 'd' 回英文模式 ");
 	    move(b_lines, 4);
 	} else {
 	    outs("Waiting for key input. 'q' to exit, 'd' to try dbcs-aware");
 	}
-	wait_input(-1, 1);
+	refresh();
+	wait_input(-1, 0);
 	switch(dogetch())
 	{
 	    case 'd':
@@ -420,8 +489,10 @@ igetch(void)
 	    continue;
 #endif
 	case Ctrl('L'):
-	    redoscr();
+	    redrawwin();
+	    refresh();
 	    continue;
+
 	case Ctrl('U'):
 	    if (currutmp != NULL && currutmp->mode != EDITING
 		&& currutmp->mode != LUSERS && currutmp->mode) {
@@ -430,7 +501,7 @@ igetch(void)
 		int		oldroll = roll;
 		int             my_newfd;
 
-		screen_backup(&old_screen);
+		scr_dump(&old_screen);
 		my_newfd = i_newfd;
 		i_newfd = 0;
 
@@ -438,7 +509,7 @@ igetch(void)
 
 		i_newfd = my_newfd;
 		roll = oldroll;
-		screen_restore(&old_screen);
+		scr_restore(&old_screen);
 		continue;
 	    } 
             return ch;
@@ -462,12 +533,12 @@ igetch(void)
 		int my_newfd;
 		screen_backup_t old_screen;
 
-		screen_backup(&old_screen);
+		scr_dump(&old_screen);
 
 		my_newfd = i_newfd;
 		i_newfd = 0;
 		my_write2();
-	    	screen_restore(&old_screen);
+	    	scr_restore(&old_screen);
 		i_newfd = my_newfd;
 		continue;
 	    } else if (!WATERMODE(WATER_OFO)) {
@@ -488,7 +559,7 @@ igetch(void)
 		    /* 第一次按 Ctrl-R (必須先被丟過水球) */
 		    screen_backup_t old_screen;
 		    int             my_newfd;
-		    screen_backup(&old_screen);
+		    scr_dump(&old_screen);
 
 		    /* 如果正在talk的話先不處理對方送過來的封包 (不去select) */
 		    my_newfd = i_newfd;
@@ -518,7 +589,7 @@ igetch(void)
 		    i_newfd = my_newfd;
 
 		    /* 還原螢幕 */
-		    screen_restore(&old_screen);
+		    scr_restore(&old_screen);
 		    continue;
 		}
 	    }
@@ -574,6 +645,8 @@ igetch(void)
 	    }
 	    return ch;
 
+	    // try to do this in getch() level.
+#if 0	    
 	case Ctrl('J'):  /* Ptt 把 \n 拿掉 */
 #ifdef PLAY_ANGEL
 	    /* Seams some telnet client still send CR LF when changing lines.
@@ -581,6 +654,7 @@ igetch(void)
 	    */
 #endif
 	    continue;
+#endif
 
 	default:
             return ch;
@@ -596,20 +670,17 @@ igetch(void)
  * Return 1 if anything available.
  */
 int 
-wait_input(float f, int flDoRefresh)
+wait_input(float f, int bIgnoreBuf)
 {
     int sel = 0;
     fd_set readfds;
     struct timeval tv, *ptv = &tv;
 
-    if(num_in_buf() > 0)	// for EINTR
+    if(!bIgnoreBuf && num_in_buf() > 0)
 	return 1;
 
     FD_ZERO(&readfds);
     FD_SET(0, &readfds);
-
-    if(flDoRefresh)
-	refresh();
 
     if(f > 0)
     {
@@ -623,7 +694,7 @@ wait_input(float f, int flDoRefresh)
 #endif
 
     do {
-	if(num_in_buf() > 0)
+	if(!bIgnoreBuf && num_in_buf() > 0)
 	    return 1;
 	sel = select(1, &readfds, NULL, NULL, ptv);
     } while (sel < 0 && errno == EINTR);
@@ -635,99 +706,37 @@ wait_input(float f, int flDoRefresh)
     return 1;
 }
 
-/**
- * 根據 mode 來 strip 字串 str，並把結果存到 buf
- * @param buf
- * @param str
- * @param mode enum {STRIP_ALL = 0, ONLY_COLOR, NO_RELOAD};
- *             STRIP_ALL: ??
- *             ONLY_COLOR: ??
- *             NO_RELOAD: 不 strip (?)
- */
-int
-strip_ansi(char *buf, const char *str, int mode)
+void 
+drop_input(void)
 {
-    register int    count = 0;
-    static const char EscapeFlag[] = {
-	/*  0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 10 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 0, 0,
-	/* 20 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 30 */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, /* 0~9 ;= */
-	/* 40 */ 0, 2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, /* ABCDHIJK */
-	/* 50 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 60 */ 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 2, 2, 0, 0, /* fhlm */
-	/* 70 */ 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* su */
-	/* 80 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 90 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* A0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* B0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* C0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* D0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* E0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* F0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    };
-#define isEscapeParam(X) (EscapeFlag[(int)(X)] & 1)
-#define isEscapeCommand(X) (EscapeFlag[(int)(X)] & 2)
-
-    for(; *str; ++str)
-	if( *str != ESC_CHR ){
-	    if( buf )
-		*buf++ = *str;
-	    ++count;
-	}else{
-	    const char* p = str + 1;
-	    if( *p != '[' ){
-		++str;
-		if(*str=='\0') break;
-		continue;
-	    }
-	    while(isEscapeParam(*++p));
-	    if( (mode == NO_RELOAD && isEscapeCommand(*p)) ||
-		(mode == ONLY_COLOR && *p == 'm' )){
-		register int len = p - str + 1;
-		if( buf ){
-		    strncpy(buf, str, len);
-		    buf += len;
-		}
-		count += len;
-	    }
-	    str = p;
-	    if(*str=='\0') break;
-	}
-    if( buf )
-	*buf = 0;
-    return count;
+    icurrchar = ibufsize = 0;
 }
 
-void
-strip_nonebig5(unsigned char *str, int maxlen)
+int 
+peek_input(float f, int c)
 {
-  int i;
-  int len=0;
-  for(i=0;i<maxlen && str[i];i++) {
-    if(32<=str[i] && str[i]<128)
-      str[len++]=str[i];
-    else if(str[i]==255) {
-      if(i+1<maxlen)
-	if(251<=str[i+1] && str[i+1]<=254) {
-	  i++;
-	  if(i+1<maxlen && str[i+1])
-	    i++;
-	}
-      continue;
-    } else if(str[i]&0x80) {
-      if(i+1<maxlen)
-	if((0x40<=str[i+1] && str[i+1]<=0x7e) ||
-	   (0xa1<=str[i+1] && str[i+1]<=0xfe)) {
-	  str[len++]=str[i];
-	  str[len++]=str[i+1];
-	  i++;
-	}
+    int i = 0;
+    assert (c > 0 && c < ' '); // only ^x keys are safe to be detected.
+    // other keys may fall into escape sequence.
+
+    if (wait_input(f, 1) && (IBUFSIZE > ibufsize))
+    {
+	int len = tty_read(inbuf + ibufsize, IBUFSIZE - ibufsize);
+#ifdef CONVERT
+	if(len > 0)
+	    len = input_wrapper(inbuf+ibufsize, len);
+#endif
+	if (len > 0)
+	    ibufsize += len;
     }
-  }
-  if(len<maxlen)
-    str[len]='\0';
+    for (i = icurrchar; i < ibufsize; i++)
+    {
+	if (inbuf[i] == c)
+	    return 1;
+    }
+    return 0;
 }
+
 
 #ifdef DBCSAWARE
 
@@ -760,39 +769,45 @@ int
 oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 {
     register int    ch, i;
-    int             clen;
-    int             x = col, y = line;
-    int		    dirty_line = 0; /* if this line contains ansi escapes, 
-				       we have to dirty entire line.  */
+    int             clen, lprompt = 0;
+    int		    cx = col, cy = line;
     static char     lastcmd[MAXLASTCMD][80];
-    unsigned char occupy_msg = 0;
+    unsigned char   occupy_msg = 0;
 
 #ifdef DBCSAWARE
     unsigned int dbcsincomplete = 0;
 #endif
 
     strip_ansi(buf, buf, STRIP_ALL);
+    if (prompt)
+    {
+	lprompt = strlen_noansi(prompt);
+	cx += lprompt;
+    }
 
     if(line == b_lines-msg_occupied)
 	occupy_msg=1, msg_occupied ++;
 
-    if (prompt) {
-	x += strip_ansi(NULL, prompt, STRIP_ALL);
-	if(strlen(prompt) + col != x)
-	    dirty_line = 1;
+    // workaround poor terminal
+    move_ansi(line, col);
+    getyx(&line, &col);
+    clrtoeol();
 
-	if(!echo || !dirty_line)
-	{
-	    move(line, col);
-	    clrtoeol();
-	    outs(prompt);
-	}
-    }
-
+    // (line, col) are real starting address
+    
     if (!echo) {
+	if (prompt) outs(prompt);
 	len--;
 	clen = 0;
 	while ((ch = igetch()) != '\r') {
+	    if (ch == Ctrl('C'))
+	    {
+		// abort
+		clen = 0;
+		if (len > 1)
+		    buf[1] = ch; // workaround for BBS-Lua
+		break;
+	    }
 	    if (ch == '\177' || ch == Ctrl('H')) {
 		if (!clen) {
 		    bell();
@@ -802,9 +817,11 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 		continue;
 	    }
 	    if (ch>=0x100 || !isprint(ch)) {
+		bell();
 		continue;
 	    }
 	    if (clen >= len) {
+		bell();
 		continue;
 	    }
 	    buf[clen++] = ch;
@@ -820,39 +837,74 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	buf[len] = '\0';
 	clen = currchar = strlen(buf);
 
-	if(!dirty_line)
-	{
-	    standout();
-	    for(i=0; i<=len; i++)
-		outc(' ');
-	    standend();
-	    move(y, x);
-	    edit_outs(buf);
-	}
-
 	while (1) {
-	    assert(0<=clen);
-	    if(dirty_line) {
-		move(line, col);
-		clrtoeol();
-		outs(prompt);
-		standout();
-		for(i=0; i<=len; i++)
-		{
-		    if(i <= clen)
-			outc(buf[i]);
-		    else
-			outc(' ');
-		}
-		// edit_outs(buf);
-		standend();
-	    }
-	    move(y, x + currchar);
+	    // refresh from prompt
+	    move(line, col); outc(' '); move(line, col); clrtoeol();
+	    if (prompt) outs(prompt);
+
+	    outs(ANSI_COLOR(7));
+	    outs(buf);
+	    for(i=clen; i<=len; i++)
+		outc(' ');
+	    outs(ANSI_RESET);
+	    move(cy, cx + currchar);
 
 	    if ((ch = igetch()) == '\r')
 		break;
-	    assert(0<=clen);
+
+	    if (ch == Ctrl('C'))
+	    {
+		// abort
+		clen = currchar = 0;
+		if (len > 1)
+		    buf[1] = ch; // workaround for BBS-Lua
+		break;
+	    }
+
 	    switch (ch) {
+	    case Ctrl('A'):
+	    case KEY_HOME:
+		currchar = 0;
+		break;
+
+	    case Ctrl('E'):
+	    case KEY_END:
+		currchar = clen;
+		break;
+
+	    case KEY_UNKNOWN:
+		break;
+
+	    case KEY_LEFT:
+		if (currchar <= 0)
+		    break;
+		--currchar;
+#ifdef DBCSAWARE
+		if(currchar > 0 && ISDBCSAWARE() &&
+		getDBCSstatus((unsigned char*)buf, currchar) == DBCS_TRAILING)
+		    currchar --;
+#endif
+		break;
+
+	    case KEY_RIGHT:
+		if (!buf[currchar])
+		    break;
+		++currchar;
+#ifdef DBCSAWARE
+		if(buf[currchar] && ISDBCSAWARE() &&
+		getDBCSstatus((unsigned char*)buf, currchar) == DBCS_TRAILING)
+		    currchar++;
+#endif
+		break;
+
+	    case Ctrl('Y'):
+		currchar = 0;
+	    case Ctrl('K'):
+		/* we shoud be able to avoid DBCS issues in ^K mode */
+		buf[currchar] = '\0';
+		clen = currchar;
+		break;
+
 	    case KEY_DOWN: case Ctrl('N'):
 	    case KEY_UP:   case Ctrl('P'):
 		strlcpy(lastcmd[cmdpos], buf, sizeof(lastcmd[0]));
@@ -862,118 +914,48 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 		    cmdpos += MAXLASTCMD - 1;
 		cmdpos %= MAXLASTCMD;
 		strlcpy(buf, lastcmd[cmdpos], len+1);
-
-		if(!dirty_line)
-		{
-		    move(y, x);	/* clrtoeof */
-		    for (i = 0; i <= clen; i++)
-			outc(' ');
-		    move(y, x);
-		    edit_outs(buf);
-		}
 		clen = currchar = strlen(buf);
 		break;
-	    case KEY_LEFT:
-		if (currchar > 0)
-		{
-		    --currchar;
-#ifdef DBCSAWARE
-		    if(currchar > 0 && 
-			    ISDBCSAWARE() &&
-			    getDBCSstatus((unsigned char*)buf, currchar) == DBCS_TRAILING)
-			currchar --;
-#endif
-		}
-	    assert(0<=clen);
-		break;
-	    case KEY_RIGHT:
-		if (buf[currchar])
-		{
-		    ++currchar;
-#ifdef DBCSAWARE
-		    if(buf[currchar] &&
-			    ISDBCSAWARE() &&
-			    getDBCSstatus((unsigned char*)buf, currchar) == DBCS_TRAILING)
-			currchar++;
-#endif
-		}
-	    assert(0<=clen);
-		break;
+
 	    case '\177':
 	    case Ctrl('H'):
-		if (currchar) {
+		if (!currchar)
+		    break;
 #ifdef DBCSAWARE
-		    int dbcs_off = 1;
-		    if (ISDBCSAWARE() && 
-			    getDBCSstatus((unsigned char*)buf, currchar-1) == DBCS_TRAILING)
-			dbcs_off = 2;
-#endif
-		    currchar -= dbcs_off;
-		    clen -= dbcs_off;
-		    for (i = currchar; i <= clen; i++)
-			buf[i] = buf[i + dbcs_off];
-
-		    if(!dirty_line)
-		    {
-			move(y, x + clen);
-			outc(' ');
-#ifdef DBCSAWARE
-			while(--dbcs_off > 0) outc(' ');
-#endif
-			move(y, x);
-			edit_outs(buf);
-		    }
-		}
-		break;
-	    case Ctrl('Y'):
-		currchar = 0;
-	    case Ctrl('K'):
-		/* we shoud be able to avoid DBCS issues in ^K mode */
-		buf[currchar] = '\0';
-		if(!dirty_line)
+		if (ISDBCSAWARE() && getDBCSstatus((unsigned char*)buf, 
+			    currchar-1) == DBCS_TRAILING)
 		{
-		    move(y, x + currchar);
-		    for (i = currchar; i < clen; i++)
-			outc(' ');
+		    memmove(buf+currchar-1, buf+currchar, clen-currchar+1);
+		    currchar--, clen--;
 		}
-		clen = currchar;
+#endif
+		memmove(buf+currchar-1, buf+currchar, clen-currchar+1);
+		currchar--, clen--;
 		break;
+
 	    case Ctrl('D'):
 	    case KEY_DEL:
-		if (buf[currchar]) {
+		if (!buf[currchar])
+		   break;
 #ifdef DBCSAWARE
-		    int dbcs_off = 1;
-		    if (ISDBCSAWARE() && buf[currchar+1] && 
-			    getDBCSstatus((unsigned char*)buf, currchar+1) == DBCS_TRAILING)
-		       dbcs_off = 2;
-#endif
-		    clen -= dbcs_off;
-		    for (i = currchar; i <= clen; i++)
-			buf[i] = buf[i + dbcs_off];
-		    if(!dirty_line)
-		    {
-			move(y, x + clen);
-			outc(' ');
-#ifdef DBCSAWARE
-			while(--dbcs_off > 0) outc(' ');
-#endif
-			move(y, x);
-			edit_outs(buf);
-		    }
+		if (ISDBCSAWARE() && buf[currchar+1] && getDBCSstatus(
+		    (unsigned char*)buf, currchar+1) == DBCS_TRAILING)
+		{
+		    memmove(buf+currchar, buf+currchar+1, clen-currchar);
+		    clen --;
 		}
+#endif
+		memmove(buf+currchar, buf+currchar+1, clen-currchar);
+		clen --;
 		break;
-	    case Ctrl('A'):
-	    case KEY_HOME:
-		currchar = 0;
-		break;
-	    case Ctrl('E'):
-	    case KEY_END:
-		currchar = clen;
-		break;
-	    case KEY_UNKNOWN:
-		break;
+
 	    default:
-		if (isprint2(ch) && clen < len && x + clen < scr_cols) {
+		if (echo == NUMECHO && !isdigit(ch))
+		{
+		    bell();
+		    break;
+		}
+		if (isprint2(ch) && clen < len && cx + clen < scr_cols) {
 #ifdef DBCSAWARE
 		    if(ISDBCSAWARE())
 		    {
@@ -1000,11 +982,6 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 		    for (i = clen + 1; i > currchar; i--)
 			buf[i] = buf[i - 1];
 		    buf[currchar] = ch;
-		    if(!dirty_line)
-		    {
-			move(y, x + currchar);
-			edit_outs(buf + currchar);
-		    }
 		    currchar++;
 		    clen++;
 		}
@@ -1012,6 +989,7 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	    }			/* end case */
 	    assert(0<=clen);
 	}			/* end while */
+	buf[clen] = '\0';
 
 	if (clen > 1) {
 	    strlcpy(lastcmd[0], buf, sizeof(lastcmd[0]));
@@ -1019,11 +997,13 @@ oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo)
 	}
 	/* why return here? because some code then outs.*/
 	// outc('\n');
-	move(y+1, 0);
+	move(line+1, 0);
 	refresh();
+
 	assert(0<=currchar && currchar<=clen);
 	assert(0<=clen && clen<=len);
     }
+
     if ((echo == LCECHO) && isupper((int)buf[0]))
 	buf[0] = tolower(buf[0]);
 

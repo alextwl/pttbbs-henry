@@ -1,4 +1,4 @@
-/* $Id: user.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: user.c 3928 2008-02-19 03:18:16Z piaip $ */
 #include "bbs.h"
 static char    * const sex[8] = {
     MSG_BIG_BOY, MSG_BIG_GIRL, MSG_LITTLE_BOY, MSG_LITTLE_GIRL,
@@ -15,8 +15,10 @@ static const char * const chess_type[3] = {
 };
 #endif
 
+#define REGCODE_INITIAL "v6" // always 2 characters
+
 int
-kill_user(int num, char *userid)
+kill_user(int num, const char *userid)
 {
     userec_t u;
     char src[256], dst[256];
@@ -40,20 +42,21 @@ kill_user(int num, char *userid)
 int
 u_loginview(void)
 {
-    int             i;
+    int             i, in;
     unsigned int    pbits = cuser.loginview;
 
     clear();
     move(4, 0);
-    for (i = 0; i < NUMVIEWFILE; i++)
+    for (i = 0; i < NUMVIEWFILE && loginview_file[i][0]; i++)
 	prints("    %c. %-20s %-15s \n", 'A' + i,
 	       loginview_file[i][1], ((pbits >> i) & 1 ? "ˇ" : "Ｘ"));
+    in = i;
 
     clrtobot();
     while ((i = getkey("請按 [A-N] 切換設定，按 [Return] 結束："))!='\r')
        {
 	i = i - 'a';
-	if (i >= NUMVIEWFILE || i < 0)
+	if (i >= in || i < 0)
 	    bell();
 	else {
 	    pbits ^= (1 << i);
@@ -100,7 +103,7 @@ int u_cancelbadpost(void)
        cuser.badpost--;
        cuser.timeremovebadpost = now;
        passwd_update(usernum, &cuser);
-       log_file("log/cancelbadpost.log", LOG_VF|LOG_CREAT,
+       log_filef("log/cancelbadpost.log", LOG_CREAT,
 	        "%s %s 刪除一篇劣文\n", Cdate(&now), cuser.userid);
    }
    vmsg("恭喜您已經成功\刪除一篇劣文.");
@@ -145,12 +148,17 @@ user_display(const userec_t * u, int adminmode)
     sethomedir(genbuf, u->userid);
     prints("                私人信箱: %d 封  (購買信箱: %d 封)\n"
 	   "                手機號碼: %010d\n"
-	   "                生    日: %04i/%02i/%02i\n"
-	   "                優 劣 文: 優:%d / 劣:%d\n",
+	   "                生    日: %04i/%02i/%02i\n",
 	   get_num_records(genbuf, sizeof(fileheader_t)),
 	   u->exmailbox, u->mobile,
-	   u->year + 1900, u->month, u->day,
+	   u->year + 1900, u->month, u->day
+	   );
+
+#ifdef ASSESS
+    prints("                優 劣 文: 優:%d / 劣:%d\n",
            u->goodpost, u->badpost);
+#endif // ASSESS
+
     prints("                上站位置: %s\n", u->lasthost);
 
 #ifdef PLAY_ANGEL
@@ -236,16 +244,19 @@ mail_violatelaw(const char *crime, const char *police, const char *reason, const
     stampfile(genbuf, &fhdr);
     if (!(fp = fopen(genbuf, "w")))
 	return;
-    fprintf(fp, "作者: [山城警察局]\n"
+    fprintf(fp, "作者: [" BBSMNAME "警察局]\n"
 	    "標題: [報告] 違法報告\n"
 	    "時間: %s\n"
 	    ANSI_COLOR(1;32) "%s" ANSI_RESET "判決：\n     " ANSI_COLOR(1;32) "%s" ANSI_RESET
-	    "因" ANSI_COLOR(1;35) "%s" ANSI_RESET "行為，\n違反本站站規，處以" ANSI_COLOR(1;35) "%s" ANSI_RESET "，特此通知"
-	    "\n請到 PttLaw 查詢相關法規資訊，並到 Play-Pay-ViolateLaw 繳交罰單",
+	    "因" ANSI_COLOR(1;35) "%s" ANSI_RESET "行為，\n"
+	    "違反本站站規，處以" ANSI_COLOR(1;35) "%s" ANSI_RESET "，特此通知\n\n"
+	    "請到 " GLOBAL_LAW " 查詢相關法規資訊，並從主選單進入:\n"
+	    "(P)lay【娛樂與休閒】=>(P)ay【Ｐtt量販店 】=> (1)ViolateLaw 繳罰單\n"
+	    "以繳交罰單。\n",
 	    ctime4(&now), police, crime, reason, result);
     fclose(fp);
     strcpy(fhdr.title, "[報告] 違法判決報告");
-    strcpy(fhdr.owner, "[山城警察局]");
+    strcpy(fhdr.owner, "[" BBSMNAME "警察局]");
     sethomedir(genbuf, crime);
     append_record(genbuf, &fhdr, sizeof(fhdr));
 }
@@ -255,7 +266,7 @@ kick_all(char *user)
 {
    userinfo_t *ui;
    int num = searchuser(user, NULL), i=1;
-   while((ui = (userinfo_t *) search_ulistn(num, i))>0)
+   while((ui = (userinfo_t *) search_ulistn(num, i)) != NULL)
        {
          if(ui == currutmp) i++;
          if ((ui->pid <= 0 || kill(ui->pid, SIGHUP) == -1))
@@ -326,14 +337,22 @@ void Customize(void)
     /* cuser.uflag settings */
     static const unsigned int masks1[] = {
 	MOVIE_FLAG,
+	NO_MODMARK_FLAG	,
+	COLORED_MODMARK,
+#ifdef DBCSAWARE
 	DBCSAWARE_FLAG,
+	DBCS_NOINTRESC,
+#endif
 	0,
     };
 
     static const char* desc1[] = {
 	"動態看板",
+	"隱藏文章修改符號(推文/修文) (~)",
+	"改用色彩代替修改符號 (+)",
 #ifdef DBCSAWARE
 	"自動偵測雙位元字集(如全型中文)",
+	"禁止在雙位元中使用色碼(去一字雙色)",
 #endif
 	0,
     };
@@ -349,17 +368,16 @@ void Customize(void)
     static const char* desc2[] = {
 	"拒收站外信",
 	"新板自動進我的最愛",
-	"停用變色顯示我的最愛",
+	"單色顯示我的最愛",
 	0,
     };
-
-    showtitle("個人化設定", "個人化設定");
 
     while ( !done ) {
 	int i = 0, ia = 0, ic = 0; /* general uflags */
 	int iax = 0; /* extended flags */
 
 	clear();
+	showtitle("個人化設定", "個人化設定");
 	move(2, 0);
 	outs("您目前的個人化設定: ");
 	move(4, 0);
@@ -367,33 +385,37 @@ void Customize(void)
 	/* print uflag options */
 	for (i = 0; masks1[i]; i++, ia++)
 	{
-	    prints("%c. %-40s%10s\n",
-		    'a' + ia,
-		    desc1[i],
-		    (cuser.uflag & masks1[i]) ? "是" : "否");
+	    clrtoeol();
+	    prints( ANSI_COLOR(1;36) "%c" ANSI_RESET
+		    ". %-40s%s\n",
+		    'a' + ia, desc1[i],
+		    (cuser.uflag & masks1[i]) ? 
+		    ANSI_COLOR(1;36) "是" ANSI_RESET : "否");
 	}
 	ic = i;
 	/* print uflag2 options */
 	for (i = 0; masks2[i]; i++, ia++)
 	{
-	    prints("%c. %-40s%10s\n",
-		    'a' + ia,
-		    desc2[i],
-		    (cuser.uflag2 & masks2[i]) ? "是" : "否");
+	    clrtoeol();
+	    prints( ANSI_COLOR(1;36) "%c" ANSI_RESET
+		    ". %-40s%s" ANSI_RESET "\n",
+		    'a' + ia, desc2[i],
+		    (cuser.uflag2 & masks2[i]) ? 
+		    ANSI_COLOR(1;36) "是" ANSI_RESET : "否");
 	}
 	/* extended stuff */
 	{
 	    char mindbuf[5];
-	    const static char *wm[] = 
+	    static const char *wm[] = 
 		{"一般", "進階", "未來", ""};
 
-	    prints("%c. %-40s%10s\n",
+	    prints("%c. %-40s%s\n",
 		    '1' + iax++,
 		    "水球模式",
 		    wm[(cuser.uflag2 & WATER_MASK)]);
 	    memcpy(mindbuf, &currutmp->mind, 4);
 	    mindbuf[4] = 0;
-	    prints("%c. %-40s%10s\n",
+	    prints("%c. %-40s%s\n",
 		    '1' + iax++,
 		    "目前的心情",
 		    mindbuf);
@@ -486,9 +508,18 @@ void Customize(void)
 	
     }
 
-    if(dirty)
-	passwd_update(usernum, &cuser);
+    grayout(1, b_lines-2, GRAYOUT_DARK);
+    move(b_lines-1, 0); clrtoeol();
 
+    if(dirty)
+    {
+	passwd_update(usernum, &cuser);
+	outs("設定已儲存。\n");
+    } else {
+	outs("結束設定。\n");
+    }
+
+    redrawwin(); // in case we changed output pref (like DBCS)
     vmsg("設定完成");
 }
 
@@ -509,8 +540,8 @@ makeregcode(char *buf)
 
     /* generate a new regcode */
     buf[13] = 0;
-    buf[0] = 'v';
-    buf[1] = '6';
+    buf[0] = REGCODE_INITIAL[0];
+    buf[1] = REGCODE_INITIAL[1];
     for( i = 2 ; i < 13 ; ++i )
 	buf[i] = alphabet[random() % 52];
 
@@ -636,28 +667,32 @@ void
 uinfo_query(userec_t *u, int adminmode, int unum)
 {
     userec_t        x;
-    register int    i = 0, fail, mail_changed;
-    int             uid, ans;
-    char            buf[STRLEN], *p;
-    char            genbuf[200], reason[50];
-    int money = 0;
-    int             flag = 0, temp = 0, money_change = 0;
+    int    i = 0, fail;
+    int             ans;
+    char            buf[STRLEN];
+    char            genbuf[200];
+    int y = 0;
+    int perm_changed;
+    int mail_changed;
+    int money_changed;
+    int tokill = 0;
+    int changefrom = 0;
 
-    fail = mail_changed = 0;
+    fail = 0;
+    mail_changed = money_changed = perm_changed = 0;
 
     memcpy(&x, u, sizeof(userec_t));
     ans = getans(adminmode ?
-	    "(1)改資料(2)設密碼(3)設權限(4)砍帳號(5)改ID"
-	    "(6)殺/復活寵物(7)審判(M)改信箱 [0]結束 " :
-	    "請選擇 (1)修改資料 (2)設定密碼 (M)修改信箱 (C) 個人化設定 ==> [0]結束 ");
+    "(1)改資料(2)密碼(3)權限(4)砍帳號(5)改ID(6)寵物(7)審判(M)信箱  [0]結束 " :
+    "請選擇 (1)修改資料 (2)設定密碼 (M)修改信箱 (C) 個人化設定 ==> [0]結束 ");
 
     if (ans > '2' && ans != 'm' && ans != 'c' && !adminmode)
 	ans = '0';
 
     if (ans == '1' || ans == '3' || ans == 'm') {
 	clear();
-	i = 1;
-	move(i++, 0);
+	y = 1;
+	move(y++, 0);
 	outs(msg_uid);
 	outs(x.userid);
     }
@@ -665,17 +700,45 @@ uinfo_query(userec_t *u, int adminmode, int unum)
     case 'c':
 	Customize();
 	return;
+
     case 'm':
 	do {
-	    getdata_str(i, 0, "電子信箱[變動要重新認證]：", buf, 50, DOECHO,
-		    x.email);
+	    getdata_str(y, 0, "電子信箱 [變動要重新認證]：", buf, 
+		    sizeof(x.email), DOECHO, x.email);
+	    // TODO 這裡也要 emaildb_check
+#ifdef USE_EMAILDB
+	    if (isvalidemail(buf))
+	    {
+		int email_count = emaildb_check_email(buf, strlen(buf));
+		if (email_count < 0)
+		    vmsg("暫時不允許\ email 認證, 請稍後再試");
+		else if (email_count >= EMAILDB_LIMIT) 
+		    vmsg("指定的 E-Mail 已註冊過多帳號, 請使用其他 E-Mail");
+		else // valid
+		    break;
+	    }
+	    continue;
+#endif
 	} while (!isvalidemail(buf) && vmsg("認證信箱不能用使用免費信箱"));
-	i++;
-	if (strcmp(buf, x.email) && strchr(buf, '@')) {
+	y++;
+	// admins may want to use special names
+	if (strcmp(buf, x.email) && 
+		(strchr(buf, '@') || adminmode)) {
+
+	    // TODO 這裡也要 emaildb_check
+#ifdef USE_EMAILDB
+	    if (emaildb_update_email(cuser.userid, strlen(cuser.userid),
+			buf, strlen(buf)) < 0) {
+		vmsg("暫時不允許\ email 認證, 請稍後再試");
+		break;
+	    }
+#endif
 	    strlcpy(x.email, buf, sizeof(x.email));
-	    mail_changed = 1 - adminmode;
+	    mail_changed = 1;
+	    delregcodefile();
 	}
 	break;
+
     case '7':
 	violate_law(&x, unum);
 	return;
@@ -683,19 +746,21 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	move(0, 0);
 	outs("請逐項修改。");
 
-	getdata_buf(i++, 0, " 暱 稱  ：", x.nickname,
+	getdata_buf(y++, 0, " 暱 稱  ：", x.nickname,
 		    sizeof(x.nickname), DOECHO);
 	if (adminmode) {
-	    getdata_buf(i++, 0, "真實姓名：",
+	    getdata_buf(y++, 0, "真實姓名：",
 			x.realname, sizeof(x.realname), DOECHO);
-	    getdata_buf(i++, 0, "居住地址：",
+	    getdata_buf(y++, 0, "居住地址：",
 			x.address, sizeof(x.address), DOECHO);
 	}
-	snprintf(buf, sizeof(buf), "%010d", x.mobile);
-	getdata_buf(i++, 0, "手機號碼：", buf, 11, LCECHO);
+	buf[0] = 0;
+	if (x.mobile)
+	    snprintf(buf, sizeof(buf), "%010d", x.mobile);
+	getdata_buf(y++, 0, "手機號碼：", buf, 11, LCECHO);
 	x.mobile = atoi(buf);
-	snprintf(genbuf, sizeof(genbuf), "%i", (u->sex + 1) % 8);
-	getdata_str(i++, 0, "性別 (1)葛格 (2)姐接 (3)底迪 (4)美眉 (5)薯叔 "
+	snprintf(genbuf, sizeof(genbuf), "%d", (u->sex + 1) % 8);
+	getdata_str(y++, 0, "性別 (1)葛格 (2)姐接 (3)底迪 (4)美眉 (5)薯叔 "
 		    "(6)阿姨 (7)植物 (8)礦物：",
 		    buf, 3, DOECHO, genbuf);
 	if (buf[0] >= '1' && buf[0] <= '8')
@@ -706,7 +771,7 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	while (1) {
 	    snprintf(genbuf, sizeof(genbuf), "%04i/%02i/%02i",
 		     u->year + 1900, u->month, u->day);
-	    if (getdata_str(i, 0, "生日 西元/月月/日日：", buf, 11, DOECHO, genbuf) == 0) {
+	    if (getdata_str(y, 0, "生日 西元/月月/日日：", buf, 11, DOECHO, genbuf) == 0) {
 		x.month = u->month;
 		x.day = u->day;
 		x.year = u->year;
@@ -720,7 +785,7 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	    }
 	    if (!adminmode && x.year < 40)
 		continue;
-	    i++;
+	    y++;
 	    break;
 	}
 
@@ -736,14 +801,14 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 		prompt = "小天使（此帳號已無小天使資格）：";
 	    while (1) {
 	        userec_t xuser;
-		getdata_str(i, 0, prompt, buf, IDLEN + 1, DOECHO,
+		getdata_str(y, 0, prompt, buf, IDLEN + 1, DOECHO,
 			x.myangel);
 		if(buf[0] == 0 || strcmp(buf, "-") == 0 ||
 			(getuser(buf, &xuser) &&
 			    (xuser.userlevel & PERM_ANGEL)) ||
 			strcmp(x.myangel, buf) == 0){
 		    strlcpy(x.myangel, xuser.userid, IDLEN + 1);
-		    ++i;
+		    ++y;
 		    break;
 		}
 
@@ -768,8 +833,8 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 		    chomp(genbuf);
 
 		    snprintf(mybuf, 200, "%s棋國自我描述：", chess_type[j]);
-		    getdata_buf(i, 0, mybuf, genbuf + 11, 80 - 11, DOECHO);
-		    ++i;
+		    getdata_buf(y, 0, mybuf, genbuf + 11, 80 - 11, DOECHO);
+		    ++y;
 
 		    sethomefile(mybuf, u->userid, chess_photo_name[j]);
 		    strcat(mybuf, ".new");
@@ -797,56 +862,56 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 #endif
 
 	if (adminmode) {
-	    int l;
+	    int tmp;
 	    if (HasUserPerm(PERM_BBSADM)) {
 		snprintf(genbuf, sizeof(genbuf), "%d", x.money);
-		if (getdata_str(i++, 0, "銀行帳戶：", buf, 10, DOECHO, genbuf))
-		    if ((l = atol(buf)) != 0) {
-			if (l != x.money) {
-			    money_change = 1;
-			    money = x.money;
-			    x.money = l;
+		if (getdata_str(y++, 0, "銀行帳戶：", buf, 10, DOECHO, genbuf))
+		    if ((tmp = atol(buf)) != 0) {
+			if (tmp != x.money) {
+			    money_changed = 1;
+			    changefrom = x.money;
+			    x.money = tmp;
 			}
 		    }
 	    }
 	    snprintf(genbuf, sizeof(genbuf), "%d", x.exmailbox);
-	    if (getdata_str(i++, 0, "購買信箱數：", buf, 6,
+	    if (getdata_str(y++, 0, "購買信箱數：", buf, 6,
 			    DOECHO, genbuf))
-		if ((l = atol(buf)) != 0)
-		    x.exmailbox = (int)l;
+		if ((tmp = atoi(buf)) != 0)
+		    x.exmailbox = (int)tmp;
 
-	    getdata_buf(i++, 0, "認證資料：", x.justify,
+	    getdata_buf(y++, 0, "認證資料：", x.justify,
 			sizeof(x.justify), DOECHO);
-	    getdata_buf(i++, 0, "最近光臨機器：",
+	    getdata_buf(y++, 0, "最近光臨機器：",
 			x.lasthost, sizeof(x.lasthost), DOECHO);
 
-	    // XXX 一變數不要多用途亂用 "fail"
 	    snprintf(genbuf, sizeof(genbuf), "%d", x.numlogins);
-	    if (getdata_str(i++, 0, "上線次數：", buf, 10, DOECHO, genbuf))
-		if ((fail = atoi(buf)) >= 0)
-		    x.numlogins = fail;
+	    if (getdata_str(y++, 0, "上線次數：", buf, 10, DOECHO, genbuf))
+		if ((tmp = atoi(buf)) >= 0)
+		    x.numlogins = tmp;
 	    snprintf(genbuf, sizeof(genbuf), "%d", u->numposts);
-	    if (getdata_str(i++, 0, "文章數目：", buf, 10, DOECHO, genbuf))
-		if ((fail = atoi(buf)) >= 0)
-		    x.numposts = fail;
+	    if (getdata_str(y++, 0, "文章數目：", buf, 10, DOECHO, genbuf))
+		if ((tmp = atoi(buf)) >= 0)
+		    x.numposts = tmp;
 	    snprintf(genbuf, sizeof(genbuf), "%d", u->goodpost);
-	    if (getdata_str(i++, 0, "優良文章數:", buf, 10, DOECHO, genbuf))
-		if ((fail = atoi(buf)) >= 0)
-		    x.goodpost = fail;
+	    if (getdata_str(y++, 0, "優良文章數:", buf, 10, DOECHO, genbuf))
+		if ((tmp = atoi(buf)) >= 0)
+		    x.goodpost = tmp;
 	    snprintf(genbuf, sizeof(genbuf), "%d", u->badpost);
-	    if (getdata_str(i++, 0, "惡劣文章數:", buf, 10, DOECHO, genbuf))
-		if ((fail = atoi(buf)) >= 0)
-		    x.badpost = fail;
+	    if (getdata_str(y++, 0, "惡劣文章數:", buf, 10, DOECHO, genbuf))
+		if ((tmp = atoi(buf)) >= 0)
+		    x.badpost = tmp;
 	    snprintf(genbuf, sizeof(genbuf), "%d", u->vl_count);
-	    if (getdata_str(i++, 0, "違法記錄：", buf, 10, DOECHO, genbuf))
-		if ((fail = atoi(buf)) >= 0)
-		    x.vl_count = fail;
+	    if (getdata_str(y++, 0, "違法記錄：", buf, 10, DOECHO, genbuf))
+		if ((tmp = atoi(buf)) >= 0)
+		    x.vl_count = tmp;
 
 	    snprintf(genbuf, sizeof(genbuf),
 		     "%d/%d/%d", u->five_win, u->five_lose, u->five_tie);
-	    if (getdata_str(i++, 0, "五子棋戰績 勝/敗/和：", buf, 16, DOECHO,
+	    if (getdata_str(y++, 0, "五子棋戰績 勝/敗/和：", buf, 16, DOECHO,
 			    genbuf))
 		while (1) {
+		    char *p;
 		    char *strtok_pos;
 		    p = strtok_r(buf, "/\r\n", &strtok_pos);
 		    if (!p)
@@ -864,9 +929,10 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 		}
 	    snprintf(genbuf, sizeof(genbuf),
 		     "%d/%d/%d", u->chc_win, u->chc_lose, u->chc_tie);
-	    if (getdata_str(i++, 0, "象棋戰績 勝/敗/和：", buf, 16, DOECHO,
+	    if (getdata_str(y++, 0, "象棋戰績 勝/敗/和：", buf, 16, DOECHO,
 			    genbuf))
 		while (1) {
+		    char *p;
 		    char *strtok_pos;
 		    p = strtok_r(buf, "/\r\n", &strtok_pos);
 		    if (!p)
@@ -883,18 +949,18 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 		    break;
 		}
 #ifdef FOREIGN_REG
-	    if (getdata_str(i++, 0, "住在 1)台灣 2)其他：", buf, 2, DOECHO, x.uflag2 & FOREIGN ? "2" : "1"))
-		if ((fail = atoi(buf)) > 0){
-		    if (fail == 2){
+	    if (getdata_str(y++, 0, "住在 1)台灣 2)其他：", buf, 2, DOECHO, x.uflag2 & FOREIGN ? "2" : "1"))
+		if ((tmp = atoi(buf)) > 0){
+		    if (tmp == 2){
 			x.uflag2 |= FOREIGN;
 		    }
 		    else
 			x.uflag2 &= ~FOREIGN;
 		}
 	    if (x.uflag2 & FOREIGN)
-		if (getdata_str(i++, 0, "永久居留權 1)是 2)否：", buf, 2, DOECHO, x.uflag2 & LIVERIGHT ? "1" : "2")){
-		    if ((fail = atoi(buf)) > 0){
-			if (fail == 1){
+		if (getdata_str(y++, 0, "永久居留權 1)是 2)否：", buf, 2, DOECHO, x.uflag2 & LIVERIGHT ? "1" : "2")){
+		    if ((tmp = atoi(buf)) > 0){
+			if (tmp == 1){
 			    x.uflag2 |= LIVERIGHT;
 			    x.userlevel |= (PERM_LOGINOK | PERM_POST);
 			}
@@ -905,14 +971,13 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 		    }
 		}
 #endif
-	    fail = 0;
 	}
 	break;
 
     case '2':
-	i = 19;
+	y = 19;
 	if (!adminmode) {
-	    if (!getdata(i++, 0, "請輸入原密碼：", buf, PASSLEN, NOECHO) ||
+	    if (!getdata(y++, 0, "請輸入原密碼：", buf, PASSLEN, NOECHO) ||
 		!checkpasswd(u->passwd, buf)) {
 		outs("\n\n您輸入的密碼不正確\n");
 		fail++;
@@ -921,6 +986,7 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	} else {
             FILE *fp;
 	    char  witness[3][32], title[100];
+	    int uid;
 	    for (i = 0; i < 3; i++) {
 		if (!getdata(19 + i, 0, "請輸入協助證明之使用者：",
 			     witness[i], sizeof(witness[i]), DOECHO)) {
@@ -955,23 +1021,23 @@ uinfo_query(userec_t *u, int adminmode, int unum)
                          u->userid, witness[0], witness[1], witness[2] );
             fclose(fp);
 
-            post_file("Security", title, "etc/updatepwd.log", "[系統安全局]");
+            post_file(GLOBAL_SECURITY, title, "etc/updatepwd.log", "[系統安全局]");
 	    mail_id(u->userid, title, "etc/updatepwd.log", cuser.userid);
 	    for(i=0; i<3; i++)
 	     {
 	       mail_id(witness[i], title, "etc/updatepwd.log", cuser.userid);
              }
-            i = 20;
+            y = 20;
 	}
 
-	if (!getdata(i++, 0, "請設定新密碼：", buf, PASSLEN, NOECHO)) {
+	if (!getdata(y++, 0, "請設定新密碼：", buf, PASSLEN, NOECHO)) {
 	    outs("\n\n密碼設定取消, 繼續使用舊密碼\n");
 	    fail++;
 	    break;
 	}
 	strlcpy(genbuf, buf, PASSLEN);
 
-	getdata(i++, 0, "請檢查新密碼：", buf, PASSLEN, NOECHO);
+	getdata(y++, 0, "請檢查新密碼：", buf, PASSLEN, NOECHO);
 	if (strncmp(buf, genbuf, PASSLEN)) {
 	    outs("\n\n新密碼確認失敗, 無法設定新密碼\n");
 	    fail++;
@@ -982,18 +1048,20 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	break;
 
     case '3':
-	i = setperms(x.userlevel, str_permid);
-	if (i == x.userlevel)
-	    fail++;
-	else {
-	    flag = 1;
-	    temp = x.userlevel;
-	    x.userlevel = i;
+	{
+	    int tmp = setperms(x.userlevel, str_permid);
+	    if (tmp == x.userlevel)
+		fail++;
+	    else {
+		perm_changed = 1;
+		changefrom = x.userlevel;
+		x.userlevel = tmp;
+	    }
 	}
 	break;
 
     case '4':
-	i = QUIT;
+	tokill = 1;
 	break;
 
     case '5':
@@ -1021,10 +1089,10 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	return;
     }
     if (getans(msg_sure_ny) == 'y') {
-	if (flag) {
-	    post_change_perm(temp, i, cuser.userid, x.userid);
+	if (perm_changed) {
+	    post_change_perm(changefrom, x.userlevel, cuser.userid, x.userid);
 #ifdef PLAY_ANGEL
-	    if (i & ~temp & PERM_ANGEL)
+	    if (x.userlevel & ~changefrom & PERM_ANGEL)
 		mail_id(x.userid, "翅膀長出來了！", "etc/angel_notify", "[上帝]");
 #endif
 	}
@@ -1036,7 +1104,7 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	    Rename(src, dst);
 	    setuserid(unum, x.userid);
 	}
-	if (mail_changed) {
+	if (mail_changed && !adminmode) {
 	    char justify_tmp[REGLEN + 1];
 	    char *phone, *career;
 	    char *strtok_pos;
@@ -1053,17 +1121,17 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 	    snprintf(buf, sizeof(buf), "%d", x.mobile);
 
 	    justify_wait(x.userid, phone, career, x.realname, x.address, buf);
-            email_justify(&x);
 	}
 	memcpy(u, &x, sizeof(x));
-	if (i == QUIT) {
+	if (tokill) {
             kill_user(unum, x.userid);
 	    return;
 	} else
 	    log_usies("SetUser", x.userid);
-	if (money_change) {
+	if (money_changed) {
 	    char title[TTLEN+1];
 	    char msg[200];
+	    char reason[50];
 	    clrtobot();
 	    clear();
 	    while (!getdata(5, 0, "請輸入理由以示負責：",
@@ -1073,17 +1141,21 @@ uinfo_query(userec_t *u, int adminmode, int unum)
 		    "   站長" ANSI_COLOR(1;32) "%s" ANSI_RESET "把" ANSI_COLOR(1;32) "%s" ANSI_RESET "的錢"
 		    "從" ANSI_COLOR(1;35) "%d" ANSI_RESET "改成" ANSI_COLOR(1;35) "%d" ANSI_RESET "\n"
 		    "   " ANSI_COLOR(1;37) "站長%s修改錢理由是：%s" ANSI_RESET,
-		    cuser.userid, x.userid, money, x.money,
+		    cuser.userid, x.userid, changefrom, x.money,
 		    cuser.userid, reason);
 	    snprintf(title, sizeof(title),
 		    "[公安報告] 站長%s修改%s錢報告", cuser.userid,
 		    x.userid);
-	    post_msg("Security", title, msg, "[系統安全局]");
+	    post_msg(GLOBAL_SECURITY, title, msg, "[系統安全局]");
 	    setumoney(unum, x.money);
 	}
 	passwd_update(unum, &x);
-	if(flag)
+	if(perm_changed)
     	  sendalert(x.userid,  ALERT_PWD_PERM); // force to reload perm
+
+	// resolve_over18 only works for cuser
+	if (!adminmode)
+	    resolve_over18();
     }
 }
 
@@ -1111,7 +1183,7 @@ showplans_userec(userec_t *user)
 
     if(user->userlevel & PERM_VIOLATELAW)
     {
-	outs(" \033[1;31m此人違規 尚未繳交罰單\033[m");
+	outs(" " ANSI_COLOR(1;31) "此人違規 尚未繳交罰單" ANSI_RESET);
 	return;
     }
 
@@ -1295,36 +1367,6 @@ u_editplan(void)
     return 0;
 }
 
-int
-u_editcalendar(void)
-{
-    char            genbuf[200];
-
-    getdata(b_lines - 1, 0, "行事曆 (D)刪除 (E)編輯 (H)說明 [Q]取消？[Q] ",
-	    genbuf, 3, LCECHO);
-
-    if (genbuf[0] == 'e') {
-	int             aborted;
-
-	setutmpmode(EDITPLAN);
-	sethomefile(genbuf, cuser.userid, "calendar");
-	aborted = vedit(genbuf, NA, NULL);
-	if (aborted != -1)
-	    vmsg("行事曆更新完畢");
-	return 0;
-    } else if (genbuf[0] == 'd') {
-	sethomefile(genbuf, cuser.userid, "calendar");
-	unlink(genbuf);
-	vmsg("行事曆刪除完畢");
-    } else if (genbuf[0] == 'h') {
-	move(1, 0);
-	clrtoline(b_lines);
-	move(3, 0);
-	prints("行事曆格式說明:\n編輯時以一行為單位，如:\n\n# 井號開頭的是註解\n2006/05/04 red 上批踢踢!\n\n其中的 red 是指表示的顏色。");
-	pressanykey();
-    }
-    return 0;
-}
 
 /* 使用者填寫註冊表格 */
 static void
@@ -1333,14 +1375,16 @@ getfield(int line, const char *info, const char *desc, char *buf, int len)
     char            prompt[STRLEN];
     char            genbuf[200];
 
-    move(line, 2);
-    prints("原先設定：%-30.30s (%s)", buf, info);
-    snprintf(prompt, sizeof(prompt), "%s：", desc);
-    if (getdata_str(line + 1, 2, prompt, genbuf, len, DOECHO, buf))
+    // clear first
+    move(line+1, 0); clrtoeol();
+    move(line, 0); clrtoeol();
+    prints("  原先設定：%-30.30s (%s)", buf, info);
+    snprintf(prompt, sizeof(prompt), "  %s：", desc);
+    if (getdata_str(line + 1, 0, prompt, genbuf, len, DOECHO, buf))
 	strcpy(buf, genbuf);
-    move(line, 2);
-    prints("%s：%s", desc, buf);
-    clrtoeol();
+    move(line+1, 0); clrtoeol();
+    move(line, 0); clrtoeol();
+    prints("  %s：%s", desc, buf);
 }
 
 static int
@@ -1387,11 +1431,10 @@ isvalidemail(const char *email)
 }
 
 static void
-toregister(char *email, char *genbuf, char *phone, char *career,
+toregister(char *email, char *phone, char *career,
 	   char *rname, char *addr, char *mobile)
 {
-    FILE           *fn;
-    char            buf[128];
+    FILE *fn = NULL;
 
     justify_wait(cuser.userid, phone, career, rname, addr, mobile);
 
@@ -1409,7 +1452,7 @@ toregister(char *email, char *genbuf, char *phone, char *career,
 	 "\n"
 	 "  2.若您沒有 E-Mail 或是一直無法收到認證信, 請輸入 x \n"
 	 "  會有站長親自人工審核註冊資料，" ANSI_COLOR(1;33)
-	   "但注意這可能會花上數天或更多時間。" ANSI_RESET "\n"
+	   "但注意這可能會花上數週或更多時間。" ANSI_RESET "\n"
 	 "**********************************************************\n"
 	 "* 注意!                                                  *\n"
 	 "* 通常應該會在輸入完成後十分鐘內收到認證信, 若過久未收到 *\n"
@@ -1428,7 +1471,6 @@ toregister(char *email, char *genbuf, char *phone, char *career,
 	getfield(15, "身分認證用", "E-Mail Address", email, 50);
 	if (strcmp(email, "x") == 0 || strcmp(email, "X") == 0)
 	    break;
-
 #ifdef HAVEMOBILE
 	else if (strcmp(email, "m") == 0 || strcmp(email, "M") == 0) {
 	    if (isvalidmobile(mobile)) {
@@ -1438,6 +1480,7 @@ toregister(char *email, char *genbuf, char *phone, char *career,
 		if (yn[0] == 'Y' || yn[0] == 'y')
 		    break;
 	    } else {
+		move(15, 0); clrtobot();
 		move(17, 0);
 		outs("指定的手機號碼不合法,"
 		       "若您無手機門號請選擇其他方式認證");
@@ -1447,16 +1490,46 @@ toregister(char *email, char *genbuf, char *phone, char *career,
 #endif
 	else if (isvalidemail(email)) {
 	    char            yn[3];
+#ifdef USE_EMAILDB
+	    int email_count = emaildb_check_email(email, strlen(email));
+
+	    if (email_count < 0) {
+		move(15, 0); clrtobot();
+		move(17, 0);
+		outs("暫時不允許\ email 認證註冊, 請稍後再試\n");
+		pressanykey();
+		return;
+	    } else if (email_count >= EMAILDB_LIMIT) { 
+		move(15, 0); clrtobot();
+		move(17, 0);
+		outs("指定的 E-Mail 已註冊過多帳號, 請使用其他 E-Mail, 或輸入 x 採手動認證\n");
+		outs("但注意手動認證通常會花上數週以上的時間。\n");
+	    } else {
+#endif
 	    getdata(16, 0, "請再次確認您輸入的 E-Mail 位置正確嘛? [y/N]",
 		    yn, sizeof(yn), LCECHO);
 	    if (yn[0] == 'Y' || yn[0] == 'y')
 		break;
+#ifdef USE_EMAILDB
+	    }
+#endif
 	} else {
+	    move(15, 0); clrtobot();
 	    move(17, 0);
 	    outs("指定的 E-Mail 不合法, 若您無 E-Mail 請輸入 x 由站長手動認證\n");
-	    outs("但注意手動認證通常會花上數天的時間。\n");
+	    outs("但注意手動認證通常會花上數週以上的時間。\n");
 	}
     }
+#ifdef USE_EMAILDB
+    if (emaildb_update_email(cuser.userid, strlen(cuser.userid),
+		email, strlen(email)) < 0) {
+	move(15, 0); clrtobot();
+	move(17, 0);
+	outs("暫時不允許\ email 認證註冊, 請稍後再試\n");
+	pressanykey();
+	return;
+    }
+#endif
     strlcpy(cuser.email, email, sizeof(cuser.email));
  REGFORM2:
     if (strcasecmp(email, "x") == 0) {	/* 手動認證 */
@@ -1471,20 +1544,20 @@ toregister(char *email, char *genbuf, char *phone, char *career,
 	    fprintf(fn, "email: %s\n", email);
 	    fprintf(fn, "----\n");
 	    fclose(fn);
+	    // save justify information
+	    snprintf(cuser.justify, sizeof(cuser.justify),
+		    "%s:%s:<Manual>", phone, career);
 	}
+	// XXX what if we cannot open register form?
     } else {
-	if (phone != NULL) {
+	// register by mail of phone
+	snprintf(cuser.justify, sizeof(cuser.justify),
+		"%s:%s:<Email>", phone, career);
 #ifdef HAVEMOBILE
-	    if (strcmp(email, "m") == 0 || strcmp(email, "M") == 0)
-		sprintf(genbuf, sizeof(genbuf),
-			"%s:%s:<Mobile>", phone, career);
-	    else
+	if (phone != NULL && email[1] == 0 && tolower(email[0]) == 'm')
+	    sprintf(cuser.justify, sizeof(cuser.justify),
+		    "%s:%s:<Mobile>", phone, career);
 #endif
-		snprintf(genbuf, sizeof(genbuf),
-			 "%s:%s:<Email>", phone, career);
-	    strlcpy(cuser.justify, genbuf, sizeof(cuser.justify));
-	    sethomefile(buf, cuser.userid, "justify");
-	}
        email_justify(&cuser);
     }
 }
@@ -1517,7 +1590,7 @@ static int HaveRejectStr(const char *s, const char **rej)
     return 0;
 }
 
-static char *isvalidname(char *rname)
+char *isvalidname(char *rname)
 {
 #ifdef FOREIGN_REG
     return NULL;
@@ -1561,7 +1634,7 @@ static char *isvalidcareer(char *career)
     return NULL;
 }
 
-static char *isvalidaddr(char *addr)
+char *isvalidaddr(char *addr)
 {
     const char    *rejectstr[] =
 	{"地球", "銀河", "火星", NULL};
@@ -1637,7 +1710,7 @@ u_register(void)
 		    ANSI_RESET "\n\n");
 	    // outs("該死，都不看說明的...\n");
 	    outs("   進入人工審核程序後 Email 註冊自動失效，有註冊碼也沒用，\n");
-	    outs("   要等到審核完成 (會多花很多時間，通常起碼一天) ，所以請耐心等候。\n\n");
+	    outs("   要等到審核完成 (會多花很多時間，通常起碼數天) ，所以請耐心等候。\n\n");
 
 	    /* 下面是國王的 code 所需要的 message */
 #if 0
@@ -1653,8 +1726,11 @@ u_register(void)
     strlcpy(rname, cuser.realname, sizeof(rname));
     strlcpy(addr, cuser.address, sizeof(addr));
     strlcpy(email, cuser.email, sizeof(email));
-    snprintf(mobile, sizeof(mobile), "0%09d", cuser.mobile);
-    if (cuser.month == 0 && cuser.day && cuser.year == 0)
+    if (cuser.mobile)
+	snprintf(mobile, sizeof(mobile), "0%09d", cuser.mobile);
+    else
+	mobile[0] = 0;
+    if (cuser.month == 0 && cuser.day == 0 && cuser.year == 0)
 	birthday[0] = 0;
     else
 	snprintf(birthday, sizeof(birthday), "%04i/%02i/%02i",
@@ -1694,15 +1770,17 @@ u_register(void)
 	goto REGFORM;
     }
 
-    if (cuser.year != 0 &&	/* 已經第一次填過了~ ^^" */
+    // XXX why check by year? 
+    // birthday is moved to earlier, so let's check email instead.
+    if (cuser.email[0] && // cuser.year != 0 &&	/* 已經第一次填過了~ ^^" */
 	strcmp(cuser.email, "x") != 0 &&	/* 上次手動認證失敗 */
 	strcmp(cuser.email, "X") != 0) {
 	clear();
 	stand_title("EMail認證");
 	move(2, 0);
-	prints("%s(%s) 您好，請輸入您的認證碼。\n"
-	       "或您可以輸入 x 來重新填寫 E-Mail 或改由站長手動認證\n",
-	       cuser.userid, cuser.nickname);
+
+	prints("請輸入您的認證碼。(由 %s 開頭無空白的十三碼)\n"
+	       "或輸入 x 來重新填寫 E-Mail 或改由站長手動認證\n", REGCODE_INITIAL);
 	inregcode[0] = 0;
 
 	do{
@@ -1710,12 +1788,13 @@ u_register(void)
 		    inregcode, sizeof(inregcode), DOECHO);
 	    if( strcmp(inregcode, "x") == 0 || strcmp(inregcode, "X") == 0 )
 		break;
-	    if( inregcode[0] != 'v' || inregcode[1] != '6' ) {
+	    if( strlen(inregcode) != 13 || inregcode[0] == ' ')
+		vmsg("認證碼輸入不完整，總共應有十三碼，沒有空白字元。");
+	    else if( inregcode[0] != REGCODE_INITIAL[0] || inregcode[1] != REGCODE_INITIAL[1] ) {
 		/* old regcode */
-		vmsg("您輸入的認證碼因系統昇級已失效，"
+		vmsg("輸入的認證碼錯誤，" // "或因系統昇級已失效，"
 		     "請輸入 x 重填一次 E-Mail");
-	    } else if( strlen(inregcode) != 13 )
-		vmsg("認證碼輸入不完全，應該一共有十三碼。");
+	    }
 	    else
 		break;
 	} while( 1 );
@@ -1746,11 +1825,16 @@ u_register(void)
 	    u_exit("registed");
 	    exit(0);
 	    return QUIT;
-	} else if (strcmp(inregcode, "x") != 0 &&
-		   strcmp(inregcode, "X") != 0) {
-	    vmsg("認證碼錯誤！");
+	} else if (strcasecmp(inregcode, "x") != 0) {
+	    if (regcode[0])
+		vmsg("認證碼錯誤！");
+	    else {
+		vmsg("認證碼已過期，請重新註冊。");
+		toregister(email, phone, career, rname, addr, mobile);
+		return FULLUPDATE;
+	    }
 	} else {
-	    toregister(email, genbuf, phone, career, rname, addr, mobile);
+	    toregister(email, phone, career, rname, addr, mobile);
 	    return FULLUPDATE;
 	}
     }
@@ -1807,8 +1891,9 @@ u_register(void)
 	    else
 		vmsg(errcode);
 	}
+	move(10, 0); clrtobot();
 	while (1) {
-	    getfield(11, "含" ANSI_COLOR(1;33) "縣市" ANSI_RESET "及門寢號碼"
+	    getfield(10, "含" ANSI_COLOR(1;33) "縣市" ANSI_RESET "及門寢號碼"
 		     "(台北請加" ANSI_COLOR(1;33) "行政區" ANSI_RESET ")",
 		     "目前住址", addr, sizeof(addr));
 	    if( (errcode = isvalidaddr(addr)) == NULL
@@ -1821,16 +1906,16 @@ u_register(void)
 		vmsg(errcode);
 	}
 	while (1) {
-	    getfield(13, "不加-(), 包括長途區號", "連絡電話", phone, 11);
+	    getfield(11, "不加-(), 包括長途區號", "連絡電話", phone, 11);
 	    if( (errcode = isvalidphone(phone)) == NULL )
 		break;
 	    else
 		vmsg(errcode);
 	}
-	getfield(15, "只輸入數字 如:0912345678 (可不填)",
+	getfield(12, "只輸入數字 如:0912345678 (可不填)",
 		 "手機號碼", mobile, 20);
 	while (1) {
-	    getfield(17, "西元/月月/日日 如:1984/02/29", "生日", birthday, sizeof(birthday));
+	    getfield(13, "西元/月月/日日 如:1984/02/29", "生日", birthday, sizeof(birthday));
 	    if (birthday[0] == 0) {
 		snprintf(birthday, sizeof(birthday), "%04i/%02i/%02i",
 			 1900 + cuser.year, cuser.month, cuser.day);
@@ -1853,7 +1938,7 @@ u_register(void)
 	    }
 	    break;
 	}
-	getfield(19, "1.葛格 2.姐接 ", "性別", sex_is, 2);
+	getfield(14, "1.葛格 2.姐接 ", "性別", sex_is, 2);
 	getdata(20, 0, "以上資料是否正確(Y/N)？(Q)取消註冊 [N] ",
 		ans, 3, LCECHO);
 	if (ans[0] == 'q')
@@ -1879,7 +1964,10 @@ u_register(void)
     trim(addr);
     trim(phone);
 
-    toregister(email, genbuf, phone, career, rname, addr, mobile);
+    toregister(email, phone, career, rname, addr, mobile);
+
+    // update cuser
+    passwd_update(usernum, &cuser);
 
     clear();
     move(9, 3);
@@ -1895,15 +1983,20 @@ u_register(void)
 }
 
 /* 列出所有註冊使用者 */
-static int      usercounter, totalusers;
-static unsigned short u_list_special;
+struct ListAllUsetCtx {
+    int usercounter;
+    int totalusers;
+    unsigned short u_list_special;
+    int y;
+};
 
 static int
-u_list_CB(int num, userec_t * uentp)
+u_list_CB(void *data, int num, userec_t * uentp)
 {
-    static int      i;
     char            permstr[8], *ptr;
     register int    level;
+    struct ListAllUsetCtx *ctx = (struct ListAllUsetCtx*) data;
+    (void)num;
 
     if (uentp == NULL) {
 	move(2, 0);
@@ -1912,25 +2005,26 @@ u_list_CB(int num, userec_t * uentp)
 	       "最近光臨日期     " ANSI_COLOR(0) "\n",
 	       "綽號暱稱",
 	       HasUserPerm(PERM_SEEULEVELS) ? "等級" : "");
-	i = 3;
+	ctx->y = 3;
 	return 0;
     }
     if (bad_user_id(uentp->userid))
 	return 0;
 
-    if ((uentp->userlevel & ~(u_list_special)) == 0)
+    if ((uentp->userlevel & ~(ctx->u_list_special)) == 0)
 	return 0;
 
-    if (i == b_lines) {
+    if (ctx->y == b_lines) {
+	int ch;
 	prints(ANSI_COLOR(34;46) "  已顯示 %d/%d 人(%d%%)  " ANSI_COLOR(31;47) "  "
 	       "(Space)" ANSI_COLOR(30) " 看下一頁  " ANSI_COLOR(31) "(Q)" ANSI_COLOR(30) " 離開  " ANSI_RESET,
-	       usercounter, totalusers, usercounter * 100 / totalusers);
-	i = igetch();
-	if (i == 'q' || i == 'Q')
-	    return QUIT;
-	i = 3;
+	       ctx->usercounter, ctx->totalusers, ctx->usercounter * 100 / ctx->totalusers);
+	ch = igetch();
+	if (ch == 'q' || ch == 'Q')
+	    return -1;
+	ctx->y = 3;
     }
-    if (i == 3) {
+    if (ctx->y == 3) {
 	move(3, 0);
 	clrtobot();
     }
@@ -1963,8 +2057,8 @@ u_list_CB(int num, userec_t * uentp)
 	   uentp->nickname,
 	   uentp->numlogins, uentp->numposts,
 	   HasUserPerm(PERM_SEEULEVELS) ? permstr : "", ptr);
-    usercounter++;
-    i++;
+    ctx->usercounter++;
+    ctx->y++;
     return 0;
 }
 
@@ -1972,25 +2066,23 @@ int
 u_list(void)
 {
     char            genbuf[3];
+    struct ListAllUsetCtx data, *ctx = &data;
 
     setutmpmode(LAUSERS);
-    u_list_special = usercounter = 0;
-    totalusers = SHM->number;
+    ctx->u_list_special = ctx->usercounter = 0;
+    ctx->totalusers = SHM->number;
     if (HasUserPerm(PERM_SEEULEVELS)) {
 	getdata(b_lines - 1, 0, "觀看 [1]特殊等級 (2)全部？",
 		genbuf, 3, DOECHO);
 	if (genbuf[0] != '2')
-	    u_list_special = PERM_BASIC | PERM_CHAT | PERM_PAGE | PERM_POST | PERM_LOGINOK | PERM_BM;
+	    ctx->u_list_special = PERM_BASIC | PERM_CHAT | PERM_PAGE | PERM_POST | PERM_LOGINOK | PERM_BM;
     }
-    u_list_CB(0, NULL);
-    if (passwd_apply(u_list_CB) == -1) {
-	outs(msg_nobody);
-	return XEASY;
-    }
+    u_list_CB(ctx, 0, NULL);
+    passwd_apply(ctx, u_list_CB);
     move(b_lines, 0);
     clrtoeol();
     prints(ANSI_COLOR(34;46) "  已顯示 %d/%d 的使用者(系統容量無上限)  "
-	   ANSI_COLOR(31;47) "  (請按任意鍵繼續)  " ANSI_RESET, usercounter, totalusers);
+	   ANSI_COLOR(31;47) "  (請按任意鍵繼續)  " ANSI_RESET, ctx->usercounter, ctx->totalusers);
     igetch();
     return 0;
 }
@@ -2007,41 +2099,42 @@ int u_detectDBCSAwareEvilClient()
     int ret = 0;
 
     clear();
-    move(1, 0);
+    stand_title("設定自動偵測雙位元字集 (全型中文)");
+    move(2, 0);
     outs(ANSI_RESET
-	    "* 本站支援自動偵測中文字的移動與編輯，但有些連線程式(如xxMan)\n"
-	    "  會自行處理、多送按鍵，於是便會造成" ANSI_COLOR(1;37)
-	    "一次移動兩個中文字的現象。" ANSI_RESET "\n\n"
-	    "* 讓連線程式處理移動容易造成許\多"
-	    "顯示及移動上的問題，所以我們建議您\n"
-	    "  關閉該程式上的此項設定（通常叫「偵測(全型或雙位元組)中文」），\n"
-	    "  讓 BBS 系統可以正確的控制你的畫面。\n\n"
-	    ANSI_COLOR(1;33) 
-	    "* 如果您看不懂上面的說明也無所謂，我們會自動偵測適合您的設定。"
-	    ANSI_RESET "\n"
-	    "  請在設定好連線程式成您偏好的模式後按" ANSI_COLOR(1;33)
-	    "一下" ANSI_RESET "您鍵盤上的" ANSI_COLOR(1;33)
-	    "←" ANSI_RESET "\n" ANSI_COLOR(1;36)
-	    "  (另外左右方向鍵或寫 BS/Backspace 的倒退鍵與 Del 刪除鍵均可)\n"
+    "* 本站支援自動偵測中文字的移動與編輯，但有些連線程式 (如xxMan)\n"
+    "  也會自行試圖偵測、多送按鍵，於是便會造成" ANSI_COLOR(1;37)
+      "一次移動兩個中文字的現象。" ANSI_RESET "\n\n"
+    "* 讓連線程式處理移動容易造成顯示及移動上誤判的問題，所以我們建議您\n"
+    "  關閉該程式上的設定（通常叫「偵測(全型或雙位元組)中文」），\n"
+    "  讓 BBS 系統可以正確的控制你的畫面。\n\n"
+    ANSI_COLOR(1;33) 
+    "* 如果您看不懂上面的說明也無所謂，我們會自動偵測適合您的設定。"
+    ANSI_RESET "\n"
+    "  請在設定好連線程式成您偏好的模式後按" ANSI_COLOR(1;33)
+    "一下" ANSI_RESET "您鍵盤上的" ANSI_COLOR(1;33)
+    "←" ANSI_RESET "\n" ANSI_COLOR(1;36)
+    "  (左右方向鍵或寫 BS/Backspace 的倒退鍵與 Del 刪除鍵均可)\n"
 	    ANSI_RESET);
 
     /* clear buffer */
-    while(num_in_buf() > 0)
-	igetch();
+    peek_input(0.1, Ctrl('C'));
+    drop_input();
 
     while (1)
     {
 	int ch = 0;
 
-	move(12, 0);
+	move(14, 0);
 	outs("這是偵測區，您的游標會出現在" 
 		ANSI_COLOR(7) "這裡" ANSI_RESET);
-	move(12, 15*2);
+	move(14, 15*2);
 	ch = igetch();
 	if(ch != KEY_LEFT && ch != KEY_RIGHT &&
 		ch != Ctrl('H') && ch != '\177')
 	{
-	    move(14, 0);
+	    move(16, 0);
+	    bell();
 	    outs("請按一下上面指定的鍵！ 你按到別的鍵了！");
 	} else {
 	    move(16, 0);
@@ -2051,19 +2144,20 @@ int u_detectDBCSAwareEvilClient()
 	     * years) of num_in_buf forced me to write new wait_input.
 	     * Anyway it is fixed now.
 	     */
-	    if(wait_input(0.1, 1))
+	    refresh();
+	    if(wait_input(0.1, 0))
 	    // if(igetch() == ch)
 	    // if (num_in_buf() > 0)
 	    {
 		/* evil dbcs aware client */
-		outs("偵測到您的連線程式會自行處理游標移動。\n\n"
+		outs("偵測到您的連線程式會自行處理游標移動。\n"
 			// "若日後因此造成瀏覽上的問題本站恕不處理。\n\n"
 			"已設定為「讓您的連線程式處理游標移動」\n");
 		ret = 1;
 	    } else {
 		/* good non-dbcs aware client */
 		outs("您的連線程式似乎不會多送按鍵，"
-			"這樣 BBS 可以更精準的控制畫面。\n\n"
+			"這樣 BBS 可以更精準的控制畫面。\n"
 			"已設定為「讓 BBS 伺服器直接處理游標移動」\n");
 		ret = 0;
 	    }
@@ -2074,6 +2168,7 @@ int u_detectDBCSAwareEvilClient()
 	    break;
 	}
     }
+    drop_input();
     pressanykey();
     return ret;
 }

@@ -3,6 +3,10 @@
 #ifndef INCLUDE_BBS_H
 #define INCLUDE_BBS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "osdep.h"
 
 #include <stdio.h>
@@ -27,6 +31,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <arpa/telnet.h>
 #include <sys/types.h>
@@ -39,13 +44,13 @@
 
 /* our header */
 #include "config.h"
-#ifdef TIMET64
-typedef uint32_t time4_t;
-#else
-typedef time_t time4_t;
-#endif
+
+#include "libbbsutil.h"
+#include "libbbs.h"
+
 #include "ansi.h"
 #include "statistic.h"
+#include "uflags.h"
 #include "pttstruct.h"
 #include "fav.h"
 #include "common.h"
@@ -69,6 +74,10 @@ typedef time_t time4_t;
 
 #ifndef INCLUDE_VAR_H
     #include "var.h"
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* INCLUDE_BBS_H */

@@ -1,6 +1,9 @@
-/* $Id: perm.h 3487 2007-03-13 08:49:20Z wens $ */
+/* $Id: perm.h 3737 2007-12-24 16:17:49Z piaip $ */
 #ifndef INCLUDE_PERM_H
 #define INCLUDE_PERM_H
+
+#define MENU_UNREGONLY (-1)	    // 特殊值: 在 menu 裡表示未註冊完成
+				    // 但又非guest的帳號才看得到
 
 #define PERM_BASIC        000000000001 /* 基本權力       */
 #define PERM_CHAT         000000000002 /* 進入聊天室     */

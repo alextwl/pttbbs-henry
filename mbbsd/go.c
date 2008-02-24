@@ -1,4 +1,4 @@
-/* $Id: go.c 3523 2007-05-30 15:42:18Z scw $ */
+/* $Id: go.c 3722 2007-12-21 17:18:33Z piaip $ */
 
 #include "bbs.h"
 #include <sys/socket.h> 
@@ -475,15 +475,16 @@ static void
 go_drawline(const ChessInfo* info, int line)
 {
     const static char* const BoardPic[] = {
-	"¢z", "¢s", "¢{",
-	"¢u", "¢q", "¢t",
-	"¢|", "¢r", "¢}"
+	"ùÝ", "ùç", "ùç", "ùß",
+	"ùò", "¢q", "¢q", "ùô",
+	"ùò", "¢q", "¡Ï", "ùô",
+	"ùã", "ùí", "ùí", "ùå",
     };
     const static int BoardPicIndex[] =
-    { 0, 1, 1, 1, 1,
+    { 0, 1, 1, 2, 1,
+      1, 1, 1, 1, 2,
       1, 1, 1, 1, 1,
-      1, 1, 1, 1, 1,
-      1, 1, 1, 2 };
+      2, 1, 1, 3 };
 
     board_p board = (board_p) info->board;
     go_tag_t* tag = (go_tag_t*) info->tag;
@@ -498,8 +499,7 @@ go_drawline(const ChessInfo* info, int line)
     } else if (line >= 2 && line <= 20) {
 	const int board_line = line - 2;
 	const char* const* const pics =
-	    board_line == 0  ? &BoardPic[0] :
-	    board_line == BRDSIZ - 1 ? &BoardPic[6] : &BoardPic[3];
+	    &BoardPic[BoardPicIndex[board_line] * 4];
 	int i;
 
 	prints("%2d" ANSI_COLOR(30;43), 21 - line);
@@ -827,7 +827,8 @@ go_genlog(ChessInfo* info, FILE* fp, ChessGameResult result)
 {
     const static char ColName[] = "ABCDEFGHJKLMNOPQRST";
     const int nStep = info->history.used;
-    int       i;
+    char buf[ANSILINELEN] = "";
+    int   i, x, y;
     int       sethand = 0;
 
     if (nStep > 0) {
@@ -837,8 +838,14 @@ go_genlog(ChessInfo* info, FILE* fp, ChessGameResult result)
 	    sethand = step->loc.r;
     }
 
+    getyx(&y, &x);
     for (i = 1; i <= 22; i++)
-	fprintf(fp, "%.*s\n", big_picture[i].len, big_picture[i].data);
+    {
+	move(i, 0);
+	inansistr(buf, sizeof(buf)-1);
+	fprintf(fp, "%s\n", buf);
+    }
+    move(y, x);
 
     fprintf(fp, "\n");
     fprintf(fp, "«ö z ¥i¶i¤J¥´ÃÐ¼Ò¦¡\n");

@@ -1,4 +1,4 @@
-/* $Id: gamble.c 3546 2007-06-18 17:14:53Z kcwu $ */
+/* $Id: gamble.c 3650 2007-12-08 02:37:03Z piaip $ */
 #include "bbs.h"
 
 #define MAX_ITEM	8	//最大 賭項(item) 個數
@@ -38,7 +38,7 @@ show_ticket_data(char betname[MAX_ITEM][MAX_ITEM_LEN],const char *direct, int *p
 	} else
 	    showtitle(genbuf, BBSNAME);
     } else
-	showtitle("霞蔚賭盤", BBSNAME);
+	showtitle(BBSMNAME "賭盤", BBSNAME);
     move(2, 0);
     snprintf(genbuf, sizeof(genbuf), "%s/" FN_TICKET_ITEMS, direct);
     if (!(fp = fopen(genbuf, "r"))) {
@@ -249,7 +249,7 @@ openticket(int bid)
     if(rename(buf, outcome) != 0)
     {
 	unlockutmpmode();
-	vmsg("無法準備開獎... 請至 PttBug 報告並附上板名。");
+	vmsg("無法準備開獎... 請至 " GLOBAL_BUGREPORT " 報告並附上板名。");
 	return 0;
 
     }
@@ -312,7 +312,7 @@ openticket(int bid)
 		    "開獎結果： %s \n\n"
 		    "所有金額： %d 元 \n"
 		    "中獎比例： %d張/%d張  (%f)\n"
-		    "每張中獎彩票可得 %d 枚Ｐ幣 \n\n",
+		    "每張中獎彩票可得 %d " MONEYNAME "幣 \n\n",
 	    Cdatelite(&now), betname[bet], total * price, ticket[bet], total,
 		    (float)ticket[bet] / total, money);
 
@@ -335,13 +335,13 @@ openticket(int bid)
 	while (fscanf(fp1, "%s %d %d\n", userid, &mybet, &i) != EOF) {
 	    if (bet == 98 && mybet >= 0 && mybet < count) {
 		if (fp)
-		    fprintf(fp, "%s 買了 %d 張 %s, 退回 %d 枚Ｐ幣\n"
+		    fprintf(fp, "%s 買了 %d 張 %s, 退回 %d 枚" MONEYNAME "幣\n"
 			    ,userid, i, betname[mybet], money * i);
 		snprintf(buf, sizeof(buf),
 			 "%s 賭場退錢! $ %d", bh->brdname, money * i);
 	    } else if (mybet == bet) {
 		if (fp)
-		    fprintf(fp, "恭喜 %s 買了%d 張 %s, 獲得 %d 枚Ｐ幣\n"
+		    fprintf(fp, "恭喜 %s 買了%d 張 %s, 獲得 %d 枚" MONEYNAME "幣\n"
 			    ,userid, i, betname[mybet], money * i);
 		snprintf(buf, sizeof(buf), "%s 中獎咧! $ %d", bh->brdname, money * i);
 	    } else
@@ -349,7 +349,7 @@ openticket(int bid)
 	    if ((uid = searchuser(userid, userid)) == 0)
 		continue;
 	    deumoney(uid, money * i);
-	    mail_id(userid, buf, "etc/ticket.win", "Ptt賭場");
+	    mail_id(userid, buf, "etc/ticket.win", BBSMNAME "賭場");
 	}
 	fclose(fp1);
     }
@@ -365,13 +365,13 @@ openticket(int bid)
 	snprintf(buf, sizeof(buf), "[公告] %s 賭盤取消", bh->brdname);
     post_file(bh->brdname, buf, outcome, "[賭神]");
     post_file("Record", buf + 7, outcome, "[馬路探子]");
-    post_file("Security", buf + 7, outcome, "[馬路探子]");
+    post_file(GLOBAL_SECURITY, buf + 7, outcome, "[馬路探子]");
 
     setbfile(buf, bh->brdname, FN_TICKET_RECORD);
     unlink(buf);
 
     setbfile(buf, bh->brdname, FN_TICKET_USER);
-    post_file("Security", bh->brdname, buf, "[下注紀錄]");
+    post_file(GLOBAL_SECURITY, bh->brdname, buf, "[下注紀錄]");
     unlink(buf);
 
     setbfile(buf, bh->brdname, FN_TICKET_LOCK);

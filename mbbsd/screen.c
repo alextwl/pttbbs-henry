@@ -1,5 +1,7 @@
-/* $Id: screen.c 3394 2006-07-30 11:29:43Z wens $ */
+/* $Id: screen.c 3884 2008-01-30 06:45:47Z piaip $ */
 #include "bbs.h"
+
+#if !defined(USE_PFTERM)
 
 #define o_clear()     output(clearbuf,clearbuflen)
 #define o_cleol()     output(cleolbuf,cleolbuflen)
@@ -11,6 +13,7 @@ static unsigned short cur_ln = 0, cur_col = 0;
 static unsigned char docls;
 static unsigned char standing = NA;
 static int      scrollcnt, tc_col, tc_line;
+static unsigned char _typeahead = 1;
 
 #define MODIFIED (1)		/* if line has been modifed, screen output */
 #define STANDOUT (2)		/* if this line has a standout region */
@@ -24,13 +27,66 @@ initscr(void)
     }
 }
 
+int 
+resizeterm(int w, int h)
+{
+    screenline_t   *new_picture;
+
+    /* make sure reasonable size */
+    h = MAX(24, MIN(100, h));
+    w = MAX(80, MIN(200, w));
+
+    if (h > t_lines && big_picture) {
+	new_picture = (screenline_t *) 
+		calloc(h, sizeof(screenline_t));
+	if (new_picture == NULL) {
+	    syslog(LOG_ERR, "calloc(): %m");
+	    return 0;
+	}
+	memcpy(new_picture, big_picture, t_lines * sizeof(screenline_t));
+	free(big_picture);
+	big_picture = new_picture;
+	return 1;
+    }
+    return 0;
+}
+
 void
 move(int y, int x)
 {
-    assert(y>=0);
-    assert(x>=0);
+    if (y < 0) y = 0;
+    if (y >= t_lines) y = t_lines -1;
+    if (x < 0) x = 0;
+    if (x >= ANSILINELEN) x = ANSILINELEN -1;
+    // assert(y>=0);
+    // assert(x>=0);
     cur_col = x;
     cur_ln = y;
+}
+
+void
+move_ansi(int y, int x)
+{
+    // take ANSI length in consideration
+    register screenline_t *slp;
+    if (y < 0) y = 0;
+    if (y >= t_lines) y = t_lines -1;
+    if (x < 0) x = 0;
+    if (x >= ANSILINELEN) x = ANSILINELEN -1;
+
+    cur_ln = y;
+    cur_col = x;
+
+    if (y >= scr_lns || x < 1)
+	return;
+
+    slp = &big_picture[y];
+    if (slp->len < 1)
+	return;
+
+    slp->data[slp->len] = 0;
+    x += (strlen((char*)slp->data) - strlen_noansi((char*)slp->data));
+    cur_col = x;
 }
 
 void
@@ -38,6 +94,32 @@ getyx(int *y, int *x)
 {
     *y = cur_ln;
     *x = cur_col;
+}
+
+void
+getyx_ansi(int *py, int *px)
+{
+    // take ANSI length in consideration
+    register screenline_t *slp;
+    int y = cur_ln,  x = cur_col;
+    char c = 0;
+
+    if (y < 0) y = 0;
+    if (y >= t_lines) y = t_lines -1;
+    if (x < 0) x = 0;
+    if (x >= ANSILINELEN) x = ANSILINELEN -1;
+
+    *py = y; *px = x;
+
+    if (y >= scr_lns || x < 1)
+	return;
+
+    slp = &big_picture[y];
+    if (slp->len < 1)
+	return;
+    c = slp->data[x];
+    *px += (strlen((char*)slp->data) - strlen_noansi((char*)slp->data));
+    slp->data[x] = c;
 }
 
 static inline
@@ -101,10 +183,11 @@ standoutput(const char *buf, int ds, int de, int sso, int eso)
 }
 
 void
-redoscr(void)
+redrawwin(void)
 {
     register screenline_t *bp;
-    register int    i, j, len;
+    register int    i, j;
+    int len;
 
     o_clear();
     for (tc_col = tc_line = i = 0, j = roll; i < scr_lns; i++, j++) {
@@ -113,6 +196,17 @@ redoscr(void)
 	bp = &big_picture[j];
 	if ((len = bp->len)) {
 	    rel_move(tc_col, tc_line, 0, i);
+
+#ifdef DBCSAWARE
+	    if (!(bp->mode & STANDOUT) &&
+		    (cuser.uflag & DBCS_NOINTRESC) &&
+		    DBCS_RemoveIntrEscape(bp->data, &len))
+	    {
+		// if anything changed, dirty whole line.
+		bp->len = len;
+	    }
+#endif // DBCSAWARE
+
 	    if (bp->mode & STANDOUT) {
 		standoutput((char *)bp->data, 0, len, bp->sso, bp->eso);
 	    }
@@ -138,47 +232,46 @@ redoscr(void)
     oflush();
 }
 
-void
-redoln(void)
+int	
+typeahead(int fd)
 {
-    screenline_t *slp = GetCurrentLine();
-    int len, mode;
-
-    len = slp->len;
-    rel_move(tc_col, tc_line, 0, cur_ln);
-    if (len)
-    {    
-	if ((mode = slp->mode) & STANDOUT)
-	    standoutput((char*)slp->data, 0, len, slp->sso, slp->eso);
-	else
-	    output((char*)slp->data, len);
-
-	slp->mode = mode & ~(MODIFIED);
-
-	slp->oldlen = tc_col = len;
+    switch(fd)
+    {
+	case TYPEAHEAD_NONE:
+	    _typeahead = 0;
+	    break;
+	case TYPEAHEAD_STDIN:
+	    _typeahead = 1;
+	    break;
+	default: // shall never reach here
+	    assert(NULL);
+	    break;
     }
-    else
-	clrtoeol();
-    rel_move(tc_col, tc_line, cur_col, cur_ln);
-    oflush();
+    return 0;
 }
 
 void
 refresh(void)
 {
+    if (num_in_buf() && _typeahead)
+	return;
+    doupdate();
+}
+
+void
+doupdate(void)
+{
     /* TODO remove unnecessary refresh() call, to save CPU time */
     register screenline_t *bp = big_picture;
-    register int    i, j, len;
-    if (num_in_buf())
-	return;
-
+    register int    i, j;
+    int len;
     if ((docls) || (abs(scrollcnt) >= (scr_lns - 3))) {
-	redoscr();
+	redrawwin();
 	return;
     }
     if (scrollcnt < 0) {
 	if (!scrollrevlen) {
-	    redoscr();
+	    redrawwin();
 	    return;
 	}
 	rel_move(tc_col, tc_line, 0, 0);
@@ -196,8 +289,43 @@ refresh(void)
 	    j = 0;
 	bp = &big_picture[j];
 	len = bp->len;
-	if (bp->mode & MODIFIED && bp->smod < len) {
+
+	if (bp->mode & MODIFIED && bp->smod < len) 
+	{
 	    bp->mode &= ~(MODIFIED);
+
+#ifdef DBCSAWARE
+	    if (!(bp->mode & STANDOUT) &&
+		(cuser.uflag & DBCS_NOINTRESC) &&
+		DBCS_RemoveIntrEscape(bp->data, &len))
+	    {
+		// if anything changed, dirty whole line.
+		bp->len = len;
+		bp->smod = 0; bp->emod = len;
+	    }
+#endif // DBCSAWARE
+
+#if 0
+	    // disabled now, bugs: 
+	    // (1) input number (goto) in bbs list (search_num)
+	    // (2) some empty lines becomes weird (eg, b_config)
+	    //
+	    // more effort to determine ANSI smod
+	    if (bp->smod > 0)
+	    {
+		int iesc;
+		for (iesc = bp->smod-1; iesc >= 0; iesc--)
+		{
+		    if (bp->data[iesc] == ESC_CHR)
+		    {
+			bp->smod = 0;// iesc;
+			bp->emod =len -1;
+			break;
+		    }
+		}
+	    }
+#endif
+	    
 	    if (bp->emod >= len)
 		bp->emod = len - 1;
 	    rel_move(tc_col, tc_line, bp->smod, i);
@@ -226,7 +354,6 @@ refresh(void)
 	    o_cleol();
 	}
 	bp->oldlen = len;
-
     }
 
     rel_move(tc_col, tc_line, cur_col, cur_ln);
@@ -256,8 +383,21 @@ clrtoeol(void)
     register int    ln;
 
     standing = NA;
+
     if (cur_col <= slp->sso)
 	slp->mode &= ~STANDOUT;
+
+    /*
+    if (cur_col == 0) // TODO and contains ANSI
+    {
+	// workaround poor ANSI issue
+	size_t sz = (slp->len > slp->oldlen) ? slp->len : slp->oldlen;
+	sz = (sz < ANSILINELEN) ? sz : ANSILINELEN;
+	memset(slp->data, ' ', sz);
+	slp->len = 0;
+	return;
+    }
+    */
 
     if (cur_col > slp->oldlen) {
 	for (ln = slp->len; ln <= cur_col; ln++)
@@ -270,11 +410,26 @@ clrtoeol(void)
     slp->len = cur_col;
 }
 
+
+void newwin	(int nlines, int ncols, int y, int x)
+{
+    int i=0, oy, ox;
+    getyx(&oy, &ox);
+
+    while (nlines-- > 0)
+    {
+	move_ansi(y++, x);
+	for (i = 0; i < ncols; i++)
+	    outc(' ');
+    }
+    move(oy, ox);
+}
+
 /**
  * 從目前的行數(scr_ln) clear 到第 line 行
  */
 void
-clrtoline(int line)
+clrtoln(int line)
 {
     register screenline_t *slp;
     register int    i, j;
@@ -295,7 +450,7 @@ clrtoline(int line)
 inline void
 clrtobot(void)
 {
-    clrtoline(scr_lns);
+    clrtoln(scr_lns);
 }
 
 void
@@ -303,6 +458,10 @@ outc(unsigned char c)
 {
     register screenline_t *slp = GetCurrentLine();
     register int    i;
+
+    // 0xFF is invalid for most cases (even DBCS), 
+    if (c == 0xFF || c == 0x00)
+	return;
 
     if (c == '\n' || c == '\r') {
 	if (standing) {
@@ -327,6 +486,7 @@ outc(unsigned char c)
 	slp->data[cur_col] = '\0';
 	slp->len = cur_col + 1;
     }
+
     if (slp->data[cur_col] != c) {
 	slp->data[cur_col] = c;
 	if (!(slp->mode & MODIFIED))
@@ -359,96 +519,55 @@ outc(unsigned char c)
 void
 outs(const char *str)
 {
+    if (!str)
+	return;
     while (*str) {
 	outc(*str++);
     }
 }
 
 void
-outs_n(const char *str, int n)
+outns(const char *str, int n)
 {
-    while (*str && n--) {
+    if (!str)
+	return;
+    while (*str && n-- > 0) {
 	outc(*str++);
     }
 }
-// 
-void 
-outslr(const char *left, int leftlen, const char *right, int rightlen)
-{
-    if (left == NULL)
-	left = "";
-    if (right == NULL)
-	right = "";
-    if(*left && leftlen < 0)
-	leftlen = strlen(left);
-    if(*right && rightlen < 0)
-	rightlen = strlen(right);
-    // now calculate padding
-    rightlen = t_columns - leftlen - rightlen;
-    outs(left);
-
-    // ignore right msg if we need to.
-    if(rightlen >= 0)
-    {
-	while(--rightlen > 0)
-	    outc(' ');
-	outs(right);
-    } else {
-	rightlen = t_columns - leftlen;
-	while(--rightlen > 0)
-	    outc(' ');
-    }
-}
-
-
-/* Jaky */
-void
-out_lines(const char *str, int line)
-{
-    while (*str && line) {
-	outc(*str);
-	if (*str == '\n')
-	    line--;
-	str++;
-    }
-}
 
 void
-outmsg(const char *msg)
+outstr(const char *str)
 {
-    move(b_lines - msg_occupied, 0);
-    clrtoeol();
-    outs(msg);
-}
-
-void
-outmsglr(const char *msg, int llen, const char *rmsg, int rlen)
-{
-    move(b_lines - msg_occupied, 0);
-    clrtoeol();
-    outslr(msg, llen, rmsg, rlen);
-    outs(ANSI_RESET ANSI_CLRTOEND);
-}
-
-void
-prints(const char *fmt,...)
-{
-    va_list         args;
-    char            buff[1024];
-
-    va_start(args, fmt);
-    vsnprintf(buff, sizeof(buff), fmt, args);
-    va_end(args);
-    outs(buff);
-}
-
-void
-mouts(int y, int x, const char *str)
-{
-    move(y, x);
-    clrtoeol();
+    // XXX TODO cannot prepare DBCS-ready environment?
+    
     outs(str);
 }
+
+void
+addch(unsigned char c)
+{
+    outc(c);
+}
+
+void
+addstr(const char *s)
+{
+    outs(s);
+}
+
+void
+addnstr(const char *s, int n)
+{
+    outns(s, n);
+}
+
+void
+addstring(const char *s)
+{
+    outs(s);
+}
+
 
 void
 scroll(void)
@@ -521,6 +640,123 @@ standend(void)
     }
 }
 
+// readback
+int		
+instr(char *str)
+{
+    register screenline_t *slp = GetCurrentLine();
+    *str = 0;
+    if (!slp)
+	return 0;
+    slp->data[slp->len] = 0;
+    strip_ansi(str, (char*)slp->data, STRIP_ALL);
+    return strlen(str);
+}
+
+int		
+innstr(char *str, int n)
+{
+    register screenline_t *slp = GetCurrentLine();
+    char buf[ANSILINELEN];
+    *str = 0;
+    if (!slp)
+	return 0;
+    slp->data[slp->len] = 0;
+    strip_ansi(buf, (char*)slp->data, STRIP_ALL);
+    buf[ANSILINELEN] = 0;
+    strlcpy(str, buf, n);
+    return strlen(str);
+}
+
+int	
+inansistr(char *str, int n)
+{
+    register screenline_t *slp = GetCurrentLine();
+    *str = 0;
+    if (!slp)
+	return 0;
+    slp->data[slp->len] = 0;
+    strlcpy(str, (char*)slp->data, n);
+    return strlen(str);
+}
+
+// level: 
+// -1 - bold out
+//  0 - dark text
+//  1 - text
+//  2 - no highlight (not implemented)
+void
+grayout(int y, int end, int level)
+{
+    register screenline_t *slp = NULL;
+    char buf[ANSILINELEN];
+    int i = 0;
+
+    if (y < 0) y = 0;
+    if (end > b_lines) end = b_lines;
+
+    // TODO change to y <= end someday
+    // loop lines
+    for (; y <= end; y ++)
+    {
+	// modify by scroll
+	i = y + roll;
+	if (i < 0)
+	    i += scr_lns;
+	else if (i >= scr_lns)
+	    i %= scr_lns;
+
+	slp = &big_picture[i];
+
+	if (slp->len < 1)
+	    continue;
+
+	if (slp->len >= ANSILINELEN)
+	    slp->len = ANSILINELEN -1;
+
+	// tweak slp
+	slp->data[slp->len] = 0;
+	slp->mode &= ~STANDOUT;
+	slp->mode |= MODIFIED;
+	slp->oldlen = 0;
+	slp->sso = slp->eso = 0;
+	slp->smod = 0;
+
+	// make slp->data a pure string
+	for (i=0; i<slp->len; i++)
+	{
+	    if (!slp->data[i])
+		slp->data[i] = ' ';
+	}
+
+	slp->len = strip_ansi(buf, (char*)slp->data, STRIP_ALL);
+	buf[slp->len] = 0;
+
+	switch(level)
+	{
+	    case GRAYOUT_DARK: // dark text
+	    case GRAYOUT_BOLD:// bold text
+		// basically, in current system slp->data will
+		// not exceed t_columns. buffer overflow is impossible.
+		// but to make it more robust, let's quick check here.
+		// of course, t_columns should always be far smaller.
+		if (strlen((char*)slp->data) > t_columns)
+		    slp->data[t_columns] = 0;
+		strcpy((char*)slp->data, 
+			level < 0 ? ANSI_COLOR(1) : ANSI_COLOR(1;30;40));
+		strcat((char*)slp->data, buf);
+		strcat((char*)slp->data, ANSI_RESET ANSI_CLRTOEND);
+		slp->len = strlen((char*)slp->data);
+		break;
+
+	    case GRAYOUT_NORM: // Plain text
+		memcpy(slp->data, buf, slp->len + 1);
+		break;
+	}
+	slp->emod = slp->len -1;
+    }
+}
+
 static size_t screen_backupsize(int len, const screenline_t *bp)
 {
     int i;
@@ -530,7 +766,7 @@ static size_t screen_backupsize(int len, const screenline_t *bp)
     return sum;
 }
 
-void screen_backup(screen_backup_t *old)
+void scr_dump(screen_backup_t *old)
 {
     int i;
     size_t offset = 0;
@@ -554,7 +790,7 @@ void screen_backup(screen_backup_t *old)
     }
 }
 
-void screen_restore(const screen_backup_t *old)
+void scr_restore(const screen_backup_t *old)
 {
     int i;
     size_t offset=0;
@@ -574,8 +810,10 @@ void screen_restore(const screen_backup_t *old)
 
     free(old->raw_memory);
     move(old->y, old->x);
-    redoscr();
+    redrawwin();
 }
+
+#endif //  !defined(USE_PFTERM)
 
 /* vim:sw=4
  */

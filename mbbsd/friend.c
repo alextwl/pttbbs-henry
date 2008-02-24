@@ -1,4 +1,4 @@
-/* $Id: friend.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: friend.c 3926 2008-02-18 17:14:30Z piaip $ */
 #include "bbs.h"
 
 /* ------------------------------------- */
@@ -124,8 +124,13 @@ friend_append(int type, int count)
 {
     char            fpath[80], i, j, buf[80], sfile[80];
     FILE           *fp, *fp1;
+    char	    myboard[IDLEN+1] = "";
+    int		    boardChanged = 0;
 
     setfriendfile(fpath, type);
+
+    if (currboard && *currboard) 
+	strcpy(myboard, currboard);
 
     do {
 	move(2, 0);
@@ -143,17 +148,28 @@ friend_append(int type, int count)
 		    prints("  (%d) %s 板的 %s\n", j, currboard,
 			     friend_list[(int)i]);
 		}
-	outs("  (S) 選擇其他看板的特別名單");
+	if (HasUserPerm(PERM_SYSOP))
+	    outs("  (S) 選擇其他看板的特別名單");
+
 	getdata(11, 0, "請選擇 或 直接[Enter] 放棄:", buf, 3, LCECHO);
 	if (!buf[0])
 	    return;
-	if (buf[0] == 's')
+
+	if (HasUserPerm(PERM_SYSOP) && buf[0] == 's')
+	{
 	    Select();
+	    boardChanged = 1;
+	}
+
 	j = buf[0] - '1';
 	if (j >= type)
 	    j++;
 	if (!(HasUserPerm(PERM_SYSOP) || currmode & MODE_BOARD) && j >= 5)
-	    return;
+	{
+	    if (boardChanged)
+		enter_board(myboard);
+	   return;
+	}
     } while (buf[0] < '1' || buf[0] > '9');
 
     if (j == FRIEND_SPECIAL)
@@ -177,14 +193,17 @@ friend_append(int type, int count)
 	}
 	fclose(fp);
     }
+    if (boardChanged)
+	enter_board(myboard);
 }
 
 static int
 delete_friend_from_file(const char *file, const char *string, int  case_sensitive)
 {
-    FILE           *fp, *nfp = NULL;
-    char            fnew[80];
-    char            genbuf[STRLEN + 1];
+    FILE *fp = NULL, *nfp = NULL;
+    char fnew[PATHLEN];
+    char genbuf[STRLEN + 1];
+    int ret = 0;
 
     sprintf(fnew, "%s.%3.3X", file, (unsigned int)(random() & 0xFFF));
     if ((fp = fopen(file, "r")) && (nfp = fopen(fnew, "w"))) {
@@ -195,6 +214,8 @@ delete_friend_from_file(const char *file, const char *string, int  case_sensitiv
 		if (((case_sensitive && strcmp(buf, string)) ||
 		    (!case_sensitive && strcasecmp(buf, string))))
     		    fputs(genbuf, nfp);
+		else
+		    ret = 1;
 	    }
 	Rename(fnew, file);
     }
@@ -202,13 +223,13 @@ delete_friend_from_file(const char *file, const char *string, int  case_sensitiv
 	fclose(fp);
     if(nfp)
 	fclose(nfp);
-    return 0;
+    return ret;
 }
 
 void
 friend_delete(const char *uident, int type)
 {
-    char            fn[80];
+    char            fn[STRLEN];
     setfriendfile(fn, type);
     delete_friend_from_file(fn, uident, 0);
 }
@@ -216,23 +237,15 @@ friend_delete(const char *uident, int type)
 static void
 delete_user_friend(const char *uident, const char *thefriend, int type)
 {
-    char fn[80];
-#if 0
-    if (type == FRIEND_ALOHA) {
-#endif
-	sethomefile(fn, uident, "aloha");
-	delete_friend_from_file(fn, thefriend, 0);
-#if 0
-    }
-    else {
-    }
-#endif
+    char fn[PATHLEN];
+    sethomefile(fn, uident, "aloha");
+    delete_friend_from_file(fn, thefriend, 0);
 }
 
 void
 friend_delete_all(const char *uident, int type)
 {
-    char buf[80], line[80];
+    char buf[PATHLEN], line[PATHLEN];
     FILE *fp;
 
     sethomefile(buf, uident, friend_file[type]);
@@ -301,7 +314,7 @@ inline void friend_load_real(int tosort, int maxf,
 	fclose(fp);
 
 	if( tosort )
-	    qsort(tarray, nFriends, sizeof(int), qsort_intcompar);
+	    qsort(tarray, nFriends, sizeof(int), cmp_int);
 	if( destn )
 	    *destn = nFriends;
 	tarray[nFriends] = 0;
@@ -505,6 +518,55 @@ int
 t_reject(void)
 {
     friend_edit(FRIEND_REJECT);
+    return 0;
+}
+
+int
+t_fix_aloha()
+{
+    char xid[IDLEN+1] = "";
+    char fn[PATHLEN] = "";
+
+    clear();
+    stand_title("修正上站通知");
+
+    outs("這是用來修正某些使用者遇到錯誤的上站通知的問題。\n"
+	 ANSI_COLOR(1) "如果你沒遇到此類問題可直接離開。" ANSI_RESET "\n\n"
+	 "▼如果你遇到有人沒在你的上站通知名單內但又會丟上站通知水球給你，\n"
+	 "  請輸入他的 ID。\n");
+    
+    move(7, 0);
+    usercomplete("有誰不在你的通知名單內但又會送上站通知水球給您呢？ ", xid);
+
+    if (!xid[0])
+    {
+	vmsg("修正結束。");
+	return 0;
+    }
+
+    // check by xid
+    move(9, 0);
+    outs("檢查中...\n");
+
+    // xid in my override list?
+    setuserfile(fn, "alohaed");
+    if (belong(fn, xid))
+    {
+	prints(ANSI_COLOR(1;32) "[%s] 確實在你的上站通知名單內。"
+		"請編輯 [上站通知名單]。" ANSI_RESET "\n", xid);
+	vmsg("不需修正。");
+	return 0;
+    }
+
+    sethomefile(fn, xid, "aloha");
+    if (delete_friend_from_file(fn, cuser.userid, 0))
+    {
+	outs(ANSI_COLOR(1;33) "已找到錯誤並修復完成。" ANSI_RESET "\n");
+    } else {
+	outs(ANSI_COLOR(1;31) "找不到錯誤... 打錯 ID 了？" ANSI_RESET "\n");
+    }
+
+    vmsg("若上站通知錯誤仍持續發生請通知站方處理。");
     return 0;
 }
 

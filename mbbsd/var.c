@@ -1,4 +1,4 @@
-/* $Id: var.c 3542 2007-06-12 14:59:46Z kcwu $ */
+/* $Id: var.c 3868 2008-01-25 19:17:09Z kcwu $ */
 #define INCLUDE_VAR_H
 #include "bbs.h"
 
@@ -142,12 +142,12 @@ char           * const loginview_file[NUMVIEWFILE][2] = {
     {"etc/yesterday", "昨日上站人次"},
     {"etc/history", "歷史上的今天"},
     {"etc/topboardman", "精華區排行榜"},
-    {"etc/topboard.tmp", "看板人氣排行榜"}
+    {"etc/topboard.tmp", "看板人氣排行榜"},
+    {NULL, NULL}
 };
 
 /* message */
 char           * const msg_seperator = MSG_SEPERATOR;
-char           * const msg_shortulist = MSG_SHORTULIST;
 
 char           * const msg_cancel = MSG_CANCEL;
 char           * const msg_usr_left = MSG_USR_LEFT;
@@ -182,10 +182,9 @@ char           * const str_post1 = STR_POST1;
 char           * const str_post2 = STR_POST2;
 char           * const BBSName = BBSNAME;
 
-/* #define MAX_MODES 78 */
 /* MAX_MODES is defined in common.h */
 
-char           * const ModeTypeTable[MAX_MODES] = {
+char           * const ModeTypeTable[] = {
     "發呆",			/* IDLE */
     "主選單",			/* MMENU */
     "系統維護",			/* ADMIN */
@@ -196,7 +195,7 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "分類看板",			/* CLASS */
     "Play選單",			/* PMENU */
     "編特別名單",		/* NMENU */
-    "霞蔚量販店",		/* PSALE */
+    BBSMNAME2 "量販店",		/* PSALE */
     "發表文章",			/* POSTING */
     "看板列表",			/* READBRD */
     "閱\讀文章",		/* READING */
@@ -250,7 +249,7 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "玩彩券",			/* TICKET */
     "猜數字",			/* GUESSNUM */
     "遊樂場",			/* AMUSE */
-    "黑白棋",			/* OTHELLO */
+    "單人黑白棋",		/* OTHELLO */
     "玩骰子",			/* DICE */
     "發票對獎",			/* VICE */
     "逼逼摳ing",		/* BBCALL */
@@ -264,14 +263,19 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "下象棋",			/* CHC */
     "下暗棋",			/* DARK */
     "NBA大猜測",		/* TMPJACK */
-    "霞蔚查榜系統",		/* JCEE */
+    BBSMNAME2 "查榜系統",		/* JCEE */
     "重編文章",			/* REEDIT */
     "部落格",                   /* BLOGGING */
     "看棋",			/* CHESSWATCHING */
     "下圍棋",			/* UMODE_GO */
     "[系統錯誤]",		/* DEBUGSLEEPING */
     "連六棋",			/* UMODE_CONN6 */
-    "", /* for future usage */
+    "黑白棋",			/* REVERSI */
+    "BBS-Lua",			/* UMODE_BBSLUA */
+    "播放動畫",			/* UMODE_ASCIIMOVIE */
+    "",
+    "",
+    "", // 90
     "",
     "",
     "",
@@ -281,6 +285,7 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "",
     "",
     "",
+    "", // 100
     "",
     "",
     "",
@@ -290,6 +295,7 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "",
     "",
     "",
+    "", // 110
     "",
     "",
     "",
@@ -299,12 +305,7 @@ char           * const ModeTypeTable[MAX_MODES] = {
     "",
     "",
     "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
+    "", // 120
     "",
     "",
     "",
@@ -364,7 +365,7 @@ boardheader_t  *bcache;
 userinfo_t     *currutmp;
 
 /* read.c */
-int             TagNum;			/* tag's number */
+int             TagNum = 0;		/* tag's number */
 int		TagBoard = -1;		/* TagBoard = 0 : user's mailbox */
                                         /* TagBoard > 0 : bid where last taged */
 char            currdirect[64];
@@ -598,33 +599,6 @@ const unsigned char  * const adv_gomoku /* [978] */ = (unsigned char*)
 
 /* name.c */
 word_t         *toplev;
-
-#ifndef _BBS_UTIL_C_
-/* menu.c */
-const commands_t      cmdlist[] = {
-    {admin, PERM_SYSOP|PERM_ACCOUNTS|PERM_BOARD|PERM_VIEWSYSOP|PERM_ACCTREG|PERM_POLICE_MAN, 
-				"00Admin       【 系統維護區 】"},
-    {Announce,	0,		"AAnnounce     【 精華公佈欄 】"},
-#ifdef DEBUG
-    {Favorite,	0,		"FFavorite     【 我的最不愛 】"},
-#else
-    {Favorite,	0,		"FFavorite     【 我 的 最愛 】"},
-#endif
-    {Class,	0,		"CClass        【 分組討論區 】"},
-    {Mail, 	PERM_BASIC,	"MMail         【 私人信件區 】"},
-    {Talk, 	0,		"TTalk         【 休閒聊天區 】"},
-    {User, 	0,		"UUser         【 個人設定區 】"},
-    {Xyz, 	0,		"XXyz          【 系統工具區 】"},
-    {Play_Play, PERM_BASIC, 	"PPlay         【 娛樂與休閒 】"},
-    {Name_Menu, PERM_LOGINOK,	"NNamelist     【 編特別名單 】"},
-#ifdef DEBUG
-    {Goodbye, 	0, 		"GGoodbye      再見再見再見再見"},
-#else
-    {Goodbye, 	0, 		"GGoodbye         離開，再見… "},
-#endif
-    {NULL, 	0, 		NULL}
-};
-#endif
 
 /* friend.c */
 /* Ptt 各種特別名單的檔名 */

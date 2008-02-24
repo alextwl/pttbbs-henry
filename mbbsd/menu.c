@@ -1,18 +1,20 @@
-/* $Id: menu.c 3510 2007-05-02 05:24:37Z victor $ */
+/* $Id: menu.c 3906 2008-02-09 04:33:28Z piaip $ */
 #include "bbs.h"
 
-#define CheckMenuPerm(x) ( (x) ? HasUserPerm(x) : 1)
+#define CheckMenuPerm(x) \
+    ( (x == MENU_UNREGONLY)? \
+      ((cuser.userlevel == 0 ||HasUserPerm(PERM_LOGINOK))?0:1) :\
+	((x) ? HasUserPerm(x) : 1))
 
 /* help & menu processring */
 static int      refscreen = NA;
 extern char    *boardprefix;
 extern struct utmpfile_t *utmpshm;
-extern char     board_hidden_status;
 
 static const char *title_tail_msgs[] = {
     "看板",
-    "文摘",
     "系列",
+    "文摘",
 };
 static const char *title_tail_attrs[] = {
     ANSI_COLOR(37),
@@ -33,44 +35,25 @@ showtitle(const char *title, const char *mid)
      * - display mid message, cannot truncate
      * - display tail (board info), if possible.
      */
-    int llen = -1, rlen = -1, mlen = -1, mpos = 0;
+    int llen, rlen, mlen, mpos = 0;
     int pos = 0;
-    int tail_type = TITLE_TAIL_BOARD;
+    int tail_type;
     const char *mid_attr = ANSI_COLOR(33);
-
-    static char     lastboard[16] = {0};
+    int is_currboard_special = 0;
     char buf[64];
 
-    if (currmode & MODE_SELECT)
-       tail_type = TITLE_TAIL_SELECT;
-    else if (currmode & MODE_DIGEST)
-	tail_type = TITLE_TAIL_DIGEST;
 
-    /* check if board was changed. */
-    if (strcmp(currboard, lastboard) != 0 && currboard[0]) {
-	int bid = getbnum(currboard);
-	if(bid > 0)
-	{
-	    assert(0<=bid-1 && bid-1<MAX_BOARD);
-	    board_hidden_status = ((getbcache(bid)->brdattr & BRD_HIDE) &&
-				   (getbcache(bid)->brdattr & BRD_POSTMASK));
-	    strlcpy(lastboard, currboard, sizeof(lastboard));
-	}
-    }
-
-    /* next, determine if title was overrided. */
+    /* prepare mid */
 #ifdef DEBUG
     {
 	sprintf(buf, "  current pid: %6d  ", getpid());
 	mid = buf; 
 	mid_attr = ANSI_COLOR(41;5);
-	mlen = strlen(mid);
     }
 #else
     if (ISNEWMAIL(currutmp)) {
 	mid = "   郵差來按鈴囉   ";
 	mid_attr = ANSI_COLOR(41;5);
-	mlen = strlen(mid);
     } else if ( HasUserPerm(PERM_ACCTREG) ) {
 	int nreg = dashs((char *)fn_register) / 163;
 	if(nreg > 100)
@@ -78,14 +61,30 @@ showtitle(const char *title, const char *mid)
 	    sprintf(buf, "  有 %03d 未審核  ", nreg);
 	    mid_attr = ANSI_COLOR(41;5);
 	    mid = buf;
-	    mlen = strlen(mid);
 	}
     }
 #endif
+
+    /* prepare tail */
+    if (currmode & MODE_SELECT)
+	tail_type = TITLE_TAIL_SELECT;
+    else if (currmode & MODE_DIGEST)
+	tail_type = TITLE_TAIL_DIGEST;
+    else
+	tail_type = TITLE_TAIL_BOARD;
+
+    if(currbid > 0)
+    {
+	assert(0<=currbid-1 && currbid-1<MAX_BOARD);
+	is_currboard_special = (
+		(getbcache(currbid)->brdattr & BRD_HIDE) &&
+		(getbcache(currbid)->brdattr & BRD_POSTMASK));
+    }
+
     /* now, calculate real positioning info */
-    if(llen < 0) llen = strlen(title);
-    if(mlen < 0) mlen = strlen(mid);
-    mpos = (t_columns - mlen)/2;
+    llen = strlen(title);
+    mlen = strlen(mid);
+    mpos = (t_columns -1 - mlen)/2;
 
     /* first, print left. */
     clear();
@@ -93,30 +92,34 @@ showtitle(const char *title, const char *mid)
     outs(title);
     outs("】");
     pos = llen + 4;
-    /* prepare for mid */
-    while(pos < mpos)
-	outc(' '), pos++;
+
+    /* print mid */
+    while(pos++ < mpos)
+	outc(' ');
     outs(mid_attr);
-    outs(mid), pos+=mlen;
+    outs(mid);
+    pos += mlen;
     outs(TITLE_COLOR);
+
     /* try to locate right */
     rlen = strlen(currboard) + 4 + 4;
-    if(currboard[0] && pos+rlen <= t_columns)
+    if(currboard[0] && pos+rlen < t_columns)
     {
 	// print right stuff
-	while(++pos < t_columns-rlen)
+	while(pos++ < t_columns-rlen)
 	    outc(' ');
 	outs(title_tail_attrs[tail_type]);
 	outs(title_tail_msgs[tail_type]);
 	outs("《");
-	if (board_hidden_status)
+
+	if (is_currboard_special)
 	    outs(ANSI_COLOR(32));
 	outs(currboard);
 	outs(title_tail_attrs[tail_type]);
 	outs("》" ANSI_RESET "\n");
     } else {
 	// just pad it.
-	while(++pos < t_columns)
+	while(pos++ < t_columns)
 	    outc(' ');
 	outs(ANSI_RESET "\n");
     }
@@ -141,7 +144,7 @@ show_status(void)
     snprintf(mystatus, sizeof(mystatus),
 	     ANSI_COLOR(34;46) "[%d/%d 星期%c%c %d:%02d]" 
 	     ANSI_COLOR(1;33;45) "%-14s"
-	     ANSI_COLOR(30;47) " 目前城裡有" ANSI_COLOR(31) 
+	     ANSI_COLOR(30;47) " 線上" ANSI_COLOR(31) 
 	     "%d" ANSI_COLOR(30) "人, 我是" ANSI_COLOR(31) "%s"
 	     ANSI_COLOR(30) ,
 	     ptime->tm_mon + 1, ptime->tm_mday, myweek[i], myweek[i + 1],
@@ -149,7 +152,7 @@ show_status(void)
 	     "生日要請客唷" : SHM->today_is,
 	     SHM->UTMPnumber, cuser.userid);
     outmsg(mystatus);
-    i = strlen(mystatus) - (3*7+25);
+    i = strlen(mystatus) - (3*7+25); // 3 = ANSI_COLOR, 25 = stuff inside
     sprintf(mystatus, "[扣機]" ANSI_COLOR(31) "%s ",
 	msgs[currutmp->pager]);
     outslr("", i, mystatus, strlen(msgs[currutmp->pager]) + 7);
@@ -157,7 +160,7 @@ show_status(void)
 }
 
 /*
- * current callee of movie:
+ * current caller of movie:
  *   board.c: movie(0);    // called when IN_CLASSROOT()
  *                         // with currstat = CLASS -> don't show movies
  *   xyz.c:   movie(999999);  // logout
@@ -188,13 +191,19 @@ movie(int cmdmode)
 #undef N_SYSMOVIE
 
 	move(1, 0);
-	clrtoline(1 + FILMROW);	/* 清掉上次的 */
+	clrtoln(1 + FILMROW);	/* 清掉上次的 */
 	out_lines(SHM->notes[i], 11);	/* 只印11行就好 */
 	outs(reset_color);
     }
     show_status();
     refresh();
 }
+
+typedef struct {
+    int     (*cmdfunc)();
+    int     level;
+    char    *desc;                   /* next/key/description */
+} commands_t;
 
 static int
 show_menu(int moviemode, const commands_t * p)
@@ -218,7 +227,7 @@ show_menu(int moviemode, const commands_t * p)
 
 enum {
     M_ADMIN = 0, M_AMUSE, M_CHC, M_JCEE, M_MAIL, M_MMENU, M_NMENU,
-    M_PMENU, M_PSALE, M_SREG, M_TMENU, M_UMENU, M_XMENU,
+    M_PMENU, M_PSALE, M_SREG, M_TMENU, M_UMENU, M_XMENU, M_XMAX
 };
 
 static const int mode_map[] = {
@@ -233,13 +242,9 @@ domenu(int cmdmode, const char *cmdtitle, int cmd, const commands_t cmdtable[])
     int             n, pos, total, i;
     int             err;
 
-    static char cursor_position[sizeof(mode_map) / sizeof(mode_map[0])] = { 0 };
-
     moviemode = cmdmode;
+    assert(cmdmode < M_XMAX);
     cmdmode = mode_map[cmdmode];
-
-    if (cursor_position[cmdmode])
-	cmd = cursor_position[cmdmode];
 
     setutmpmode(cmdmode);
 
@@ -328,7 +333,6 @@ domenu(int cmdmode, const char *cmdtitle, int cmd, const commands_t cmdtable[])
 		    cmd = cmdtable[lastcmdptr].desc[0];
 		else
 		    cmd = cmdtable[lastcmdptr].desc[1];
-		cursor_position[cmdmode] = cmdtable[lastcmdptr].desc[0];
 	    }
 	    if (cmd >= 'a' && cmd <= 'z')
 		cmd &= ~0x20;
@@ -379,7 +383,7 @@ static const commands_t adminlist[] = {
     {search_user_bypwd, PERM_ACCOUNTS|PERM_POLICE_MAN,
                                       "SSearch User   特殊搜尋使用者"},
     {search_user_bybakpwd,PERM_ACCOUNTS,"OOld User data 查閱\備份使用者資料"},
-    {m_board, PERM_SYSOP,             "BBoard         設定看板"},
+    {m_board, PERM_SYSOP|PERM_BOARD,  "BBoard         設定看板"},
     {m_register, PERM_ACCOUNTS|PERM_ACCTREG,
                                       "RRegister      審核註冊表單"},
     {cat_register, PERM_SYSOP,        "CCatregister   無法審核時用的"},
@@ -388,12 +392,6 @@ static const commands_t adminlist[] = {
     {give_money, PERM_SYSOP|PERM_VIEWSYSOP,
                                       "GGivemoney     紅包雞"},
     {m_loginmsg, PERM_SYSOP,          "MMessage Login 進站水球"},
-#ifdef  HAVE_MAILCLEAN
-    {m_mclean, PERM_SYSOP,            "MMail Clean    清理使用者個人信箱"},
-#endif
-#ifdef  HAVE_REPORT
-    {m_trace, PERM_SYSOP,             "TTrace         設定是否記錄除錯資訊"},
-#endif
     {NULL, 0, NULL}
 };
 
@@ -402,9 +400,10 @@ static const commands_t maillist[] = {
     {m_new, PERM_READMAIL,      "RNew           閱\讀新進郵件"},
     {m_read, PERM_READMAIL,     "RRead          多功\能讀信選單"},
     {m_send, PERM_LOGINOK,      "RSend          站內寄信"},
-    {x_love, PERM_LOGINOK,      "PPaper         " ANSI_COLOR(1;32) "情書產生器" ANSI_RESET " "},
+    {x_love, PERM_LOGINOK,      "PPaper         情書產生器"},
     {mail_list, PERM_LOGINOK,   "RMail List     群組寄信"},
-    {setforward, PERM_LOGINOK, "FForward       " ANSI_COLOR(32) "設定信箱自動轉寄" ANSI_RESET},
+    {setforward, PERM_LOGINOK,  "FForward       " ANSI_COLOR(1;32) 
+				"設定信箱自動轉寄" ANSI_RESET},
     {m_sysop, 0,                "YYes, sir!     諂媚站長"},
     {m_internet, PERM_INTERNET, "RInternet      寄信到 Internet"},
     {mail_mbox, PERM_INTERNET,  "RZip UserHome  把所有私人資料打包回去"},
@@ -420,8 +419,11 @@ static const commands_t talklist[] = {
     {t_idle, 0,             "IIdle          發呆"},
     {t_query, 0,            "QQuery         查詢網友"},
     {t_qchicken, 0,         "WWatch Pet     查詢寵物"},
-    {t_talk, PERM_PAGE,     "TTalk          找人聊聊"},
-    {t_chat, PERM_CHAT,     "CChat          找家茶坊喫茶去"},
+    // PERM_PAGE - 水球都要 PERM_LOGIN 了
+    // 沒道理可以 talk 不能水球。
+    {t_talk, PERM_LOGINOK,  "TTalk          找人聊聊"},
+    // PERM_CHAT 非 login 也有，會有人用此吵別人。
+    {t_chat, PERM_LOGINOK,  "CChat          找家茶坊喫茶去"},
 #ifdef PLAY_ANGEL
     {t_changeangel, PERM_LOGINOK, "UAChange Angel 更換小天使"},
     {t_angelmsg, PERM_ANGEL, "LLeave message 留言給小主人"},
@@ -445,9 +447,7 @@ static const commands_t namelist[] = {
     {t_override, PERM_LOGINOK,"OOverRide      好友名單"},
     {t_reject, PERM_LOGINOK,  "BBlack         壞人名單"},
     {t_aloha,PERM_LOGINOK,    "AALOHA         上站通知名單"},
-#ifdef POSTNOTIFY
-    {t_post,PERM_LOGINOK,     "NNewPost       新文章通知名單"},
-#endif
+    {t_fix_aloha,PERM_LOGINOK,"XXFixALOHA     修正上站通知"},
     {t_special,PERM_LOGINOK,  "SSpecial       其他特別名單"},
 #ifdef IMPORTWD
     {t_import_old_pal, PERM_LOGINOK, "IImport        匯入舊名單"},
@@ -462,16 +462,13 @@ int u_customize()
     return 0;
 }
 
+int u_fixgoodpost(void); // assess.c
 /* User menu */
 static const commands_t userlist[] = {
+    {u_customize, PERM_BASIC,       "UUCustomize    個人化設定"},
     {u_info, PERM_LOGINOK,    	    "IInfo          設定個人資料與密碼"},
-    {u_customize, PERM_LOGINOK,     "IUCustomize    個人化設定"},
     {calendar, PERM_LOGINOK,        "CCalendar      個人行事曆"},
-    {u_editcalendar, PERM_LOGINOK,  "CDEditCalendar 編輯個人行事曆"},
-    {u_loginview, PERM_LOGINOK,     "LLogin View    選擇進站畫面"},
-#ifdef  HAVE_SUICIDE
-    {u_kill, PERM_BASIC,            "IKill          自殺！！"},
-#endif
+    {u_loginview, PERM_BASIC,       "LLogin View    選擇進站畫面"},
     {u_editplan, PERM_LOGINOK,      "QQueryEdit     編輯名片檔"},
     {u_editsig, PERM_LOGINOK,       "SSignature     編輯簽名檔"},
 #if HAVE_FREECLOAK
@@ -479,8 +476,11 @@ static const commands_t userlist[] = {
 #else
     {u_cloak, PERM_CLOAK,           "KKCloak        隱身術"},
 #endif
-    {u_register, PERM_BASIC,        "RRegister      填寫《註冊申請單》"},
+    {u_register, MENU_UNREGONLY,    "RRegister      填寫《註冊申請單》"},
+#ifdef ASSESS
     {u_cancelbadpost, PERM_LOGINOK, "BBye BadPost   申請刪除劣文"},
+    {u_fixgoodpost, PERM_LOGINOK,   "FFix GoodPost  修復優文"},
+#endif // ASSESS
     {u_list, PERM_SYSOP,            "XUsers         列出註冊名單"},
 #ifdef MERGEBBS
 //    {m_sob, PERM_LOGUSER|PERM_SYSOP,             "SSOB Import    沙灘變身術"},
@@ -554,13 +554,37 @@ static const commands_t moneylist[] = {
     {NULL, 0, NULL}
 };
 
+static const commands_t      cmdlist[] = {
+    {admin, PERM_SYSOP|PERM_ACCOUNTS|PERM_BOARD|PERM_VIEWSYSOP|PERM_ACCTREG|PERM_POLICE_MAN, 
+				"00Admin       【 系統維護區 】"},
+    {Announce,	0,		"AAnnounce     【 精華公佈欄 】"},
+#ifdef DEBUG
+    {Favorite,	0,		"FFavorite     【 我的最不愛 】"},
+#else
+    {Favorite,	0,		"FFavorite     【 我 的 最愛 】"},
+#endif
+    {Class,	0,		"CClass        【 分組討論區 】"},
+    {Mail, 	PERM_BASIC,	"MMail         【 私人信件區 】"},
+    {Talk, 	0,		"TTalk         【 休閒聊天區 】"},
+    {User, 	PERM_BASIC,	"UUser         【 個人設定區 】"},
+    {Xyz, 	0,		"XXyz          【 系統工具區 】"},
+    {Play_Play, PERM_LOGINOK, 	"PPlay         【 娛樂與休閒 】"},
+    {Name_Menu, PERM_LOGINOK,	"NNamelist     【 編特別名單 】"},
+#ifdef DEBUG
+    {Goodbye, 	0, 		"GGoodbye      再見再見再見再見"},
+#else
+    {Goodbye, 	0, 		"GGoodbye         離開，再見… "},
+#endif
+    {NULL, 	0, 		NULL}
+};
+
 int main_menu(void) {
     domenu(M_MMENU, "主功\能表", (ISNEWMAIL(currutmp) ? 'M' : 'C'), cmdlist);
     return 0;
 }
 
 static int p_money() {
-    domenu(M_PSALE, "霞蔚量販店", '0', moneylist);
+    domenu(M_PSALE, BBSMNAME2 "量販店", '0', moneylist);
     return 0;
 };
 
@@ -575,7 +599,7 @@ const static commands_t jceelist[] = {
 };
 
 static int m_jcee() {
-    domenu(M_JCEE, "霞蔚查榜系統", '0', jceelist);
+    domenu(M_JCEE, BBSMNAME2 "查榜系統", '0', jceelist);
     return 0;
 }
 #endif
@@ -596,13 +620,17 @@ static const commands_t playlist[] = {
 /* {x_weather,0 ,           "WWeather     【 氣象預報 】"}, */
 /* XXX 壞掉了 */
 /*    {x_stock,0 ,             "SStock       【 股市行情 】"},*/
-    {forsearch,PERM_LOGINOK, "SSearchEngine【" ANSI_COLOR(1;35) " 霞蔚搜尋器 " ANSI_RESET "】"},
+    {forsearch,PERM_LOGINOK, "SSearchEngine【" ANSI_COLOR(1;35) " " 
+	BBSMNAME2 "搜尋器 " ANSI_RESET "】"},
     {topsong,PERM_LOGINOK,   "TTop Songs   【" ANSI_COLOR(1;32) " 點歌排行榜 " ANSI_RESET "】"},
-    {p_money,PERM_LOGINOK,   "PPay         【" ANSI_COLOR(1;31) " 霞蔚量販店 " ANSI_RESET "】"},
+    {p_money,PERM_LOGINOK,   "PPay         【" ANSI_COLOR(1;31) " "
+	BBSMNAME2 "量販店 " ANSI_RESET "】"},
     {chicken_main,PERM_LOGINOK, "CChicken     "
-     "【" ANSI_COLOR(1;34) " 霞蔚養雞場 " ANSI_RESET "】"},
-    {playground,PERM_LOGINOK, "AAmusement   【" ANSI_COLOR(1;33) " 霞蔚遊樂場 " ANSI_RESET "】"},
-    {chessroom, PERM_LOGINOK, "BBChess      【" ANSI_COLOR(1;34) " 霞蔚棋院   " ANSI_RESET "】"},
+     "【" ANSI_COLOR(1;34) " " BBSMNAME2 "養雞場 " ANSI_RESET "】"},
+    {playground,PERM_LOGINOK, "AAmusement   【" ANSI_COLOR(1;33) " "
+	BBSMNAME2 "遊樂場 " ANSI_RESET "】"},
+    {chessroom, PERM_LOGINOK, "BBChess      【" ANSI_COLOR(1;34) " "
+	BBSMNAME2 "棋院   " ANSI_RESET "】"},
     {NULL, 0, NULL}
 };
 
@@ -620,7 +648,7 @@ static const commands_t chesslist[] = {
 };
 
 static int chessroom() {
-    domenu(M_CHC, "霞蔚棋院", '1', chesslist);
+    domenu(M_CHC, BBSMNAME2 "棋院", '1', chesslist);
     return 0;
 }
 
@@ -629,7 +657,7 @@ static const commands_t plist[] = {
 /*    {p_ticket_main, PERM_LOGINOK,"00Pre         【 總統機 】"},
       {alive, PERM_LOGINOK,        "00Alive       【  訂票雞  】"},
 */
-    {ticket_main, PERM_LOGINOK,  "11Gamble      【 霞蔚賭場 】"},
+    {ticket_main, PERM_LOGINOK,  "11Gamble      【 " BBSMNAME2 "賭場 】"},
     {guess_main, PERM_LOGINOK,   "22Guess number【  猜數字  】"},
     {othello_main, PERM_LOGINOK, "33Othello     【  黑白棋  】"},
 //    {dice_main, PERM_LOGINOK,    "44Dice        【 玩骰子   】"},
@@ -641,7 +669,7 @@ static const commands_t plist[] = {
 };
 
 static int playground() {
-    domenu(M_AMUSE, "霞蔚遊樂場",'1',plist);
+    domenu(M_AMUSE, BBSMNAME2 "遊樂場",'1',plist);
     return 0;
 }
 
@@ -654,7 +682,7 @@ static const commands_t slist[] = {
 };
 
 static int forsearch() {
-    domenu(M_SREG, "霞蔚搜尋器", '1', slist);
+    domenu(M_SREG, BBSMNAME2 "搜尋器", '1', slist);
     return 0;
 }
 
@@ -684,7 +712,7 @@ Talk(void)
 int
 User(void)
 {
-    domenu(M_UMENU, "個人設定", 'I', userlist);
+    domenu(M_UMENU, "個人設定", 'U', userlist);
     return 0;
 }
 

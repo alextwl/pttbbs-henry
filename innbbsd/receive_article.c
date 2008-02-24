@@ -814,7 +814,7 @@ post_article(homepath, userid, board, writebody, pathname, firstpath)
 /*
  * woju Cross-fs rename()
  */
-
+/*
 int
 Rename(const char *src, const char *dst)
 {
@@ -827,7 +827,7 @@ Rename(const char *src, const char *dst)
     sprintf(cmd, "/bin/mv %s %s", src, dst);
     return system(cmd);
 }
-
+*/
 
 void
 cancelpost(fileheader_t * fhdr, char *boardname)

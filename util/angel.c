@@ -1,4 +1,4 @@
-/* $Id: angel.c 3532 2007-06-04 07:08:34Z scw $ */
+/* $Id: angel.c 3673 2007-12-12 01:42:23Z kcwu $ */
 #include "bbs.h"
 
 #ifndef PLAY_ANGEL
@@ -16,9 +16,6 @@ int nReport = 50;
 int count;
 char* mailto = "SYSOP";
 
-int ListCmp(const void * a, const void * b){
-    return *(int*)b - *(int*)a;
-}
 
 int RejCmp(const void * a, const void * b){
     return strcasecmp(SHM->userid[*(int*)a - 1], SHM->userid[*(int*)b - 1]);
@@ -100,7 +97,7 @@ void readData(){
 		rej_list[k++] = i;
 	}
 
-    qsort(list, count, sizeof(int[2]), ListCmp);
+    qsort(list, count, sizeof(int[2]), cmp_int_desc);
     qsort(rej_list, double_rej, sizeof(int), RejCmp);
 }
 
@@ -140,7 +137,7 @@ void sendResult(){
     }
 
     t = time(NULL);
-    fprintf(fp, "作者: Ptt 站方統計\n"
+    fprintf(fp, "作者: " BBSMNAME " 站方統計\n"
 	    "標題: 小天使統計資料\n"
 	    "時間: %s\n"
 	    "\n現在全站小天使有 %d 位\n"

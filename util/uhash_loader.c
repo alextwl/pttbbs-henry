@@ -1,9 +1,8 @@
-/* $Id: uhash_loader.c 3010 2005-08-08 14:23:24Z wens $ */
+/* $Id: uhash_loader.c 3673 2007-12-12 01:42:23Z kcwu $ */
 /* standalone uhash loader -- jochang */
 #include "bbs.h"
 #include "fnv_hash.h"
 
-unsigned string_hash(unsigned char *s);
 void userec_add_to_uhash(int n, userec_t *id, int onfly);
 void fill_uhash(int onfly);
 void load_uhash(void);
@@ -72,7 +71,7 @@ void checkhash(int h)
     while(*p != -1)
     {
        if(*p <-1 || *p >= MAX_USERS) {*p=-1; return;}
-       ch = string_hash( SHM->userid[*p])%(1<<HASH_BITS);
+       ch = StringHash( SHM->userid[*p])%(1<<HASH_BITS);
        if(ch!=h)
        {
            printf("remove %d %d!=%d %d [%s] next:%d\n", 
@@ -131,16 +130,22 @@ void fill_uhash(int onfly)
 
     printf("total %d names %s.\n", usernumber, onfly ? "checked":"loaded");
 }
-unsigned string_hash(unsigned char *s)
-{
-    return fnv1a_32_strcase(s, FNV1_32_INIT);
-}
-
 void userec_add_to_uhash(int n, userec_t *user, int onfly)
 {
     int *p, h, l=0;
 
-    h = string_hash(user->userid)%(1<<HASH_BITS);
+    // uhash use userid="" to denote free slot for new register
+    // However, such entries will have the same hash key.
+    // So we skip most of invalid userid to prevent lots of hash collision.
+    if (!is_validuserid(user->userid)) {
+	// dirty hack, preserve few slot for new register
+	static int count = 0;
+	count++;
+	if (count > 1000)
+	    return;
+    }
+
+    h = StringHash(user->userid)%(1<<HASH_BITS);
     
     p = &(SHM->hash_head[h]);
     if(!onfly || SHM->userid[n][0] != user->userid[0] || 

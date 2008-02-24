@@ -1,7 +1,8 @@
-/* $Id: modes.h 3524 2007-05-30 15:48:39Z scw $ */
+/* $Id: modes.h 3893 2008-01-31 05:30:33Z piaip $ */
 #ifndef INCLUDE_MODES_H
 #define INCLUDE_MODES_H
 
+/* common return values of read.c */
 #define DONOTHING       0       /* Read menu command return states */
 #define FULLUPDATE      1       /* Entire screen was destroyed in this oper */
 #define PARTUPDATE      2       /* Only the top three lines were destroyed */
@@ -15,6 +16,15 @@
 #define TITLE_REDRAW    11
 #define READ_SKIP       12      
 #define HEADERS_RELOAD  13      
+
+// values returned by pager
+#define RET_DOREPLY	    (999)
+#define RET_DORECOMMEND	    (998)
+#define RET_DOQUERYINFO	    (997)
+#define RET_DOSYSOPEDIT	    (996)
+#define RET_DOCHESSREPLAY   (995)
+#define RET_DOBBSLUA	    (994)
+#define RET_COPY2TMP		(993)
 
 /* user 操作狀態與模式 */
 #define IDLE            0
@@ -103,7 +113,9 @@
 #define DEBUGSLEEPING	83
 #define UMODE_CONN6	84
 #define REVERSI		85
-#define MODE_MAX        86      /* 所有其他選單動態須在此之前 */
+#define UMODE_BBSLUA	86
+#define UMODE_ASCIIMOVIE 87
+#define MODE_MAX        88      /* 所有其他選單動態須在此之前 */
 
 /* menu.c 中的模式 */
 #define QUIT    0x666           /* Return value to abort recursive functions */
@@ -155,13 +167,11 @@
 #define AUTHOR_PREV     (RS_AUTHOR)
 
 /* DBCS aware modes */
-enum {
+enum _DBCS_STATUS {
     DBCS_ASCII,
     DBCS_LEADING,
     DBCS_TRAILING,
-} _DBCS_STATUS;
-
-enum {STRIP_ALL = 0, ONLY_COLOR, NO_RELOAD};
+};
 
 #define SIG_PK          0
 #define SIG_TALK        1
@@ -171,6 +181,7 @@ enum {STRIP_ALL = 0, ONLY_COLOR, NO_RELOAD};
 #define SIG_DARK        5
 #define SIG_GO          6
 #define SIG_REVERSI	7
+#define SIG_CONN6	8
 
 /* talk.c 中的模式 */
 #define WATERBALL_GENERAL 0

@@ -1,15 +1,16 @@
-# $Id: Makefile 3537 2007-06-09 19:32:19Z kcwu $
+# $Id: Makefile 3673 2007-12-12 01:42:23Z kcwu $
 
-.include "../pttbbs.mk"
+SRCROOT=	..
+.include "$(SRCROOT)/pttbbs.mk"
 
 CFLAGS+= -DPTTBBS_UTIL
 
-BBSBASE=	../include/var.h
+BBSBASE=	$(SRCROOT)/include/var.h
 
 UTIL_OBJS=	\
 	util_cache.o	util_record.o	util_passwd.o	util_var.o	\
 	util_stuff.o	util_osdep.o	util_args.o	util_file.o	\
-	util_crypt.o	util_calendar.o
+	util_crypt.o	
 
 MBBSD_OBJS= \
 	cache		record		passwd		var		\
@@ -26,11 +27,12 @@ CPROG_WITH_UTIL= \
 	reaper		buildAnnounce	inndBM		mailangel	\
 	outmail		chkhbf		merge_dir	\
 	transman	angel		gamblegive	wretch_man	\
-	chesscountry	tunepasswd	buildir		xchatd
+	chesscountry	tunepasswd	buildir		xchatd		\
+	uhash_loader	
 
 # 下面這些程式, 會直接被 compile
 CPROG_WITHOUT_UTIL= \
-	uhash_loader	showboard	countalldice	bbsrf		\
+	showboard	countalldice	bbsrf		\
 	initbbs		userlist	merge_board	bbsmail
 
 # 下面這些程式會被 install
@@ -42,31 +44,35 @@ PROGS=	${CPROG_WITH_UTIL}		${CPROG_WITHOUT_UTIL}		\
 	dailybackup.pl	tarqueue.pl	waterball.pl	filtermail.pl	\
 	getbackup.pl	udnnews.pl	rebuildaloha.pl
 
+LIBS+=  $(SRCROOT)/src/libbbsutil/libbbsutil.a \
+	$(SRCROOT)/src/libbbs/libbbs.a
+
+
 all: ${CPROG_WITH_UTIL} ${CPROG_WITHOUT_UTIL} ${PROGS}
 
-../include/var.h: ../mbbsd/var.c
-	cd ../mbbsd; $(MAKE) ../include/var.h
+$(SRCROOT)/include/var.h: $(SRCROOT)/mbbsd/var.c
+	cd $(SRCROOT)/mbbsd; $(MAKE) $(SRCROOT)/include/var.h
 
 .for fn in ${CPROG_WITH_UTIL}
 ${fn}: ${BBSBASE} ${fn}.c ${UTIL_OBJS}
-	$(CCACHE) ${CC} ${CFLAGS} ${LDFLAGS} -o ${fn} ${UTIL_OBJS} ${fn}.c
+	$(CCACHE) ${CC} ${CFLAGS} ${LDFLAGS} -o ${fn} ${UTIL_OBJS} ${fn}.c $(LIBS)
 .endfor
 
 .for fn in ${MBBSD_OBJS}
-util_${fn}.o: ${BBSBASE} ../mbbsd/${fn}.c
-	$(CCACHE) ${CC} ${CFLAGS} -D_BBS_UTIL_C_ -c -o $@ ../mbbsd/${fn}.c
+util_${fn}.o: ${BBSBASE} $(SRCROOT)/mbbsd/${fn}.c
+	$(CCACHE) ${CC} ${CFLAGS} -D_BBS_UTIL_C_ -c -o $@ $(SRCROOT)/mbbsd/${fn}.c
 .endfor
 
 shmctl: ${BBSBASE} shmctl.c ${UTIL_OBJS}
-	$(CCACHE) ${CC} ${CFLAGS} ${LDFLAGS} -o shmctl ${UTIL_OBJS} shmctl.c
+	$(CCACHE) ${CXX} ${CFLAGS} ${LDFLAGS} -o shmctl ${UTIL_OBJS} shmctl.c $(LIBS)
 #shmctl: ${BBSBASE} shmctl.c ${UTIL_OBJS}
-#	$(CCACHE) gcc -g -DBBSHOME='"/home/bbs"' -I../include  -D__OS_MAJOR_VERSION__="2"  -D__OS_MINOR_VERSION__="6" -DPTTBBS_UTIL  -O1  -o shmctl ${UTIL_OBJS} shmctl.c
+#	$(CCACHE) gcc -g -DBBSHOME='"/home/bbs"' -I$(SRCROOT)/include  -D__OS_MAJOR_VERSION__="2"  -D__OS_MINOR_VERSION__="6" -DPTTBBS_UTIL  -O1  -o shmctl ${UTIL_OBJS} shmctl.c
 #shmctl: ${BBSBASE} shmctl.cc ${UTIL_OBJS}
-#	$(CCACHE) g++ -g -DBBSHOME='"/home/bbs"' -I../include  -D__OS_MAJOR_VERSION__="2"  -D__OS_MINOR_VERSION__="6" -DPTTBBS_UTIL  -O1 -o shmctl ${UTIL_OBJS} shmctl.cc
+#	$(CCACHE) g++ -g -DBBSHOME='"/home/bbs"' -I$(SRCROOT)/include  -D__OS_MAJOR_VERSION__="2"  -D__OS_MINOR_VERSION__="6" -DPTTBBS_UTIL  -O1 -o shmctl ${UTIL_OBJS} shmctl.cc
 
-bbsmail: ${BBSBASE} bbsmail.c ../innbbsd/str_decode.c $(UTIL_OBJS)
+bbsmail: ${BBSBASE} bbsmail.c $(SRCROOT)/innbbsd/str_decode.c $(UTIL_OBJS)
 	$(CCACHE) $(CC) $(CFLAGS) $(LDFLAGS) -o bbsmail -DUSE_ICONV \
-	bbsmail.c ../innbbsd/str_decode.c $(UTIL_OBJS)
+	bbsmail.c $(SRCROOT)/innbbsd/str_decode.c $(UTIL_OBJS) $(LIBS)
 
 install: $(PROGS)
 	install -d $(BBSHOME)/bin/
@@ -95,8 +101,8 @@ installdiskstat: diskstat
 	chmod 2755 /usr/local/bin/diskstat
 
 # for bbsctl. bbsctl should be compiled with bbs and installed with root
-bbsctl:	bbsctl.c
-	$(CCACHE) $(CC) $(CFLAGS) -o $@ $@.c
+bbsctl:	bbsctl.c util_osdep.o
+	$(CCACHE) $(CC) $(CFLAGS) ${LDFLAGS} -o $@ $@.c util_osdep.o
 
 installbbsctl: bbsctl
 	rm -f /home/bbs/bin/bbsctl

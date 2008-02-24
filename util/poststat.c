@@ -1,4 +1,4 @@
-/* $Id: poststat.c 2725 2005-05-16 18:36:27Z kcwu $ */
+/* $Id: poststat.c 3673 2007-12-12 01:42:23Z kcwu $ */
 /* 統計今日、週、月、年熱門話題 */
 
 #include "bbs.h"
@@ -40,44 +40,6 @@ struct posttop
     int number;			/* post number */
 }
 top[TOPCOUNT], *tp;
-
-/*
-   woju
-   Cross-fs rename()
- */
-
-int Rename(const char *src, const char *dst)
-{
-
-    if (rename(src, dst) == 0)
-	return 0;
-/*
-  sprintf(cmd, "/bin/mv %s %s", src, dst);
-  return system(cmd);
-*/
-    return 0;
-}
-
-int
-ci_strcmp(s1, s2)
-    register char *s1, *s2;
-{
-    register int c1, c2, diff;
-
-    do
-    {
-	c1 = *s1++;
-	c2 = *s2++;
-	if (c1 >= 'A' && c1 <= 'Z')
-	    c1 |= 32;
-	if (c2 >= 'A' && c2 <= 'Z')
-	    c2 |= 32;
-	if((diff = c1 - c2))
-	    return (diff);
-    }
-    while (c1);
-    return 0;
-}
 
 
 /* ---------------------------------- */

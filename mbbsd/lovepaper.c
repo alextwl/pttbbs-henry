@@ -1,11 +1,11 @@
-/* $Id: lovepaper.c 3267 2006-01-12 05:00:08Z victor $ */
+/* $Id: lovepaper.c 3915 2008-02-13 17:16:58Z piaip $ */
 #include "bbs.h"
 #define DATA "etc/lovepaper.dat"
 
 int
 x_love(void)
 {
-    char            buf1[200], save_title[TTLEN + 1];
+    char            buf1[200], title[TTLEN + 1];
     char            receiver[61], path[STRLEN] = "home/";
     int             x, y = 0, tline = 0, poem = 0;
     FILE           *fp, *fpo;
@@ -26,8 +26,8 @@ x_love(void)
     if (!getdata(7, 0, "收信人：", receiver, sizeof(receiver), DOECHO))
 	return 0;
     if (receiver[0] && !(searchuser(receiver, receiver) &&
-			 getdata(8, 0, "主  題：", save_title,
-				 sizeof(save_title), DOECHO))) {
+			 getdata(8, 0, "主  題：", title,
+				 sizeof(title), DOECHO))) {
 	move(10, 0);
 	vmsg("收信人或主題不正確,情書無法傳遞");
 	return 0;
@@ -84,13 +84,17 @@ x_love(void)
 
 	fclose(fp);
 	fclose(fpo);
+	strlcpy(save_title, title, sizeof(save_title));
+	curredit |= EDIT_MAIL;
 	if (vedit(path, YEA, NULL) == -1) {
+	    curredit &= ~EDIT_MAIL;
 	    unlink(path);
 	    clear();
 	    outs("\n\n 放棄寄情書\n");
 	    pressanykey();
 	    return -2;
 	}
+	curredit &= ~EDIT_MAIL;
 	sethomepath(buf1, receiver);
 	stampfile(buf1, &mhdr);
 	Rename(path, buf1);
@@ -99,8 +103,11 @@ x_love(void)
 	sethomedir(path, receiver);
 	if (append_record(path, &mhdr, sizeof(mhdr)) == -1)
 	    return -1;
+	sendalert(receiver, ALERT_NEW_MAIL);
 	hold_mail(buf1, receiver);
 	return 1;
+    } else {
+	vmsg("本站目前無情書資料庫，請向站長反應。");
     }
     fclose(fpo);
     return 0;

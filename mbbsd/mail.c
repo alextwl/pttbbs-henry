@@ -1,10 +1,15 @@
-/* $Id: mail.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: mail.c 3924 2008-02-17 03:25:17Z piaip $ */
 #include "bbs.h"
 static int      mailkeep = 0,		mailsum = 0;
 static int      mailsumlimit = 0,	mailmaxkeep = 0;
 static char     currmaildir[32];
 static char     msg_cc[] = ANSI_COLOR(32) "[群組名單]" ANSI_RESET "\n";
 static char     listfile[] = "list.0";
+
+// check only 20 mails (one page) is enough.
+// #define NEWMAIL_CHECK_RANGE (1)
+// checking only 1 mail works more like brc style.
+#define NEWMAIL_CHECK_RANGE (5)
 
 enum SHOWMAIL_MODES {
     SHOWMAIL_NORM = 0,
@@ -155,7 +160,7 @@ invalidaddr(const char *addr)
 		"但檢查不出原因，所以我們需要正確的錯誤回報。\n\n"
 		"如果你確實打錯了，請直接略過下面的說明。\n"
 		"如果你認為你輸入的位址確實是對的，請把下面的訊息複製起來\n"
-		"並貼到 SYSOP 或 PttBug 板。本站為造成不便深感抱歉。\n\n"
+		"並貼到 " GLOBAL_BUGREPORT " 板。本站為造成不便深感抱歉。\n\n"
 		ANSI_COLOR(1;33));
 	    sprintf(errmsg, "原始輸入位址: [%s]\n"
 		    "錯誤位置: 第 %d 字元: 0x%02X [ %c ]\n", 
@@ -179,12 +184,13 @@ int
 m_internet(void)
 {
     char            receiver[60];
+    char title[STRLEN];
 
     getdata(20, 0, "收信人：", receiver, sizeof(receiver), DOECHO);
     trim(receiver);
     if (strchr(receiver, '@') && !invalidaddr(receiver) &&
-	getdata(21, 0, "主  題：", save_title, STRLEN, DOECHO))
-	do_send(receiver, save_title);
+	getdata(21, 0, "主  題：", title, sizeof(title), DOECHO))
+	do_send(receiver, title);
     else {
 	vmsg("收信人或主題不正確,請重新選取指令");
     }
@@ -195,6 +201,13 @@ void
 m_init(void)
 {
     sethomedir(currmaildir, cuser.userid);
+}
+
+static void
+loadmailusage(void)
+{
+    mailkeep=get_num_records(currmaildir,sizeof(fileheader_t));
+    mailsum =get_sum_records(currmaildir, sizeof(fileheader_t));
 }
 
 void
@@ -223,15 +236,7 @@ setupmailusage(void)
 	    mailsumlimit = 50;
 	mailsumlimit += (cuser.exmailbox + ADD_EXMAILBOX) * 10;
 	mailmaxkeep = max_keepmail + cuser.exmailbox;
-        mailkeep=get_num_records(currmaildir,sizeof(fileheader_t));
-        mailsum =get_sum_records(currmaildir, sizeof(fileheader_t));
-#if 0
-	sethomeman(currmaildir, cuser.userid);
-        mailsum +=get_sum_records(currmaildir, sizeof(fileheader_t));
-	sethomefile(currmaildir, cuser.userid, "gem");
-        mailsum +=get_sum_records(currmaildir, sizeof(fileheader_t));
-	sethomedir(currmaildir, cuser.userid);
-#endif
+	loadmailusage();
 }
 
 #define MAILBOX_LIM_OK   0
@@ -345,8 +350,11 @@ do_send(const char *userid, const char *title)
     /* process title */
     if (title)
 	strlcpy(save_title, title, sizeof(save_title));
-    else
-	getdata(2, 0, "主題：", save_title, STRLEN - 20, DOECHO);
+    else {
+	char tmp_title[STRLEN-20];
+	getdata(2, 0, "主題：", tmp_title, sizeof(tmp_title), DOECHO);
+	strlcpy(save_title, tmp_title, sizeof(save_title));
+    }
 
     setutmpmode(SMAIL);
 
@@ -809,7 +817,8 @@ read_new_mail(void * voidfptr, void *optarg)
     char            genbuf[4];
 
     arg->idc++;
-    if (fptr->filemode)
+    // XXX fptr->filename may be invalid.
+    if (fptr->filemode || !fptr->filename[0])
 	return 0;
     clear();
     move(10, 0);
@@ -879,7 +888,8 @@ read_new_mail(void * voidfptr, void *optarg)
 	    }
 	    unlink(fname);
 	    arg->delmsgs[arg->delcnt++] = arg->idc;
-	    mailsum = mailkeep = 0;
+
+	    loadmailusage();
 	}
     }
     clear();
@@ -957,6 +967,7 @@ maildoent(int num, fileheader_t * ent)
 {
     char *title, *mark, *color = NULL, type = ' ';
     char datepart[6];
+    char isonline = 0;
 
     if (ent->filemode & FILE_MARKED)
     {
@@ -987,6 +998,8 @@ maildoent(int num, fileheader_t * ent)
     }
     
     strlcpy(datepart, ent->date, sizeof(datepart));
+
+    isonline = query_online(ent->owner);
 
     switch(showmail_mode)
     {
@@ -1030,8 +1043,12 @@ maildoent(int num, fileheader_t * ent)
 	color = "";
     }
 
-    prints("%6d %c %-6s%-15.14s%s %s%-*.*s%s\n", 
-	    num, type, datepart, ent->owner, mark, color,
+    prints("%6d %c %-6s%s%-15.14s%s%s %s%-*.*s%s\n", 
+	    num, type, datepart, 
+	    isonline ? ANSI_COLOR(1) : "",
+	    ent->owner, 
+	    isonline ? ANSI_RESET : "",
+	    mark, color,
 	    t_columns - 34, t_columns - 34,
 	    title,
 	    *color ? ANSI_RESET : "");
@@ -1055,13 +1072,18 @@ mail_del(int ent, const fileheader_t * fhdr, const char *direct)
 	if (!delete_record(direct, sizeof(*fhdr), ent)) {
             setupmailusage();
 	    setdirpath(genbuf, direct, fhdr->filename);
+#ifdef USE_RECYCLE
+	    RcyAddFile(fhdr, 0, genbuf);
+#endif // USE_RECYCLE
 	    unlink(genbuf);
-	    mailsum = mailkeep = 0;
+	    loadmailusage();
 	    return DIRCHANGED;
 	}
     }
     return READ_REDRAW;
 }
+
+int b_call_in(int ent, const fileheader_t * fhdr, const char *direct);
 
 static int
 mail_read(int ent, fileheader_t * fhdr, const char *direct)
@@ -1124,6 +1146,59 @@ mail_read(int ent, fileheader_t * fhdr, const char *direct)
         substitute_ref_record(direct, fhdr, ent);
     }
     return FULLUPDATE;
+}
+
+static int
+mail_read_all(int ent, fileheader_t * fhdr, const char *direct)
+{
+    off_t   i = 0, num = 0;
+    int	    fd = 0;
+    fileheader_t xfhdr;
+
+    currutmp->alerts &= ~ALERT_NEW_MAIL;
+    if ((fd = open(currmaildir, O_RDWR)) < 0)
+	return DONOTHING;
+
+    if ((num = lseek(fd, 0, SEEK_END)) < 0)
+	num = 0;
+    num /= sizeof(fileheader_t);
+
+    i = num - NEWMAIL_CHECK_RANGE;
+    if (i < 0) i = 0;
+
+    if (lseek(fd, i * (off_t)sizeof(fileheader_t), SEEK_SET) < 0)
+	i = num;
+
+    for (; i < num; i++)
+    {
+	if (read(fd, &xfhdr, sizeof(xfhdr)) <= 0)
+	    break;
+	if (xfhdr.filemode & FILE_READ)
+	    continue;
+	xfhdr.filemode |= FILE_READ;
+	if (lseek(fd, i * (off_t)sizeof(fileheader_t), SEEK_SET) < 0)
+	    break;
+	write(fd, &xfhdr, sizeof(xfhdr));
+    }
+
+    close(fd);
+    return DIRCHANGED;
+}
+
+static int
+mail_unread(int ent, fileheader_t * fhdr, const char *direct)
+{
+    // this function may cause arguments, so please specify
+    // if you want this to be enabled.
+#ifdef USE_USER_MAIL_UNREAD
+    if (fhdr && fhdr->filemode & FILE_READ)
+    {
+	fhdr->filemode &= ~FILE_READ;
+	substitute_record(direct, fhdr, ent);
+	return FULLUPDATE;
+    }
+#endif // USE_USER_MAIL_UNREAD
+    return DONOTHING;
 }
 
 /* in boards/mail 回信給原作者，轉信站亦可 */
@@ -1277,16 +1352,40 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
     char            genbuf[200];
     char            genbuf2[4];
 
+#if 0
+    // 除非有人明白為何要先 ChekPostPerm 並修復，
+    // 否則先 disable 這段 code - 目前常造成 crash。
+    //
+    // XXX (will crash sometimes because currborad is not defined yet)
+    // 麻煩 in2 來修復這裡: 確認轉錄為何要先 CheckPostPerm
+    if (!currboard || currboard[0] == 0)
+    {
+	enter_board(DEFAULT_BOARD);
+    }
+    assert(0<=ent-1 && ent-1<MAX_BOARD);
+    
     if (!CheckPostPerm()) {
 	vmsg("對不起，您目前無法轉錄文章！");
 	return FULLUPDATE;
     }
+#endif
+
     move(2, 0);
     clrtoeol();
+    if (postrecord.times > 1)
+    {
+	outs(ANSI_COLOR(1;31) 
+	"請注意: 若過量重複轉錄將視為洗板，導致被開罰單停權。\n" ANSI_RESET
+	"若有特別需求請洽各板主，請他們幫你轉文。\n\n");
+    }
     move(1, 0);
     CompleteBoard("轉錄本文章於看板：", xboard);
+
     if (*xboard == '\0' || !haspostperm(xboard))
+    {
+	vmsg("無法轉錄");
 	return FULLUPDATE;
+    }
 
     /* 借用變數 */
     ent = StringHash(fhdr->title);
@@ -1304,12 +1403,8 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 
     ent = getbnum(xboard);
     assert(0<=ent-1 && ent-1<MAX_BOARD);
-    if ( !(HasUserPerm(PERM_SYSOP)) &&
-	    (cuser.firstlogin > (now - (time4_t)bcache[ent - 1].post_limit_regtime * 2592000) ||
-	    cuser.badpost > (255 - (unsigned int)(bcache[ent - 1].post_limit_badpost)) ||
-	    cuser.numlogins < ((unsigned int)(bcache[ent - 1].post_limit_logins) * 10) ||
-	    cuser.numposts < ((unsigned int)(bcache[ent - 1].post_limit_posts) * 10)) ) {
-	move(5, 10);
+    if (!CheckPostRestriction(ent))
+    {
 	vmsg("你不夠資深喔！ (可在看板內按大寫 I 查看限制)");
 	return FULLUPDATE;
     }
@@ -1378,6 +1473,7 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	setbdir(fname, xboard);
 	append_record(fname, &xfile, sizeof(xfile));
 	setbtotal(getbnum(xboard));
+
 	if (!xfile.filemode)
 	    outgo_post(&xfile, xboard, cuser.userid, cuser.nickname);
 #ifdef USE_COOLDOWN
@@ -1386,10 +1482,8 @@ mail_cross_post(int ent, fileheader_t * fhdr, const char *direct)
 	add_posttimes(usernum, 1);
 #endif
 
-	if (strcmp(xboard, "Test") == 0)
-	    outs("測試信件不列入紀錄，敬請包涵。");
-	else
-	    cuser.numposts++;
+	// cross-post does not add numpost.
+	outs("轉錄信件不增加文章數，敬請包涵。");
 
 	vmsg("文章轉錄完成");
 	currmode = currmode0;
@@ -1406,29 +1500,14 @@ mail_man(void)
 
     sethomeman(buf, cuser.userid);
     snprintf(buf1, sizeof(buf1), "%s 的信件夾", cuser.userid);
-    a_menu(buf1, buf, HasUserPerm(PERM_MAILLIMIT), NULL);
+    a_menu(buf1, buf, HasUserPerm(PERM_MAILLIMIT) ? 1 : 0, 0, NULL);
     currutmp->mode = mode0;
     currstat = stat0;
     return FULLUPDATE;
 }
 
-#ifdef OLD_GEM_SUPPORT
-int
-mail_gem(void)
-{
-    char            buf[PATHLEN], buf1[64];
-    int             mode0 = currutmp->mode;
-    int             stat0 = currstat;
-
-    sethomefile(buf, cuser.userid, "gem");
-    snprintf(buf1, sizeof(buf1), "%s 的精華區", cuser.userid);
-    a_menu(buf1, buf, HasUserPerm(PERM_MAILLIMIT), NULL);
-    currutmp->mode = mode0;
-    currstat = stat0;
-    return FULLUPDATE;
-}
-#endif
-
+// XXX BUG mail_cite 有可能會跳進 a_menu, 而 a_menu 會 check
+// currbid。 一整個糟糕的邏輯錯誤...
 static int
 mail_cite(int ent, fileheader_t * fhdr, const char *direct)
 {
@@ -1458,6 +1537,7 @@ mail_cite(int ent, fileheader_t * fhdr, const char *direct)
 	    setutmpmode(ANNOUNCE);
 	    a_menu(xboard, fpath, 
 		    HasUserPerm(PERM_ALLBOARD) ? 2 : is_BM_cache(bid) ? 1 : 0,
+		    bid,
 		   NULL);
 	} else {
 	    mail_man();
@@ -1481,7 +1561,7 @@ mail_save(int ent, fileheader_t * fhdr, const char *direct)
 	strlcpy(title + 3, fhdr->title, sizeof(title) - 3);
 	a_copyitem(fpath, title, fhdr->owner, 1);
 	sethomeman(fpath, cuser.userid);
-	a_menu(cuser.userid, fpath, 1, NULL);
+	a_menu(cuser.userid, fpath, 1, 0, NULL);
 	return FULLUPDATE;
     }
     return DONOTHING;
@@ -1491,7 +1571,7 @@ mail_save(int ent, fileheader_t * fhdr, const char *direct)
 static int
 mail_waterball(int ent, fileheader_t * fhdr, const char *direct)
 {
-    static char     address[60], cmode = 1;
+    static char     address[60] = "", cmode = 1;
     char            fname[500], genbuf[200];
     FILE           *fp;
 
@@ -1499,14 +1579,17 @@ mail_waterball(int ent, fileheader_t * fhdr, const char *direct)
 	vmsg("必須是 熱線記錄 才能使用水球整理的唷!");
 	return 1;
     }
+
     if (!address[0])
 	strlcpy(address, cuser.email, sizeof(address));
-    move(b_lines - 8, 0);
-    outs("水球整理程式:\n"
+
+    move(b_lines - 8, 0); clrtobot();
+    outs(ANSI_COLOR(1;33;45) "★水球整理程式 " ANSI_RESET "\n"
 	 "系統將會按照和不同人丟的水球各自獨立\n"
 	 "於整點的時候 (尖峰時段除外) 將資料整理好寄送給您\n\n\n");
+
     if (address[0]) {
-	snprintf(genbuf, sizeof(genbuf), "寄給 [%s] 嗎(Y/N/Q)？[Y] ", address);
+	snprintf(genbuf, sizeof(genbuf), "寄往 [%s] 嗎[Y/n/q]？ ", address);
 	getdata(b_lines - 5, 0, genbuf, fname, 3, LCECHO);
 	if (fname[0] == 'q') {
 	    outmsg("取消處理");
@@ -1516,19 +1599,24 @@ mail_waterball(int ent, fileheader_t * fhdr, const char *direct)
 	    address[0] = '\0';
     }
     if (!address[0]) {
+	move(b_lines-4, 0);
+	prints(   "請注意目前只支援寄往標準 e-mail 地址。\n"
+		"若想寄回此信箱請用輸入 %s.bbs@" MYHOSTNAME "\n", cuser.userid);
+
 	getdata(b_lines - 5, 0, "請輸入郵件地址：", fname, 60, DOECHO);
 	if (fname[0] && strchr(fname, '.')) {
 	    strlcpy(address, fname, sizeof(address));
 	} else {
-	    vmsg("取消處理");
+	    vmsg("地址格式不正確，取消處理");
 	    return 1;
 	}
     }
     trim(address);
     if (invalidaddr(address))
 	return -2;
+    move(b_lines-4, 0); clrtobot();
+
     if( strstr(address, ".bbs") && REJECT_OUTTAMAIL ){
-	move(b_lines - 4, 0);
 	outs("\n您必須要打開接受站外信, 水球整理系統才能寄入結果\n"
 	     "請麻煩到【郵件選單】按大寫 O改成接受站外信 (在右上角)\n"
 	     "再重新執行本功\能 :)\n");
@@ -1537,7 +1625,6 @@ mail_waterball(int ent, fileheader_t * fhdr, const char *direct)
     }
 
     //snprintf(fname, sizeof(fname), "%d\n", cmode);
-    move(b_lines - 4, 0);
     outs("系統提供兩種模式: \n"
 	 "模式 0: 精簡模式, 將不含顏色控制碼, 方便以純文字編輯器整理收藏\n"
 	 "模式 1: 華麗模式, 包含顏色控制碼等, 方便在 bbs上直接編輯收藏\n");
@@ -1579,7 +1666,7 @@ static const onekey_t mail_comms[] = {
     { 0, NULL }, // Ctrl('L')
     { 0, NULL }, // Ctrl('M')
     { 0, NULL }, // Ctrl('N')
-    { 0, NULL }, // Ctrl('O')
+    { 0, NULL }, // Ctrl('O')	// DO NOT USE THIS KEY - UNIX not sending
     { 0, NULL }, // Ctrl('P')
     { 0, NULL }, // Ctrl('Q')
     { 0, NULL }, // Ctrl('R')
@@ -1620,7 +1707,7 @@ static const onekey_t mail_comms[] = {
     { 0, NULL }, // 'S'
     { 1, edit_title }, // 'T'
     { 0, NULL }, // 'U'
-    { 0, NULL }, // 'V'
+    { 1, mail_unread }, // 'V'
     { 0, NULL }, // 'W'
     { 1, mail_cross_post }, // 'X'
     { 0, NULL }, // 'Y'
@@ -1655,8 +1742,8 @@ static const onekey_t mail_comms[] = {
 #else
     { 0, NULL }, // 'u'
 #endif
-    { 0, NULL }, // 'v'
-    { 0, NULL }, // 'w'
+    { 0, mail_read_all }, // 'v'
+    { 1, b_call_in }, // 'w'
     { 1, m_forward }, // 'x'
     { 1, multi_reply }, // 'y'
     { 0, mail_man }, // 'z' 122
@@ -1832,7 +1919,7 @@ bsmtp(const char *fpath, const char *title, const char *rcpt)
     strlcpy(mqueue.username, cuser.nickname, sizeof(mqueue.username));
     strlcpy(mqueue.rcpt, rcpt, sizeof(mqueue.rcpt));
 
-    if (append_record("out/.DIR", (fileheader_t *) & mqueue, sizeof(mqueue)) < 0)
+    if (append_record("out/" FN_DIR, (fileheader_t *) & mqueue, sizeof(mqueue)) < 0)
 	return 0;
     return chrono;
 }
@@ -1950,7 +2037,8 @@ load_mailalert(const char *userid)
     num = st.st_size / sizeof(fileheader_t);
     if (num <= 0)
 	return 0;
-    if (num > 50) num = 50; //check only 50 mails
+    if (num > NEWMAIL_CHECK_RANGE) 
+	num = NEWMAIL_CHECK_RANGE;
 
     /* 看看有沒有信件還沒讀過？從檔尾回頭檢查，效率較高 */
     if ((fd = open(maildir, O_RDONLY)) > 0) {

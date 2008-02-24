@@ -1,4 +1,4 @@
-/* $Id: cal.c 3495 2007-03-26 02:47:21Z victor $ */
+/* $Id: cal.c 3927 2008-02-18 18:21:41Z piaip $ */
 #include "bbs.h"
 
 /* 防堵 Multi play */
@@ -58,46 +58,30 @@ unlockutmpmode(void)
 /* 使用錢的函數 */
 #define VICE_NEW   "vice.new"
 
-const char*
-money_level(int money)
-{
-    int i = 0;
-
-    static const char *money_msg[] =
-    {
-	"債台高築", "赤貧", "清寒", "普通", "小康",
-	"小富", "中富", "大富翁", "富可敵國", "比爾蓋\天", NULL
-    };
-    while (money_msg[i] && money > 10)
-	i++, money /= 10;
-
-    if(!money_msg[i])
-	i--;
-    return money_msg[i];
-}
-
 /* Heat:發票 */
 int
 vice(int money, const char *item)
 {
-   char            buf[128];
-   unsigned int viceserial = (currutmp->lastact % 10000) * 10000 + random() % 10000;
+    char            buf[128];
+    unsigned int viceserial = (currutmp->lastact % 10000) * 10000 + 
+	random() % 10000;
 
+    // new logic: do not send useless vice tickets
     demoney(-money);
-    if(money>=100) 
-	{
-          setuserfile(buf, VICE_NEW);
-          log_file(buf, LOG_CREAT | LOG_VF, "%8.8d\n", viceserial);
-	}
+    if (money < VICE_MIN)
+	return 0;
+
+    setuserfile(buf, VICE_NEW);
+    log_filef(buf, LOG_CREAT, "%8.8d\n", viceserial);
     snprintf(buf, sizeof(buf),
-	     "%s 花了$%d 編號[%08d]", item, money, viceserial);
-    mail_id(cuser.userid, buf, "etc/vice.txt", "山城經濟部");
+	    "%s 花了$%d 編號[%08d]", item, money, viceserial);
+    mail_id(cuser.userid, buf, "etc/vice.txt", BBSMNAME "經濟部");
     return 0;
 }
 
-#define lockreturn(unmode, state) if(lockutmpmode(unmode, state)) return
+#define lockreturn(unmode, state)  if(lockutmpmode(unmode, state)) return
 #define lockreturn0(unmode, state) if(lockutmpmode(unmode, state)) return 0
-#define lockbreak(unmode, state) if(lockutmpmode(unmode, state)) break
+#define lockbreak(unmode, state)   if(lockutmpmode(unmode, state)) break
 #define SONGBOOK  "etc/SONGBOOK"
 #define OSONGPATH "etc/SONGO"
 
@@ -131,8 +115,12 @@ osong(void)
 	char ans[4];
 	move(12, 0);
 	clrtobot();
-	prints("親愛的 %s 歡迎來到歐桑自動點歌系統\n", cuser.userid);
-	getdata(13, 0, "請選擇 " ANSI_COLOR(1) "1)" ANSI_RESET " 開始點歌、"
+	prints("親愛的 %s 歡迎來到歐桑自動點歌系統\n\n", cuser.userid);
+	outs(ANSI_COLOR(1) "注意點歌內容請勿涉及謾罵 人身攻擊 猥褻"
+	     "公然侮辱 誹謗\n"
+	     "若有上述違規情形，站方將保留決定是否公開播放的權利\n"
+	     "如不同意請按 (3) 離開。" ANSI_RESET "\n");
+	getdata(18, 0, "請選擇 " ANSI_COLOR(1) "1)" ANSI_RESET " 開始點歌、"
 		ANSI_COLOR(1) "2)" ANSI_RESET " 看歌本、"
 		"或是 " ANSI_COLOR(1) "3)" ANSI_RESET " 離開: ",
 		ans, sizeof(ans), DOECHO);
@@ -140,7 +128,7 @@ osong(void)
 	if (ans[0] == '1')
 	    break;
 	else if (ans[0] == '2') {
-	    a_menu("點歌歌本", SONGBOOK, 0, NULL);
+	    a_menu("點歌歌本", SONGBOOK, 0, 0, NULL);
 	    clear();
 	}
 	else if (ans[0] == '3') {
@@ -157,18 +145,17 @@ osong(void)
 	return 0;
     }
 
-    getdata_str(14, 0, "點歌者(可匿名): ", sender, sizeof(sender), DOECHO, cuser.userid);
-    getdata(15, 0, "點給(可匿名): ", receiver, sizeof(receiver), DOECHO);
+    getdata_str(19, 0, "點歌者(可匿名): ", sender, sizeof(sender), DOECHO, cuser.userid);
+    getdata(20, 0, "點給(可匿名): ", receiver, sizeof(receiver), DOECHO);
 
-    getdata_str(16, 0, "想要要對他(她)說..:", say,
+    getdata_str(21, 0, "想要要對他(她)說..:", say,
 		sizeof(say), DOECHO, "我愛妳..");
     snprintf(save_title, sizeof(save_title),
 	     "%s:%s", sender, say);
-    getdata_str(17, 0, "寄到誰的信箱(真實 ID 或 E-mail)?",
+    getdata_str(22, 0, "寄到誰的信箱(真實 ID 或 E-mail)?",
 		address, sizeof(address), LCECHO, receiver);
-    outs("\n接著要選歌囉..進入歌本好好的選一首歌吧..^o^");
-    pressanykey();
-    a_menu("點歌歌本", SONGBOOK, 0, trans_buffer);
+    vmsg("接著要選歌囉..進入歌本好好的選一首歌吧..^o^");
+    a_menu("點歌歌本", SONGBOOK, 0, 0, trans_buffer);
     if (!trans_buffer[0] || strstr(trans_buffer, "home") ||
 	strstr(trans_buffer, "boards") || !(fp = fopen(trans_buffer, "r"))) {
 	unlockutmpmode();
@@ -233,15 +220,15 @@ osong(void)
     fclose(fp1);
     fclose(fp);
 
-    log_file("etc/osong.log",  LOG_CREAT | LOG_VF, "id: %-12s ◇ %s 點給 %s : \"%s\", 轉寄至 %s\n", cuser.userid, sender, receiver, say, address, ctime4(&now));
+    log_filef("etc/osong.log",  LOG_CREAT, "id: %-12s ◇ %s 點給 %s : \"%s\", 轉寄至 %s\n", cuser.userid, sender, receiver, say, address);
 
-    if (append_record(OSONGPATH "/.DIR", &mail, sizeof(mail)) != -1) {
+    if (append_record(OSONGPATH "/" FN_DIR, &mail, sizeof(mail)) != -1) {
 	cuser.lastsong = now;
 	/* Jaky 超過 MAX_MOVIE 首歌就開始砍 */
-	nsongs = get_num_records(OSONGPATH "/.DIR", sizeof(mail));
+	nsongs = get_num_records(OSONGPATH "/" FN_DIR, sizeof(mail));
 	if (nsongs > MAX_MOVIE) {
 	    // XXX race condition
-	    delete_range(OSONGPATH "/.DIR", 1, nsongs - MAX_MOVIE);
+	    delete_range(OSONGPATH "/" FN_DIR, 1, nsongs - MAX_MOVIE);
 	}
 	snprintf(genbuf, sizeof(genbuf), "%s says \"%s\" to %s.", sender, say, receiver);
 	log_usies("OSONG", genbuf);
@@ -312,14 +299,16 @@ p_cloak(void)
 int
 p_from(void)
 {
+    char tmp_from[sizeof(currutmp->from)];
     if (getans("確定要改故鄉?[y/N]") != 'y')
 	return 0;
     reload_money();
     if (cuser.money < 49)
 	return 0;
     if (getdata_buf(b_lines - 1, 0, "請輸入新故鄉:",
-		    currutmp->from, sizeof(currutmp->from), DOECHO)) {
+		    tmp_from, sizeof(tmp_from), DOECHO)) {
 	vice(49, "更改故鄉");
+	strlcpy(currutmp->from, tmp_from, sizeof(currutmp->from));
 	currutmp->from_alias = 0;
     }
     return 0;
@@ -336,20 +325,32 @@ p_exmail(void)
 	return 0;
     }
     snprintf(buf, sizeof(buf),
-	     "您曾增購 %d 封容量，還要再買多少?", cuser.exmailbox);
+	     "您曾增購 %d 封容量，還要再買多少? ", cuser.exmailbox);
 
-    getdata_str(b_lines - 2, 0, buf, ans, sizeof(ans), LCECHO, "1");
+    // no need to create default prompt.
+    // and people usually come this this by accident...
+    getdata(b_lines - 2, 0, buf, ans, sizeof(ans), LCECHO);
 
     n = atoi(ans);
     if (!ans[0] || n<=0)
 	return 0;
+
     if (n + cuser.exmailbox > MAX_EXKEEPMAIL)
 	n = MAX_EXKEEPMAIL - cuser.exmailbox;
     reload_money();
     if (cuser.money < n * 1000)
+    {
+	vmsg("你的錢不夠。");
 	return 0;
+    }
+
+    if (vmsgf("你想購買 %d 封信箱 (要花 %d 元), 確定嗎？[y/N] ", 
+		n, n*1000) != 'y')
+	return 0;
+
     vice(n * 1000, "購買信箱");
     inmailbox(n);
+    vmsgf("已購買信箱。新容量上限: %d", cuser.exmailbox);
     return 0;
 }
 
@@ -381,20 +382,6 @@ mail_redenvelop(const char *from, const char *to, int money, char mode)
     append_record(genbuf, &fhdr, sizeof(fhdr));
 }
 
-/* 計算贈與稅 */
-int
-give_tax(int money)
-{
-    int             i, tax = 0;
-    int      tax_bound[] = {1000000, 100000, 10000, 1000, 0};
-    double   tax_rate[] = {0.4, 0.3, 0.2, 0.1, 0.08};
-    for (i = 0; i <= 4; i++)
-	if (money > tax_bound[i]) {
-	    tax += (money - tax_bound[i]) * tax_rate[i];
-	    money -= (money - tax_bound[i]);
-	}
-    return (tax <= 0) ? 1 : tax;
-}
 
 int do_give_money(char *id, int uid, int money)
 {
@@ -410,7 +397,7 @@ int do_give_money(char *id, int uid, int money)
 	    return -1;		/* 繳完稅就沒錢給了 */
 	deumoney(uid, money - tax);
 	demoney(-money);
-	log_file(FN_MONEY, LOG_CREAT | LOG_VF, "%-12s 給 %-12s %d\t(稅後 %d)\t%s",
+	log_filef(FN_MONEY, LOG_CREAT, "%-12s 給 %-12s %d\t(稅後 %d)\t%s",
                  cuser.userid, id, money, money - tax, ctime4(&now));
 #ifdef PLAY_ANGEL
 	getuser(id, &xuser);
@@ -423,6 +410,13 @@ int do_give_money(char *id, int uid, int money)
 #endif
 	mail_redenvelop(cuser.userid, id, money - tax,
 		getans("要自行書寫紅包袋嗎？[y/N]"));
+	if (money < 50) {
+	    usleep(2000000);
+	} else if (money < 200) {
+	    usleep(500000);
+	} else {
+	    usleep(100000);
+	}
 	return 0;
     }
     return -1;
@@ -446,6 +440,29 @@ p_give(void)
 	return -1;
     }
     return do_give_money(id, uid, atoi(money_buf));
+}
+
+void
+resolve_over18(void)
+{
+    /* get local time */
+    struct tm ptime = *localtime4(&now);
+
+    over18 = 0;
+    /* check if over18 */
+    // 照實歲計算，沒生日的當作未滿 18
+    if (cuser.year < 1 || cuser.month < 1)
+	over18 = 0;
+    else if( (ptime.tm_year - cuser.year) > 18)
+	over18 = 1;
+    else if (ptime.tm_year - cuser.year < 18)
+	over18 = 0;
+    else if ((ptime.tm_mon+1) > cuser.month)
+	over18 = 1;
+    else if ((ptime.tm_mon+1) < cuser.month)
+	over18 = 0;
+    else if (ptime.tm_mday >= cuser.day )
+	over18 = 1;
 }
 
 int
@@ -482,6 +499,33 @@ p_sysinfo(void)
 	   client_code,
 #endif
 	   compile_time, ctime4(&start_time));
+
+#ifdef REPORT_PIAIP_MODULES
+    outs("\n" ANSI_COLOR(1;30)
+	    "Modules powered by piaip:\n"
+	    "\ttelnet protocol, ALOHA fixer, BRC v3\n"
+#if defined(USE_PIAIP_MORE) || defined(USE_PMORE)
+	    "\tpmore (piaip's more) 2007 w/Movie\n"
+#endif
+#ifdef HAVE_GRAYOUT
+	    "\tGrayout Advanced Control 淡入淡出特效系統\n"
+#endif 
+#ifdef EDITPOST_SMARTMERGE
+	    "\tSmart Merge 修文自動合併\n"
+#endif
+#ifdef EXP_EDIT_UPLOAD
+	    "\t(EXP) Editor Uploader 長文上傳\n"
+#endif
+#if defined(USE_PFTERM)
+	    "\t(EXP) pfterm (piaip's flat terminal, Perfect Term)\n"
+#endif
+#if defined(USE_BBSLUA)
+	    "\t(EXP) BBS-Lua\n"
+#endif
+	    ANSI_RESET
+	    );
+#endif // REPORT_PIAIP_MODULES
+
     if (HasUserPerm(PERM_SYSOP)) {
 	struct rusage ru;
 #ifdef __linux__
@@ -499,22 +543,24 @@ p_sysinfo(void)
 	getrusage(RUSAGE_SELF, &ru);
 	prints("記憶體用量: "
 #ifdef IA32
-	       "sbrk: %d KB, "
+	       "sbrk: %u KB, "
 #endif
 #ifdef __linux__
 	       "VmData: %d KB, VmStk: %d KB, "
 #endif
 	       "idrss: %d KB, isrss: %d KB\n",
 #ifdef IA32
-	       ((int)sbrk(0) - 0x8048000) / 1024,
+	       ((unsigned int)sbrk(0) - 0x8048000) / 1024,
 #endif
 #ifdef __linux__
 	       vmdata, vmstk,
 #endif
 	       (int)ru.ru_idrss, (int)ru.ru_isrss);
 	prints("CPU 用量:   %ld.%06ldu %ld.%06lds",
-	       ru.ru_utime.tv_sec, ru.ru_utime.tv_usec,
-	       ru.ru_stime.tv_sec, ru.ru_stime.tv_usec);
+	       (long int)ru.ru_utime.tv_sec, 
+	       (long int)ru.ru_utime.tv_usec,
+	       (long int)ru.ru_stime.tv_sec, 
+	       (long int)ru.ru_stime.tv_usec);
 #ifdef CPULIMIT
 	prints(" (limit %d secs)", (int)(CPULIMIT * 60));
 #endif

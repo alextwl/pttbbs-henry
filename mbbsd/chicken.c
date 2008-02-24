@@ -1,5 +1,8 @@
-/* $Id: chicken.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: chicken.c 3824 2008-01-12 06:13:27Z piaip $ */
 #include "bbs.h"
+
+// TODO pull chicken out of userec.
+// remove chickenpk.
 
 #define NUM_KINDS   15		/* 有多少種動物 */
 
@@ -101,19 +104,24 @@ new_chicken(void)
 {
     chicken_t *mychicken = &cuser.mychicken;
     int             price, i;
+    char tmp_name[sizeof(mychicken->name)];
 
     clear();
     move(2, 0);
-    outs("歡迎光臨 " ANSI_COLOR(33) "◎" ANSI_COLOR(37;44) " 山城寵物市場 " ANSI_COLOR(33;40) "◎" ANSI_RESET ".. "
+    outs("歡迎光臨 " ANSI_COLOR(33) "◎" ANSI_COLOR(37;44) " "
+	 BBSMNAME "寵物市場 " ANSI_COLOR(33;40) "◎" ANSI_RESET ".. "
 	 "目前蛋價：\n"
 	 "(a)小雞 $5   (b)美少女 $25  (c)勇士    $30  (d)蜘蛛  $40  "
 	 "(e)恐龍 $80\n"
 	 "(f)老鷹 $50  (g)貓     $15  (h)蠟筆小新$35  (i)狗狗  $17  "
 	 "(j)惡魔 $100\n"
-	 "(k)忍者 $85  (l)阿扁   $200 (m)馬英九  $200 (n)就可人$100 "
-	 "[o]羅莉 $77\n"
+	 "(k)忍者 $85  (n)就可人$100  [o]羅莉    $77\n"
 	 "[0]自己 $0\n");
     i = getans("請選擇你要養的動物：");
+    // (m, l) were political person.
+    // do not make them in a BBS system...
+    if (i == 'm' || i == 'l')
+	return 0;
 
     i -= 'a';
     if (i < 0 || i > NUM_KINDS - 1)
@@ -128,11 +136,13 @@ new_chicken(void)
 	return 0;
     }
     vice(price, "寵物蛋");
-    while (strlen(mychicken->name) < 3)
-	getdata(8, 0, "幫牠取個好名字：", mychicken->name,
-		sizeof(mychicken->name), DOECHO);
+    strlcpy(tmp_name, mychicken->name, sizeof(tmp_name));
+    while (strlen(tmp_name) < 3)
+	getdata(8, 0, "幫牠取個好名字：", tmp_name,
+		sizeof(tmp_name), DOECHO);
+    strlcpy(mychicken->name, tmp_name, sizeof(mychicken->name));
 
-    log_file(CHICKENLOG, LOG_CREAT | LOG_VF,
+    log_filef(CHICKENLOG, LOG_CREAT,
               ANSI_COLOR(31) "%s " ANSI_RESET "養了一隻叫" ANSI_COLOR(33) " %s " ANSI_RESET "的 "
               ANSI_COLOR(32) "%s" ANSI_RESET "  於 %s\n", cuser.userid,
               mychicken->name, chicken_type[(int)mychicken->type], ctime4(&now));
@@ -200,7 +210,7 @@ show_chicken_data(chicken_t * thechicken, chicken_t * pkchicken)
     /* Ptt:debug */
     thechicken->type %= NUM_KINDS;
     clear();
-    showtitle(pkchicken ? "霞蔚鬥雞場" : "霞蔚養雞場", BBSName);
+    showtitle(pkchicken ? BBSMNAME2 "鬥雞場" : BBSMNAME2 "養雞場", BBSName);
     move(1, 0);
 
     show_chicken_stat(thechicken, age);
@@ -426,75 +436,12 @@ ch_kill(void)
 
 	vice(100, "棄養寵物費");
 	more(CHICKEN_PIC "/deadth", YEA);
-	log_file(CHICKENLOG, LOG_CREAT | LOG_VF,
+	log_filef(CHICKENLOG, LOG_CREAT,
 		 ANSI_COLOR(31) "%s " ANSI_RESET "把 " ANSI_COLOR(33) "%s" ANSI_RESET ANSI_COLOR(32) " %s "
 		 ANSI_RESET "宰了 於 %s\n", cuser.userid, mychicken->name,
 		 chicken_type[(int)mychicken->type], ctime4(&now));
 	mychicken->name[0] = 0;
     }
-}
-
-static int
-ch_sell(int age)
-{
-    chicken_t *mychicken = &cuser.mychicken;
-    /*
-     * int money = (mychicken->weight -
-     * time_change[(int)mychicken->type][WEIGHT])
-     * (food_price[(int)mychicken->type])/4 + ( + ((mychicken->clean /
-     * time_change[(int)mychicken->type][CLEAN]) + (mychicken->run /
-     * time_change[(int)mychicken->type][RUN]) + (mychicken->attack /
-     * time_change[(int)mychicken->type][ATTACK]) + (mychicken->book /
-     * time_change[(int)mychicken->type][BOOK]) + (mychicken->happy /
-     * time_change[(int)mychicken->type][HAPPY]) + (mychicken->satis /
-     * time_change[(int)mychicken->type][SATIS]) + (mychicken->temperament /
-     * time_change[(int)mychicken->type][TEMPERAMENT]) -
-     * (mychicken->tiredstrong /
-     * time_change[(int)mychicken->type][TIREDSTRONG]) - (mychicken->sick /
-     * time_change[(int)mychicken->type][SICK]) + (mychicken->hp /
-     * time_change[(int)mychicken->type][HP_MAX]) + (mychicken->mm /
-     * time_change[(int)mychicken->type][MM_MAX]) + 7 - abs(age - 7)) * 3 ;
-     */
-    int             money = (age * food_price[(int)mychicken->type] * 3
-			     + (mychicken->hp_max * 10 + mychicken->weight) /
-			time_change[(int)mychicken->type][HP_MAX]) * 3 / 2 -
-    mychicken->sick, ans;
-
-    if (money < 0)
-	money = 0;
-    else if (money > MAX_CHICKEN_MONEY)
-	money = MAX_CHICKEN_MONEY;
-    //防止怪雞
-    if (mychicken->type == 1 || mychicken->type == 7) {
-	outs("\n" ANSI_COLOR(31) " ㄜ..親愛的..販賣人口是會犯法的唷.." ANSI_RESET);
-	pressanykey();
-	return 0;
-    }
-    if (age < 5) {
-	outs("\n 還未成年不能賣");
-	pressanykey();
-	return 0;
-    }
-    if (age > 30) {
-	outs("\n" ANSI_COLOR(31) " 這..太老沒人要了" ANSI_RESET);
-	pressanykey();
-	return 0;
-    }
-    ans = getans("這隻%d歲%s可以賣 %d 元, 是否要賣?(y/N)", age, 
-                 chicken_type[(int)mychicken->type], money);
-    if (ans == 'y') {
-	log_file(CHICKENLOG, LOG_CREAT | LOG_VF,
-		 ANSI_COLOR(31) "%s" ANSI_RESET " 把 " ANSI_COLOR(33) "%s" ANSI_RESET " "
-                 ANSI_COLOR(32) "%s" ANSI_RESET " 用 " ANSI_COLOR(36) "%d" ANSI_RESET " 賣了 於 %s\n",
-                 cuser.userid, mychicken->name, 
-                 chicken_type[(int)mychicken->type], money, ctime4(&now));
-	mychicken->lastvisit = mychicken->name[0] = 0;
-	passwd_update(usernum, &cuser);
-	more(CHICKEN_PIC "/sell", YEA);
-	demoney(money);
-	return 1;
-    }
-    return 0;
 }
 
 static void
@@ -640,7 +587,7 @@ deadtype(const chicken_t * thechicken)
 	return 0;
 
     if (thechicken == mychicken) {
-	log_file(CHICKENLOG, LOG_CREAT | LOG_VF,
+	log_filef(CHICKENLOG, LOG_CREAT,
                  ANSI_COLOR(31) "%s" ANSI_RESET " 所疼愛的" ANSI_COLOR(33) " %s" ANSI_COLOR(32) " %s "
                  ANSI_RESET "掛了 於 %s\n", cuser.userid, thechicken->name,
                  chicken_type[(int)thechicken->type], ctime4(&now));
@@ -697,7 +644,7 @@ ch_changename(void)
 
     if (strlen(newname) >= 3 && strcmp(newname, mychicken->name)) {
 	strlcpy(mychicken->name, newname, sizeof(mychicken->name));
-	log_file(CHICKENLOG, LOG_CREAT | LOG_VF, 
+	log_filef(CHICKENLOG, LOG_CREAT, 
                 ANSI_COLOR(31) "%s" ANSI_RESET " 把疼愛的" ANSI_COLOR(33) " %s" ANSI_COLOR(32) " %s "
                 ANSI_RESET "改名為" ANSI_COLOR(33) " %s" ANSI_RESET " 於 %s\n",
                  cuser.userid, mychicken->name,
@@ -721,7 +668,7 @@ select_menu(int age)
 	   "(" ANSI_COLOR(37) "7" ANSI_COLOR(33) ")買%s$%d (" ANSI_COLOR(37) "8" ANSI_COLOR(33) ")吃補丸\n"
 	   "(" ANSI_COLOR(37) "9" ANSI_COLOR(33) ")吃病藥 (" ANSI_COLOR(37) "o" ANSI_COLOR(33) ")買大補丸$100 "
 	   "(" ANSI_COLOR(37) "m" ANSI_COLOR(33) ")買藥$10 (" ANSI_COLOR(37) "k" ANSI_COLOR(33) ")棄養 "
-	   "(" ANSI_COLOR(37) "s" ANSI_COLOR(33) ")賣掉 (" ANSI_COLOR(37) "n" ANSI_COLOR(33) ")改名 "
+	   "(" ANSI_COLOR(37) "n" ANSI_COLOR(33) ")改名 "
 	   "(" ANSI_COLOR(37) "q" ANSI_COLOR(33) ")離開:" ANSI_RESET,
 	   cuser.money,
     /*
@@ -782,10 +729,6 @@ select_menu(int age)
 	case 'k':
 	    ch_kill();
 	    return 0;
-	case 'S':
-	case 's':
-	    if (!ch_sell(age))
-		break;
 	case 'Q':
 	case 'q':
 	    return 0;
@@ -830,15 +773,17 @@ recover_chicken(chicken_t * thechicken)
 	thechicken->satis = 2;
 	vice(money, "靈界守衛");
 	snprintf(buf, sizeof(buf),
-		 ANSI_COLOR(33;44) "★靈界守衛" ANSI_COLOR(37;45) " OK了 記得餵他點東西 "
-		 "不然可能失效 念在我也有玩BBS 拿你%d就好 " ANSI_RESET, money);
+	     ANSI_COLOR(33;44) "★靈界守衛" ANSI_COLOR(37;45) 
+	     " OK了 記得餵他點東西 不然可能失效 "
+	     "念在我也有玩BBS 拿你%d就好 " ANSI_RESET, money);
 	outmsg(buf);
 	bell();
 	igetch();
 	return 1;
     }
-    outmsg(ANSI_COLOR(33;44) "★靈界守衛" ANSI_COLOR(37;45) " 竟然說我坑人! 這年頭命真不值錢 "
-	   "除非我再來找你 你再也沒機會了 " ANSI_RESET);
+    outmsg(ANSI_COLOR(33;44) "★靈界守衛" ANSI_COLOR(37;45) 
+	    " 竟然說我坑人! 這年頭命真不值錢 "
+	    "除非我再來找你 你再也沒機會了 " ANSI_RESET);
     bell();
     igetch();
     thechicken->lastvisit = 0;
@@ -872,6 +817,7 @@ chicken_main(void)
     return 0;
 }
 
+#ifdef USE_CHICKEN_PK
 int
 chickenpk(int fd)
 {
@@ -1014,3 +960,4 @@ chickenpk(int fd)
     unlockutmpmode();
     return 0;
 }
+#endif // USE_CHICKEN_PK

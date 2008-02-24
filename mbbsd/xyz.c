@@ -1,4 +1,4 @@
-/* $Id: xyz.c 3508 2007-05-02 03:39:36Z victor $ */
+/* $Id: xyz.c 3834 2008-01-14 11:50:05Z piaip $ */
 #include "bbs.h"
 
 #if 0
@@ -207,6 +207,7 @@ note(void)
     if ((foo = fopen(".note", "a")) == NULL)
 	return 0;
 
+    unlink(fn_note_ans); // remove first to prevent mmap(pmore) crash
     if ((fp = fopen(fn_note_ans, "w")) == NULL) {
 	fclose(fp);
 	return 0;
@@ -320,8 +321,10 @@ mail_sysop(void)
 		genbuf, 4, DOECHO);
 	i = genbuf[0] - '0' - 1;
 	if (i >= 0 && i < j) {
+	    char *suser = sysoplist[i].userid;
 	    clear();
-	    do_send(sysoplist[i].userid, NULL);
+	    showplans(suser);
+	    do_send(suser, NULL);
 	}
     }
 }

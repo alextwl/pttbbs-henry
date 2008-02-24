@@ -1,8 +1,7 @@
-/* $Id: read.c 3320 2006-04-01 14:30:31Z kcwu $ */
+/* $Id: read.c 3912 2008-02-13 15:43:44Z piaip $ */
 #include "bbs.h"
-#include "fnv_hash.h"
 
-static int headers_size;
+static int headers_size = 0;
 static fileheader_t *headers = NULL;
 static int      last_line; // PTT: last_line 游標可指的最後一個
 
@@ -11,7 +10,7 @@ static int      last_line; // PTT: last_line 游標可指的最後一個
 /* ----------------------------------------------------- */
 /* Tag List 標籤                                         */
 /* ----------------------------------------------------- */
-static TagItem         *TagList;	/* ascending list */
+static TagItem         *TagList = NULL;	/* ascending list */
 
 /**
  * @param locus
@@ -20,7 +19,7 @@ static TagItem         *TagList;	/* ascending list */
 void
 UnTagger(int locus)
 {
-    if (locus > TagNum)
+    if (locus > TagNum || TagNum <= 0)
 	return;
 
     TagNum--;
@@ -36,7 +35,7 @@ Tagger(time4_t chrono, int recno, int mode)
     int             head, tail, posi = 0, comp;
 
     if(TagList == NULL) {
-	TagList = malloc(sizeof(TagItem)*MAXTAGS);
+	TagList = malloc(sizeof(TagItem)*(MAXTAGS+1));
     }
 
     for (head = 0, tail = TagNum - 1, comp = 1; head <= tail;) {
@@ -58,7 +57,7 @@ Tagger(time4_t chrono, int recno, int mode)
 
     }
     if (!comp) {
-	if (mode != TAG_TOGGLE)
+	if (mode != TAG_TOGGLE || TagNum <= 0)
 	    return NA;
 
 	TagNum--;
@@ -174,7 +173,7 @@ TagPruner(int bid)
     assert(bid >= 0);   /* bid == 0 means in mailbox */
     if (bid){
 	bp = getbcache(bid);
-	if (strcmp(bp->brdname, "Security") == 0)
+	if (strcmp(bp->brdname, GLOBAL_SECURITY) == 0)
 	    return DONOTHING;
     }
     if (TagNum && ((currstat != READING) || (currmode & MODE_BOARD))) {
@@ -221,7 +220,7 @@ getkeep(const char *s, int def_topline, int def_cursline)
     static struct keepsome preserv_keepblock;
     static struct keepsome *keeplist = &preserv_keepblock;
     struct keeploc_t *p;
-    unsigned int key=fnv1a_32_str(s, FNV1_32_INIT);
+    unsigned key=StringHash(s);
     int i;
 
     if (def_cursline >= 0) {
@@ -408,9 +407,12 @@ mail_forward(const fileheader_t * fhdr, const char *direct, int mode)
 }
 #endif
 
+// return: 1 - found, 0 - fail.
 inline static int
 dbcs_strcasestr(const char* pool, const char *ptr)
 {
+#if 0
+    // old method
     int len = strlen(ptr);
 
     while(*pool)
@@ -428,6 +430,50 @@ dbcs_strcasestr(const char* pool, const char *ptr)
 	pool ++;
     }
     return 0;
+
+#endif
+
+    int i = 0, i2 = 0, found = 0,
+        szpool = strlen(pool),
+        szptr  = strlen(ptr);
+
+    for (i = 0; i <= szpool-szptr; i++)
+    {
+        found = 1;
+
+        // compare szpool[i..szptr] with ptr
+        for (i2 = 0; i2 < szptr; i2++)
+        {
+            if (pool[i + i2] > 0)
+            {
+                // ascii
+                if (ptr[i2] < 0 || 
+		    tolower(ptr[i2]) != tolower(pool[i+i2]))
+                {
+		    // printf("break on ascii (i=%d, i2=%d).\n", i, i2);
+                    found = 0;
+                    break;
+                }
+            } else {
+                // non-ascii
+                if (ptr[i2]   != pool[i+i2] ||
+                    ptr[i2+1] != pool[i+i2+1])
+                {
+		    // printf("break on non-ascii (i=%d, i2=%d).\n", i, i2);
+                    found = 0;
+                    break;
+                }
+		i2 ++;
+            }
+        }
+
+        if (found) break;
+
+        // next iteration: if target is DBCS, skip one more byte.
+        if (pool[i] < 0)
+            i++;
+    }
+    return found;
 }
 
 static int
@@ -516,7 +562,7 @@ select_read(const keeploc_t * locmem, int sr_mode)
    
    snprintf(genbuf, sizeof(genbuf), "%s%X.%X.%X",
             first_select ? "SR.":p,
-            sr_mode, (int)strlen(keyword), StringHash(keyword));
+            sr_mode, (int)strlen(keyword), DBCS_StringHash(keyword));
    if( strlen(genbuf) > MAXPATHLEN - 50 )
        return  READ_REDRAW; // avoid overflow
 
@@ -528,6 +574,22 @@ select_read(const keeploc_t * locmem, int sr_mode)
    filetime = dasht(newdirect);
    count = dashs(newdirect) / sizeof(fileheader_t);
 
+   if (currstat != RMAIL && currboard[0] && currbid > 0)
+   {
+       time4_t filecreate = dashc(newdirect);
+       boardheader_t *bp  = getbcache(currbid);
+       assert(bp);
+
+       if (bp->SRexpire)
+       {
+	   if (bp->SRexpire > now) // invalid expire time.
+	       bp->SRexpire = now;
+
+	   if (bp->SRexpire > filecreate)
+	       filetime = -1;
+       }
+   }
+
    if(filetime<0 || now-filetime>60*60) {
        reload = 1;
        inc = 0;
@@ -537,6 +599,7 @@ select_read(const keeploc_t * locmem, int sr_mode)
    } else {
        /* use cached data */
        reload = 0;
+       inc = 0;
    }
 
    /* mark and recommend shouldn't incremental select */
@@ -616,9 +679,9 @@ select_read(const keeploc_t * locmem, int sr_mode)
 	       }
 	   } // end while
            close(fr);
+	   ftruncate(fd, count*sizeof(fileheader_t));
+	   close(fd);
        }
-       ftruncate(fd, count*sizeof(fileheader_t));
-       close(fd);
    }
 
    if(count) {
@@ -629,6 +692,8 @@ select_read(const keeploc_t * locmem, int sr_mode)
    }
    return READ_REDRAW;
 }
+
+static int newdirect_new_ln = -1;
 
 static int
 i_read_key(const onekey_t * rcmdlist, keeploc_t * locmem, 
@@ -679,8 +744,130 @@ i_read_key(const onekey_t * rcmdlist, keeploc_t * locmem,
 		mode =  
 		    (currmode & MODE_DIGEST) ? board_digest() : DOQUIT;
 	    break;
+	case '#':
+	    {
+	      char aidc[100];
+	      aidu_t aidu = 0;
+	      char dirfile[PATHLEN];
+	      char *sp;
+	      int n = -1;
+
+	      if(!getdata(b_lines, 0, "搜尋" AID_DISPLAYNAME ": #", aidc, 20, LCECHO))
+	      {
+	        move(b_lines, 0);
+	        clrtoeol();
+	        mode = FULLUPDATE;
+	        break;
+	      }
+
+	      if((currmode & MODE_SELECT) ||
+	         (currstat == RMAIL))
+	      {
+	          move(21, 0);
+	          clrtobot();
+	          move(22, 0);
+	          prints("此狀態下無法使用搜尋" AID_DISPLAYNAME "功\能");
+	          pressanykey();
+	          mode = FULLUPDATE;
+	          break;
+	      }
+
+	      /* strip leading spaces and '#' */
+	      sp = aidc;
+	      while(*sp == ' ')
+	        sp ++;
+	      if(*sp == '#')
+	        sp ++;
+
+	      if((aidu = aidc2aidu(sp)) > 0)
+	      {
+	        /* search bottom */
+	        /* FIXME: 置底文但沒列在 .DIR.bottom 的在這段會搜不到，
+	                  在下一段 search board 時才會搜到本體。難解。 */
+	        {
+	          char buf[FNLEN];
+
+	          snprintf(buf, FNLEN, "%s.bottom", FN_DIR);
+	          setbfile(dirfile, currboard, buf);
+	          if((n = search_aidu(dirfile, aidu)) >= 0)
+	          {
+	            n += getbtotal(currbid);
+	              /* 不可用 bottom_line，因為如果是在 digest mode，
+	                 bottom_line 會是文摘的數目，而不是真正的文章數 */
+	            if(currmode & MODE_DIGEST)
+	            {
+	              newdirect_new_ln = n;
+
+	              new_ln = locmem->crs_ln;
+	                /* dirty hack for crs_ln = 1, then HOME pressed */
+
+	              default_ch = KEY_TAB;
+	              mode = DONOTHING;
+	              break;
+	            }
+	          }
+	        }
+	        if(n < 0)
+	        /* search board */
+	        {
+	          setbfile(dirfile, currboard, FN_DIR);
+	          n = search_aidu(dirfile, aidu);
+	          if(n >= 0 && (currmode & MODE_DIGEST))
+	          /* switch to normal read mode */
+	          {
+	            newdirect_new_ln = n;
+
+	            new_ln = locmem->crs_ln;
+	              /* dirty hack for crs_ln = 1, then HOME pressed */
+
+	            default_ch = KEY_TAB;
+	            mode = DONOTHING;
+	            break;
+	          }
+	        }
+	        if(n < 0)
+	        /* search digest */
+	        {
+	          setbfile(dirfile, currboard, fn_mandex);
+	          n = search_aidu(dirfile, aidu);
+	          if(n >= 0 && !(currmode & MODE_DIGEST))
+	          /* switch to digest mode */
+	          {
+	            newdirect_new_ln = n;
+
+	            new_ln = locmem->crs_ln;
+	              /* dirty hack for crs_ln = 1, then HOME pressed */
+
+	            default_ch = KEY_TAB;
+	            mode = DONOTHING;
+	            break;
+	          }
+	        }
+	      }  /* if(aidu > 0) */
+	      if(n < 0)
+	      {
+	        move(21, 0);
+	        clrtobot();
+	        move(22, 0);
+	        if(aidu <= 0)
+	          prints("不合法的" AID_DISPLAYNAME "，請確定輸入是正確的");
+	        else
+	          prints("找不到這個" AID_DISPLAYNAME "，可能是文章已消失，或是你找錯看板了");
+	        pressanykey();
+	        mode = FULLUPDATE;
+	      }  /* if(n < 0) */
+	      else
+	      {
+	        new_ln = n + 1;
+	        move(b_lines, 0);
+	        clrtoeol();
+	        mode = DONOTHING;
+	      }
+	    }
+	    break;
         case Ctrl('L'):
-	    redoscr();
+	    redrawwin();
+	    refresh();
 	    break;
 
         case Ctrl('H'):
@@ -906,12 +1093,12 @@ i_read_key(const onekey_t * rcmdlist, keeploc_t * locmem,
 		else if( num > 0 ){
                     sprintf(direct,"%s.bottom", currdirect);
 		    mode= (*func)(num, &headers[locmem->crs_ln-locmem->top_ln],
-				  direct);
+				  direct, locmem->crs_ln - locmem->top_ln);
 		}
 		else
                     mode = (*func)(locmem->crs_ln, 
 				   &headers[locmem->crs_ln - locmem->top_ln],
-				   currdirect);
+				   currdirect, locmem->crs_ln - locmem->top_ln);
 		if(mode == READ_SKIP)
                     mode = lastmode;
 
@@ -964,30 +1151,59 @@ i_read_key(const onekey_t * rcmdlist, keeploc_t * locmem,
     return mode;
 }
 
+// recbase:	顯示位置的開頭
+// headers_size:要顯示幾行
+// last_line:	全板 .DIR + 置底 的有效數目
+// bottom_line:	全板 .DIR (無置底) 的有效數目
+
+// XXX never return -1!
+
 static int
 get_records_and_bottom(char *direct,  fileheader_t* headers,
                      int recbase, int headers_size, int last_line, int bottom_line)
 {
-    int     n = bottom_line - recbase + 1, rv;
-    char    directbottom[60];
+    // n: 置底除外的可顯示數目
+    int     n = bottom_line - recbase + 1, rv = 0;
 
-    if( !last_line )
+    if( last_line < 1)	// 完全沒東西
 	return 0;
+
+    // 不顯示置底的情形
     if( n >= headers_size || (currmode & (MODE_SELECT | MODE_DIGEST)) )
-	return get_records(direct, headers, sizeof(fileheader_t), recbase, 
-			   headers_size);
+    {
+	rv = get_records(direct, headers, sizeof(fileheader_t), 
+		recbase, headers_size);
+	return rv > 0 ? rv : 0;
+    }
 
-    sprintf(directbottom, "%s.bottom", direct);
-    if( n <= 0 )
-	return get_records(directbottom, headers, sizeof(fileheader_t), 1-n, 
-			   last_line-recbase + 1);
-      
-    rv = get_records(direct, headers, sizeof(fileheader_t), recbase, n);
+    //////// 顯示本文+置底: ////////
 
-    /* XXX if entries return -1 */
-    if( bottom_line < last_line )
-	rv += get_records(directbottom, headers+n, sizeof(fileheader_t), 1, 
-			  headers_size - n );
+    // 讀取 .DIR 本文
+    if (n > 0)
+    {
+	n = get_records(direct, headers, sizeof(fileheader_t), recbase, n);
+	if (n < 0) n = 0;
+	rv += n; // rv 為有效本文數
+
+	recbase = 1;
+    } else {
+	// n <= 0
+	recbase = 1 + (-n);
+    }
+
+    // 讀取置底 (注意 recbase 可能超過 bottom_line, 也就是以置底第 n 個開始)
+    n = last_line - bottom_line +1 - (recbase-1);
+    if (rv + n > headers_size)
+	n = headers_size - rv;
+
+    if (n > 0) {
+	char    directbottom[PATHLEN];
+	snprintf(directbottom, sizeof(directbottom), "%s.bottom", direct);
+	n = get_records(directbottom, headers+rv, sizeof(fileheader_t), recbase, n);
+	if (n < 0) n = 0;
+	rv += n;
+    }
+
     return rv;
 }
 
@@ -1034,7 +1250,13 @@ i_read(int cmdmode, const char *direct, void (*dotitle) (),
 	    if (mode == NEWDIRECT) {
 		int num;
 		num = last_line - p_lines + 1;
-		locmem = getkeep(currdirect, num < 1 ? 1 : num, last_line);
+		locmem = getkeep(currdirect, num < 1 ? 1 : num, 
+			bottom_line ? bottom_line : last_line);
+		if(newdirect_new_ln >= 0)
+		{
+		  locmem->crs_ln = newdirect_new_ln + 1;
+		  newdirect_new_ln = -1;
+		}
 	    }
 	    recbase = -1;
 	    /* no break */
@@ -1071,7 +1293,7 @@ i_read(int cmdmode, const char *direct, void (*dotitle) (),
 			recbase = 1;
 		    locmem->top_ln = recbase;
 		}
-		/* XXX if entries return -1 */
+		/* XXX if entries return -1 or black-hole */
                 entries = get_records_and_bottom(currdirect,
                            headers, recbase, headers_size, last_line, bottom_line);
 	    }

@@ -1,4 +1,4 @@
-/* $Id: passwd.c 3265 2006-01-04 21:51:58Z ptt $ */
+/* $Id: passwd.c 3930 2008-02-20 11:49:48Z piaip $ */
 #include "bbs.h"
 
 static int      semid = -1;
@@ -76,14 +76,23 @@ passwd_update(int num, userec_t * buf)
     if (num < 1 || num > MAX_USERS)
 	return -1;
     buf->money = moneyof(num);
-    if(usernum == num && ((pwdfd = currutmp->alerts)  & ALERT_PWD))
+    if(usernum == num && currutmp && ((pwdfd = currutmp->alerts)  & ALERT_PWD))
     {
 	userec_t u;
 	passwd_query(num, &u);
 	if(pwdfd & ALERT_PWD_BADPOST)
 	   cuser.badpost = buf->badpost = u.badpost;
+	if(pwdfd & ALERT_PWD_GOODPOST)
+	   cuser.goodpost = buf->goodpost = u.goodpost;
         if(pwdfd & ALERT_PWD_PERM)	
 	   cuser.userlevel = buf->userlevel = u.userlevel;
+        if(pwdfd & ALERT_PWD_JUSTIFY)	
+	{
+	    memcpy(buf->justify,  u.justify, sizeof(u.justify));
+	    memcpy(cuser.justify, u.justify, sizeof(u.justify));
+	    memcpy(buf->email,  u.email, sizeof(u.email));
+	    memcpy(cuser.email, u.email, sizeof(u.email));
+	}
 	currutmp->alerts &= ~ALERT_PWD;
     }
     if ((pwdfd = open(fn_passwd, O_WRONLY)) < 0)
@@ -119,14 +128,14 @@ int initcuser(const char *userid)
 }
 
 int
-passwd_apply(int (*fptr) (int, userec_t *))
+passwd_apply(void *ctx, int (*fptr) (void *ctx, int, userec_t *))
 {
     int             i;
     userec_t        user;
     for (i = 0; i < MAX_USERS; i++) {
 	passwd_query(i + 1, &user);
-	if ((*fptr) (i, &user) == QUIT)
-	    return QUIT;
+	if ((*fptr) (ctx, i, &user) < 0)
+	    return -1;
     }
     return 0;
 }

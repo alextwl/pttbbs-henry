@@ -1,4 +1,4 @@
-/* $Id: admin.c 3508 2007-05-02 03:39:36Z victor $ */
+/* $Id: admin.c 3943 2008-02-23 16:30:53Z piaip $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -97,49 +97,88 @@ search_key_user(const char *passwdfile, int mode)
     int             coun = 0;
     FILE            *fp1 = fopen(passwdfile, "r");
     char            friendfile[128]="", key[22], *keymatch;
-
+    int		    keytype = 0;
 
     assert(fp1);
     clear();
-    getdata(0, 0, mode ? "請輸入使用者關鍵字[電話|地址|姓名|上站地點|"
-	    "email|小雞id] :" : "請輸入id :", key, sizeof(key), DOECHO);
+    if (!mode)
+    {
+	getdata(0, 0, "請輸入id :", key, sizeof(key), DOECHO);
+    } else {
+	// improved search
+	getdata(0, 0, "搜尋哪種欄位?"
+		"([0]全部 1.ID 2.姓名 3.暱稱 4.地址 5.email 6.IP 7.認證/電話) ",
+		key, 2, DOECHO);
+	if (isascii(key[0]) && isdigit(key[0]))
+	    keytype = key[0] - '0';
+	if (keytype < 0 || keytype > 7)
+	    keytype = 0;
+	getdata(0, 0, "請輸入關鍵字: ", key, sizeof(key), DOECHO);
+    }
+
     if(!key[0]) {
 	fclose(fp1);
 	return 0;
     }
     while ((fread(&user, sizeof(user), 1, fp1)) > 0 && coun < MAX_USERS) {
-	if (!(++coun & 15)) {
+
+	// skip empty records
+	if (!user.userid[0])
+	    continue;
+
+	if (!(++coun & 0xFF)) {
 	    move(1, 0);
 	    prints("第 [%d] 筆資料\n", coun);
 	    refresh();
 	}
+
         keymatch = NULL;
-	if (!strcasecmp(user.userid, key))
-             keymatch = user.userid; 
-        else if(mode) {
-             if(strstr(user.realname, key))
-                 keymatch = user.realname; 
-             else if(strstr(user.nickname, key))
-                 keymatch = user.nickname; 
-             else if(strstr(user.lasthost, key))
-                 keymatch = user.lasthost; 
-             else if(strcasestr(user.email, key))
-                 keymatch = user.email; 
-             else if(strstr(user.address, key))
-                 keymatch = user.address; 
-             else if(strstr(user.justify, key))
-                 keymatch = user.justify; 
-             else if(strstr(user.mychicken.name, key))
-                 keymatch = user.mychicken.name; 
+
+	if (!mode)
+	{
+	    // only verify id
+	    if (!strcasecmp(user.userid, key))
+		keymatch = user.userid; 
+	} else {
+	    // search by keytype
+	    if ((!keytype || keytype == 1) &&
+		strcasestr(user.userid, key))
+		keymatch = user.userid;
+	    else if ((!keytype || keytype == 2) &&
+		strcasestr(user.realname, key))
+		keymatch = user.realname;
+	    else if ((!keytype || keytype == 3) &&
+		strcasestr(user.nickname, key))
+		keymatch = user.nickname;
+	    else if ((!keytype || keytype == 4) &&
+		strcasestr(user.address, key))
+		keymatch = user.address;
+	    else if ((!keytype || keytype == 5) &&
+		strcasestr(user.email, key))
+		keymatch = user.email;
+	    else if ((!keytype || keytype == 6) &&
+		strcasestr(user.lasthost, key))
+		keymatch = user.lasthost;
+	    else if ((!keytype || keytype == 7) &&
+		strcasestr(user.justify, key))
+		keymatch = user.justify;
+	    else if ((!keytype) &&
+		strcasestr(user.mychicken.name, key))
+		keymatch = user.mychicken.name; 
 	}
+
         if(keymatch) {
 	    move(1, 0);
 	    prints("第 [%d] 筆資料\n", coun);
 	    refresh();
 
 	    user_display(&user, 1);
+	    // user_display does not have linefeed in tail.
+	    //
 	    if (HasUserPerm(PERM_ACCOUNTS))
 		uinfo_query(&user, 1, coun);
+	    else
+		outs("\n");
 
 	    outs(ANSI_COLOR(44) "               空白鍵" \
 		 ANSI_COLOR(37) ":搜尋下一個          " \
@@ -530,7 +569,7 @@ m_mod_board(char *bname)
 	    memset(&bh, 0, sizeof(bh));
 	    snprintf(bh.title, sizeof(bh.title),
 		     "     %s 看板 %s 刪除", bname, cuser.userid);
-	    post_msg("Security", bh.title, "請注意刪除的合法性", "[系統安全局]");
+	    post_msg(GLOBAL_SECURITY, bh.title, "請注意刪除的合法性", "[系統安全局]");
 	    assert(0<=bid-1 && bid-1<MAX_BOARD);
 	    substitute_record(fn_board, &bh, sizeof(bh), bid);
 	    reset_board(bid);
@@ -660,7 +699,7 @@ m_mod_board(char *bname)
 		    "板主: %s => %s\n"
 		    "GID: %d => %d\n",
 		    bh.brdname, newbh.brdname, bh.BM, newbh.BM, bh.gid, newbh.gid);
-	    post_msg("Security", buf, genbuf, "[系統安全局]");
+	    post_msg(GLOBAL_SECURITY, buf, genbuf, "[系統安全局]");
 	}
     }
     return 0;
@@ -832,7 +871,7 @@ x_file(void)
 	return FULLUPDATE;
     }
     aborted = vedit(fpath, NA, NULL);
-    vmsgf("\n\n系統檔案[%s]：%s", fpath,
+    vmsgf("\n\n系統檔案[%s]: %s", fpath,
 	 (aborted == -1) ? "未改變" : "更新完畢");
     return FULLUPDATE;
 }
@@ -1116,13 +1155,52 @@ auto_scan(char fdata[][STRLEN], char ans[])
 	return 0;
 }
 
-#define REJECT_REASONS (7)
+#define REJECT_REASONS (6)
+#define FN_REGISTER_LOG "register.log"
+
+// read count entries from regsrc to a temp buffer
+FILE *
+pull_regform(const char *regfile, char *workfn, int count)
+{
+    FILE *fp = NULL;
+
+    snprintf(workfn, PATHLEN, "%s.tmp", regfile);
+    if (dashf(workfn)) {
+	vmsg("其他 SYSOP 也在審核註冊申請單");
+	return NULL;
+    }
+
+    // count < 0 means unlimited pulling
+    Rename(regfile, workfn);
+    if ((fp = fopen(workfn, "r")) == NULL) {
+	vmsgf("系統錯誤，無法讀取註冊資料檔: %s", workfn);
+	return NULL;
+    }
+    return fp;
+}
+
+// write all left in "remains" to regfn.
+void
+pump_regform(const char *regfn, FILE *remains)
+{
+    // restore trailing tickets
+    char buf[PATHLEN];
+    FILE *fout = fopen(regfn, "at");
+    if (!fout)
+	return;
+
+    while (fgets(buf, sizeof(buf), remains))
+	fputs(buf, fout);
+    fclose(fout);
+}
+
 /* 處理 Register Form */
+// TODO XXX process someone directly, according to target_uid.
 int
-scan_register_form(const char *regfile, int automode, int neednum)
+scan_register_form(const char *regfile, int automode, const char *target_uid)
 {
     char            genbuf[200];
-    char    *logfile = "register.log";
+    char    *logfile = FN_REGISTER_LOG;
     char    *field[] = {
 	"uid", "name", "career", "addr", "phone", "email", NULL
     };
@@ -1144,33 +1222,18 @@ scan_register_form(const char *regfile, int automode, int neednum)
     userec_t        muser;
     FILE           *fn, *fout, *freg;
     char            fdata[6][STRLEN];
-    char            fname[STRLEN], buf[STRLEN];
+    char            fname[STRLEN] = "", buf[STRLEN];
     char            ans[4], *ptr, *uid;
-    int             n = 0, unum = 0;
+    int             n = 0, unum = 0, tid = 0;
     int             nSelf = 0, nAuto = 0;
 
     uid = cuser.userid;
-    snprintf(fname, sizeof(fname), "%s.tmp", regfile);
     move(2, 0);
-    if (dashf(fname)) {
-	if (neednum == 0) {	/* 自己進 Admin 來審的 */
-	    vmsg("其他 SYSOP 也在審核註冊申請單");
-	}
+
+    fn = pull_regform(regfile, fname, -1);
+    if (!fn)
 	return -1;
-    }
-    Rename(regfile, fname);
-    if ((fn = fopen(fname, "r")) == NULL) {
-	vmsgf("系統錯誤，無法讀取註冊資料檔: %s", fname);
-	return -1;
-    }
-    if (neednum) {		/* 被強迫審的 */
-	move(1, 0);
-	clrtobot();
-	prints("各位具有站長權限的人，註冊單累積超過一百份了，麻煩您幫忙審 %d 份\n", neednum);
-	outs("也就是大概二十分之一的數量，當然，您也可以多審\n"
-	    "沒審完之前，系統不會讓你跳出喲！謝謝");
-	pressanykey();
-    }
+
     while( fgets(genbuf, STRLEN, fn) ){
 	memset(fdata, 0, sizeof(fdata));
 	do {
@@ -1187,6 +1250,7 @@ scan_register_form(const char *regfile, int automode, int neednum)
 		}
 	    }
 	} while( fgets(genbuf, STRLEN, fn) );
+	tid ++;
 
 	if ((unum = getuser(fdata[0], &muser)) == 0) {
 	    move(2, 0);
@@ -1195,9 +1259,7 @@ scan_register_form(const char *regfile, int automode, int neednum)
 	    for (n = 0; field[n]; n++)
 		prints("%s     : %s\n", finfo[n], fdata[n]);
 	    pressanykey();
-	    neednum--;
 	} else {
-	    neednum--;
 	    if (automode)
 		uid = autoid;
 
@@ -1206,21 +1268,21 @@ scan_register_form(const char *regfile, int automode, int neednum)
 
 		move(1, 0);
 		clrtobot();
-		prints("帳號位置    ：%d\n", unum);
+		prints("帳號位置    : %d\n", unum);
 		user_display(&muser, 1);
 		move(14, 0);
 		prints(ANSI_COLOR(1;32) "------------- "
-			"請站長嚴格審核使用者資料，您還有 %d 份"
-			"---------------" ANSI_RESET "\n", neednum);
-	    	prints("  %-12s：%s\n", finfo[0], fdata[0]);
+			"請站長嚴格審核使用者資料，這是第 %d 份"
+			"------------" ANSI_RESET "\n", tid);
+	    	prints("  %-12s: %s\n", finfo[0], fdata[0]);
 #ifdef FOREIGN_REG
-		prints("0.%-12s：%s%s\n", finfo[1], fdata[1],
+		prints("0.%-12s: %s%s\n", finfo[1], fdata[1],
 		       muser.uflag2 & FOREIGN ? " (外籍)" : "");
 #else
-		prints("0.%-12s：%s\n", finfo[1], fdata[1]);
+		prints("0.%-12s: %s\n", finfo[1], fdata[1]);
 #endif
 		for (n = 2; field[n]; n++) {
-		    prints("%d.%-12s：%s\n", n - 1, finfo[n], fdata[n]);
+		    prints("%d.%-12s: %s\n", n - 1, finfo[n], fdata[n]);
 		}
 		if (muser.userlevel & PERM_LOGINOK) {
 		    ans[0] = getkey("此帳號已經完成註冊, "
@@ -1237,10 +1299,10 @@ scan_register_form(const char *regfile, int automode, int neednum)
 		    }
 		    else
 			ans[0] = 's';
-		    if ('A' <= ans[0] && ans[0] <= 'Z')
-			ans[0] += 32;
-		    if (ans[0] != 'y' && ans[0] != 'n' && ans[0] != 'q' &&
-			ans[0] != 'd' && !('0' <= ans[0] && ans[0] <= '4'))
+		    ans[0] = tolower(ans[0]);
+		    if (ans[0] != 'y' && ans[0] != 'n' && 
+			ans[0] != 'q' && ans[0] != 'd' && 
+			!('0' <= ans[0] && ans[0] < ('0' + REJECT_REASONS)))
 			ans[0] = 's';
 		    ans[1] = 0;
 		}
@@ -1248,12 +1310,6 @@ scan_register_form(const char *regfile, int automode, int neednum)
 	    } else
 		nAuto++;
 
-	    if (neednum > 0 && ans[0] == 'q') {
-		move(2, 0);
-		clrtobot();
-		vmsg("沒審完不能退出");
-		ans[0] = 's';
-	    }
 	    switch (ans[0]) {
 	    case 'q':
 		if ((freg = fopen(regfile, "a"))) {
@@ -1266,8 +1322,9 @@ scan_register_form(const char *regfile, int automode, int neednum)
 		}
 	    case 'd':
 		break;
+
 	    case '0': case '1': case '2':
-	    case '3': case '4':
+	    case '3': case '4': case '5':
 		/* please confirm match REJECT_REASONS here */
 	    case 'n':
 		if (ans[0] == 'n') {
@@ -1275,15 +1332,16 @@ scan_register_form(const char *regfile, int automode, int neednum)
 		    move(8, 0);
 		    clrtobot();
 		    outs("請提出退回申請表原因，按 <enter> 取消\n");
-		    for (n = 0; reason[n]; n++)
+		    for (n = 0; n < REJECT_REASONS; n++)
 			prints("%d) 請%s\n", n, reason[n]);
 		    outs("\n"); // preserved for prompt
 		    for (nf = 0; field[nf]; nf++)
 			prints("%s: %s\n", finfo[nf], fdata[nf]);
 		} else
 		    buf[0] = ans[0];
+
 		if (ans[0] != 'n' ||
-		    getdata(9 + n, 0, "退回原因：", buf, 60, DOECHO))
+		    getdata(9 + n, 0, "退回原因: ", buf, 60, DOECHO))
 		    if ((buf[0] - '0') >= 0 && (buf[0] - '0') < n) {
 			int             i, j = 0;
 			fileheader_t    mhdr;
@@ -1297,6 +1355,7 @@ scan_register_form(const char *regfile, int automode, int neednum)
 			mhdr.filemode = 0;
 			sethomedir(title, muser.userid);
 			if (append_record(title, &mhdr, sizeof(mhdr)) != -1) {
+			    char rejfn[PATHLEN];
 			    fp = fopen(buf1, "w");
 			    
 			    for(i = 0; buf[i] && i < sizeof(buf); i++){
@@ -1314,6 +1373,10 @@ scan_register_form(const char *regfile, int automode, int neednum)
 			    }
 
 			    fclose(fp);
+
+			    // build reject file
+			    setuserfile(rejfn, "justify.reject");
+			    Copy(buf1, rejfn);
 			}
 			if ((fout = fopen(logfile, "a"))) {
 			    for (n = 0; field[n]; n++)
@@ -1357,7 +1420,10 @@ scan_register_form(const char *regfile, int automode, int neednum)
 		snprintf(genbuf, sizeof(genbuf), "%s:%s:%s",
 			 fdata[4], fdata[2], uid);
 		strlcpy(muser.justify, genbuf, sizeof(muser.justify));
+
 		passwd_update(unum, &muser);
+		// XXX TODO notify users?
+		sendalert(muser.userid,  ALERT_PWD_PERM); // force to reload perm
 
 		sethomefile(buf, muser.userid, "justify");
 		log_file(buf, LOG_CREAT, genbuf);
@@ -1376,6 +1442,7 @@ scan_register_form(const char *regfile, int automode, int neednum)
 	    }
 	}
     }
+
     fclose(fn);
     unlink(fname);
 
@@ -1388,6 +1455,631 @@ scan_register_form(const char *regfile, int automode, int neednum)
     pressanykey();
     return (0);
 }
+
+#ifdef EXP_ADMIN_REGFORM
+
+#define FORMS_IN_PAGE (10)
+#define REASON_LEN (60)
+static const char *reasonstr[REJECT_REASONS] = {
+    "輸入真實姓名",
+    "詳填(畢業)學校『系』『級』或服務單位(含所屬縣市及職稱)",
+    "填寫完整的住址資料 (含縣市名稱, 台北市請含行政區域)",
+    "詳填連絡電話 (含區碼, 中間不加 '-', '(', ')' 等符號)",
+    "確實填寫註冊申請表",
+    "用中文填寫申請單",
+};
+
+#define REASON_FIRSTABBREV '0'
+#define REASON_IN_ABBREV(x) \
+    ((x) >= REASON_FIRSTABBREV && (x) - REASON_FIRSTABBREV < REJECT_REASONS)
+#define REASON_EXPANDABBREV(x)	 reasonstr[(x) - REASON_FIRSTABBREV]
+
+static void
+prompt_regform_ui()
+{
+    move(b_lines, 0);
+    outs(ANSI_COLOR(30;47)  "  "
+	    ANSI_COLOR(31) "y" ANSI_COLOR(30) "接受 "
+	    ANSI_COLOR(31) "n" ANSI_COLOR(30) "拒絕 "
+	    ANSI_COLOR(31) "d" ANSI_COLOR(30) "刪除 "
+	    ANSI_COLOR(31) "s" ANSI_COLOR(30) "跳過 "
+	    ANSI_COLOR(31) "u" ANSI_COLOR(30) "復原 "
+	    " "
+	    ANSI_COLOR(31) "0-9jk↑↓" ANSI_COLOR(30) "移動 "
+	    ANSI_COLOR(31) "空白/PgDn" ANSI_COLOR(30) "儲存+下頁 "
+	    " "
+	    ANSI_COLOR(31) "q/END" ANSI_COLOR(30) "結束  "
+	    ANSI_RESET);
+}
+
+void
+resolve_reason(char *s, int y)
+{
+    // should start with REASON_FIRSTABBREV
+    const char *reason_prompt = 
+	" (0)真實姓名 (1)詳填系級 (2)完整住址"
+	" (3)詳填電話 (4)確實填寫 (5)中文填寫";
+
+    s[0] = 0;
+    move(y, 0);
+    outs(reason_prompt); outs("\n");
+
+    do {
+	getdata(y+1, 0, 
+		"退回原因: ", s, REASON_LEN, DOECHO);
+
+	// convert abbrev reasons (format: single digit, or multiple digites)
+	if (REASON_IN_ABBREV(s[0]))
+	{
+	    if (s[1] == 0) // simple replace ment
+	    {
+		strlcpy(s+2, REASON_EXPANDABBREV(s[0]),
+			REASON_LEN-2);
+		s[0] = 0xbd; // '請'[0];
+		s[1] = 0xd0; // '請'[1];
+	    } else {
+		// strip until all digites
+		char *p = s;
+		while (*p)
+		{
+		    if (!REASON_IN_ABBREV(*p))
+			*p = ' ';
+		    p++;
+		}
+		strip_blank(s, s);
+		strlcat(s, " [多重原因]", REASON_LEN);
+	    }
+	} 
+
+	if (strlen(s) < 4)
+	{
+	    if (vmsg("原因太短。 要取消退回嗎？ (y/N): ") == 'y')
+	    {
+		*s = 0;
+		return;
+	    }
+	}
+    } while (strlen(s) < 4);
+}
+
+void 
+regform_accept(const char *userid, const char *justify)
+{
+    char buf[PATHLEN];
+    int unum = 0;
+    userec_t muser;
+
+    unum = getuser(userid, &muser);
+    if (unum == 0)
+	return; // invalid user
+
+    muser.userlevel |= (PERM_LOGINOK | PERM_POST);
+    strlcpy(muser.justify, justify, sizeof(muser.justify));
+    // manual accept sets email to 'x'
+    strlcpy(muser.email, "x", sizeof(muser.email)); 
+
+    // handle files
+    sethomefile(buf, muser.userid, "justify.wait");
+    unlink(buf);
+    sethomefile(buf, muser.userid, "justify.reject");
+    unlink(buf);
+    sethomefile(buf, muser.userid, "justify");
+    log_filef(buf, LOG_CREAT, "%s\n", muser.justify);
+
+    // update password file
+    passwd_update(unum, &muser);
+
+    // alert online users?
+    sendalert(muser.userid,  ALERT_PWD_PERM|ALERT_PWD_JUSTIFY); // force to reload perm
+
+#if FOREIGN_REG_DAY > 0
+    if(muser.uflag2 & FOREIGN)
+	mail_muser(muser, "[出入境管理局]", "etc/foreign_welcome");
+    else
+#endif
+    // last: send notification mail
+    mail_muser(muser, "[註冊成功\囉]", "etc/registered");
+}
+
+void 
+regform_reject(const char *userid, char *reason)
+{
+    char buf[PATHLEN];
+    FILE *fp = NULL;
+    int unum = 0;
+    userec_t muser;
+
+    unum = getuser(userid, &muser);
+    if (unum == 0)
+	return; // invalid user
+
+    muser.userlevel &= ~(PERM_LOGINOK | PERM_POST);
+
+    // handle files
+    sethomefile(buf, muser.userid, "justify.wait");
+    unlink(buf);
+
+    // update password file
+    passwd_update(unum, &muser);
+
+    // alert notify users?
+    sendalert(muser.userid,  ALERT_PWD_PERM); // force to reload perm
+
+    // last: send notification
+    mkuserdir(muser.userid);
+    sethomefile(buf, muser.userid, "justify.reject");
+    fp = fopen(buf, "wt");
+    assert(fp);
+    syncnow();
+    fprintf(fp, "%s 註冊失敗。\n", Cdate(&now));
+
+    // multiple abbrev loop
+    if (REASON_IN_ABBREV(reason[0]))
+    {
+	int i = 0;
+	for (i = 0; i < REASON_LEN && REASON_IN_ABBREV(reason[i]); i++)
+	    fprintf(fp, "[退回原因] 請%s\n", REASON_EXPANDABBREV(reason[i]));
+    } else {
+	fprintf(fp, "[退回原因] %s\n", reason);
+    }
+    fclose(fp);
+    mail_muser(muser, "[註冊失敗]", buf);
+}
+
+// TODO define and use structure instead, even in reg request file.
+//
+typedef struct {
+    // current format:
+    // (optional) num: unum, date
+    // [0] uid: xxxxx	(IDLEN=12)
+    // [1] name: RRRRRR (20)
+    // [2] career: YYYYYYYYYYYYYYYYYYYYYYYYYY (40)
+    // [3] addr: TTTTTTTTT (50)
+    // [4] phone: 02DDDDDDDD (20)
+    // [5] email: x (50) (deprecated)
+    // [6] mobile: (deprecated)
+    // [7] ----
+    char userid[IDLEN+1];
+
+    char exist;
+    char online;
+    char pad   [ 5];     // IDLEN(12)+1+1+1+5=20
+
+    char name  [20];
+    char career[40];
+    char addr  [50];
+    char phone [20];
+} RegformEntry;
+
+int
+load_regform_entry(RegformEntry *pre, FILE *fp)
+{
+    char buf[STRLEN];
+    char *v;
+
+    memset(pre, 0, sizeof(RegformEntry));
+    while (fgets(buf, sizeof(buf), fp))
+    {
+	if (buf[0] == '-')
+	    break;
+	buf[sizeof(buf)-1] = 0;
+	v = strchr(buf, ':');
+	if (v == NULL)
+	    continue;
+	*v++ = 0;
+	if (*v == ' ') v++;
+	chomp(v);
+
+	if (strcmp(buf, "uid") == 0)
+	    strlcpy(pre->userid, v, sizeof(pre->userid));
+	else if (strcmp(buf, "name") == 0)
+	    strlcpy(pre->name, v, sizeof(pre->name));
+	else if (strcmp(buf, "career") == 0)
+	    strlcpy(pre->career, v, sizeof(pre->career));
+	else if (strcmp(buf, "addr") == 0)
+	    strlcpy(pre->addr, v, sizeof(pre->addr));
+	else if (strcmp(buf, "phone") == 0)
+	    strlcpy(pre->phone, v, sizeof(pre->phone));
+    }
+    return pre->userid[0] ? 1 : 0;
+}
+
+int
+print_regform_entry(const RegformEntry *pre, FILE *fp, int close)
+{
+    fprintf(fp, "uid: %s\n",	pre->userid);
+    fprintf(fp, "name: %s\n",	pre->name);
+    fprintf(fp, "career: %s\n", pre->career);
+    fprintf(fp, "addr: %s\n",	pre->addr);
+    fprintf(fp, "phone: %s\n",	pre->phone);
+    fprintf(fp, "email: %s\n",	"x");
+    if (close)
+	fprintf(fp, "----\n");
+    return 1;
+}
+
+int
+append_regform(const RegformEntry *pre, const char *logfn, 
+	const char *varname, const char *varval1, const char *varval2)
+{
+    FILE *fout = fopen(logfn, "at");
+    if (!fout)
+	return 0;
+
+    print_regform_entry(pre, fout, 0);
+    if (varname && *varname)
+    {
+	syncnow();
+	fprintf(fout, "Date: %s\n", Cdate(&now));
+	if (!varval1) varval1 = "";
+	fprintf(fout, "%s: %s", varname, varval1);
+	if (varval2) fprintf(fout, " %s", varval2);
+	fprintf(fout, "\n");
+    }
+    // close it
+    fprintf(fout, "----\n");
+    fclose(fout);
+    return 1;
+}
+
+// #define REGFORM_DISABLE_ONLINE_USER
+
+int
+handle_register_form(const char *regfile, int dryrun)
+{
+    int unum = 0;
+    int yMsg = FORMS_IN_PAGE*2+1;
+    FILE *fp = NULL;
+    userec_t muser;
+    RegformEntry forms [FORMS_IN_PAGE];
+    char ans	[FORMS_IN_PAGE];
+    char rejects[FORMS_IN_PAGE][REASON_LEN];	// reject reason length
+    char fname  [PATHLEN] = "";
+    char justify[REGLEN+1];
+    char rsn	[REASON_LEN];
+    int cforms = 0,	// current loaded forms
+	parsed = 0,	// total parsed forms
+	ci = 0, // cursor index
+	ch = 0,	// input key
+	i, blanks;
+    long fsz = 0, fpos = 0;
+
+    // prepare reg tickets
+    if (dryrun)
+    {
+	// directly open regfile to try
+	fp = fopen(regfile, "rt");
+    } else {
+	fp = pull_regform(regfile, fname, -1);
+    }
+
+    if (!fp)
+	return 0;
+
+    // retreieve file info
+    fpos = ftell(fp);
+    fseek(fp, 0, SEEK_END);
+    fsz = ftell(fp);
+    fseek(fp, fpos, SEEK_SET);
+    if (!fsz) fsz = 1;
+
+    while (ch != 'q')
+    {
+	// initialize and prepare
+	memset(ans, 0, sizeof(ans));
+	memset(rejects, 0, sizeof(rejects));
+	memset(forms, 0, sizeof(forms));
+	cforms = 0;
+
+	// load forms
+	while (cforms < FORMS_IN_PAGE && load_regform_entry(&forms[cforms], fp))
+	    cforms++, parsed ++;
+
+	// if no more forms then leave.
+	// TODO what if regform error?
+	if (cforms < 1)
+	    break;
+
+	// adjust cursor if required
+	if (ci >= cforms)
+	    ci = cforms-1;
+
+	// display them all.
+	clear();
+	for (i = 0; i < cforms; i++)
+	{
+	    // fetch user information
+	    memset(&muser, 0, sizeof(muser));
+	    unum = getuser(forms[i].userid, &muser);
+	    forms[i].exist = unum ? 1 : 0;
+	    if (unum) forms[i].online = search_ulist(unum) ? 1 : 0;
+
+	    // if already got login level, delete by default.
+	    if (!unum)
+		ans[i] = 'd';
+	    else {
+		if (muser.userlevel & PERM_LOGINOK)
+		    ans[i] = 'd';
+#ifdef REGFORM_DISABLE_ONLINE_USER
+		else if (forms[i].online)
+		    ans[i] = 's';
+#endif // REGFORM_DISABLE_ONLINE_USER
+	    }
+
+	    // print
+	    move(i*2, 0);
+	    prints("  %2d%s %s%-12s " ANSI_RESET, 
+		    i+1, 
+		    (unum == 0) ? ANSI_COLOR(1;31) "D" :
+		    ( (muser.userlevel & PERM_LOGINOK) ? 
+		      ANSI_COLOR(1;33) "Y" : 
+#ifdef REGFORM_DISABLE_ONLINE_USER
+			  forms[i].online ? "s" : 
+#endif
+			  "."),
+		    forms[i].online ?  ANSI_COLOR(1;35) : ANSI_COLOR(1),
+		    forms[i].userid);
+
+	    prints( ANSI_COLOR(1;31) "%19s " 
+		    ANSI_COLOR(1;32) "%-40s" ANSI_RESET"\n", 
+		    forms[i].name, forms[i].career);
+
+	    move(i*2+1, 0); 
+	    prints("    %s %-50s%20s\n", 
+		    (muser.userlevel & PERM_NOREGCODE) ? 
+		    ANSI_COLOR(1;31) "T" ANSI_RESET : " ",
+		    forms[i].addr, forms[i].phone);
+	}
+
+	// display page info
+	{
+	    char msg[STRLEN];
+	    fpos = ftell(fp);
+	    if (fpos > fsz) fsz = fpos*10;
+	    snprintf(msg, sizeof(msg),
+		    " 已顯示 %d 份註冊單 (%2d%%)  ",
+		    parsed, (int)(fpos*100/fsz));
+	    prints(ANSI_COLOR(7) "\n%78s" ANSI_RESET "\n", msg);
+	}
+
+	// handle user input
+	prompt_regform_ui();
+	ch = 0;
+	while (ch != 'q' && ch != ' ') {
+	    ch = cursor_key(ci*2, 0);
+	    switch (ch)
+	    {
+		// nav keys
+		case KEY_UP:
+		case 'k':
+		    if (ci > 0) ci--;
+		    break;
+
+		case KEY_DOWN:
+		case 'j':
+		    ch = 'j'; // go next
+		    break;
+
+		    // quick nav (assuming to FORMS_IN_PAGE=10)
+		case '1': case '2': case '3': case '4': case '5':
+		case '6': case '7': case '8': case '9':
+		    ci = ch - '1';
+		    if (ci >= cforms) ci = cforms-1;
+		    break;
+		case '0':
+		    ci = 10-1;
+		    if (ci >= cforms) ci = cforms-1;
+		    break;
+
+		    /*
+		case KEY_HOME: ci = 0; break;
+		case KEY_END:  ci = cforms-1; break;
+		    */
+
+		    // abort
+		case KEY_END:
+		case 'q':
+		    ch = 'q';
+		    if (getans("確定要離開了嗎？ (本頁變更將不會儲存) [y/N]: ") != 'y')
+		    {
+			prompt_regform_ui();
+			ch = 0;
+			continue;
+		    }
+		    break;
+
+		    // prepare to go next page
+		case KEY_PGDN:
+		case ' ':
+		    ch = ' ';
+
+		    // solving blank (undecided entries)
+		    for (i = 0, blanks = 0; i < cforms; i++)
+			if (ans[i] == 0) blanks ++;
+
+		    if (!blanks)
+			break;
+
+		    // have more blanks
+		    ch = getans("尚未指定的 %d 個項目要: (S跳過/y通過/n拒絕/e繼續編輯): ", 
+			    blanks);
+
+		    if (ch == 'e')
+		    {
+			prompt_regform_ui();
+			ch = 0;
+			continue;
+		    }
+		    if (ch == 'y') {
+			// do nothing.
+		    } else if (ch == 'n') {
+			// query reject reason
+			resolve_reason(rsn, yMsg);
+			if (*rsn == 0)
+			    ch = 's';
+		    } else ch = 's';
+
+		    // filling answers
+		    for (i = 0; i < cforms; i++)
+		    {
+			if (ans[i] != 0)
+			    continue;
+			ans[i] = ch;
+			if (ch != 'n')
+			    continue;
+			strlcpy(rejects[i], rsn, REASON_LEN);
+		    }
+
+		    ch = ' '; // go to page mode!
+		    break;
+
+		    // function keys
+		case 'y':	// accept
+#ifdef REGFORM_DISABLE_ONLINE_USER
+		    if (forms[ci].online)
+		    {
+			vmsg("暫不開放審核在線上使用者。");
+			break;
+		    }
+#endif
+		case 's':	// skip
+		case 'd':	// delete
+		case KEY_DEL:	//delete
+		    if (ch == KEY_DEL) ch = 'd';
+
+		    grayout(ci*2, ci*2+1, GRAYOUT_DARK);
+		    move_ansi(ci*2, 4); outc(ch);
+		    ans[ci] = ch;
+		    ch = 'j'; // go next
+		    break;
+
+		case 'u':	// undo
+#ifdef REGFORM_DISABLE_ONLINE_USER
+		    if (forms[ci].online)
+		    {
+			vmsg("暫不開放審核在線上使用者。");
+			break;
+		    }
+#endif
+		    grayout(ci*2, ci*2+1, GRAYOUT_NORM);
+		    move_ansi(ci*2, 4); outc('.');
+		    ans[ci] = 0;
+		    ch = 'j'; // go next
+		    break;
+
+		case 'n':	// reject
+#ifdef REGFORM_DISABLE_ONLINE_USER
+		    if (forms[ci].online)
+		    {
+			vmsg("暫不開放審核在線上使用者。");
+			break;
+		    }
+#endif
+		    // query for reason
+		    resolve_reason(rejects[ci], yMsg);
+		    prompt_regform_ui();
+
+		    if (!rejects[ci][0])
+			break;
+
+		    move(yMsg, 0);
+		    prints("退回 %s 註冊單原因:\n %s\n", forms[ci].userid, rejects[ci]);
+
+		    // do reject
+		    grayout(ci*2, ci*2+1, GRAYOUT_DARK);
+		    move_ansi(ci*2, 4); outc(ch);
+		    ans[ci] = ch;
+		    ch = 'j'; // go next
+
+		    break;
+	    } // switch(ch)
+
+	    // change cursor
+	    if (ch == 'j' && ++ci >= cforms)
+		ci = cforms -1;
+	} // while(ch != QUIT/SAVE)
+
+	// if exit, we still need to skip all read forms
+	if (ch == 'q')
+	{
+	    for (i = 0; i < cforms; i++)
+		ans[i] = 's';
+	}
+
+	// page complete (save).
+	assert(ch == ' ' || ch == 'q');
+
+	// save/commit if required.
+	if (dryrun) 
+	{
+	    // prmopt for debug
+	    clear();
+	    stand_title("測試模式");
+	    outs("您正在執行測試模式，所以剛審的註冊單並不會生效。\n"
+		    "下面列出的是剛才您審完的結果:\n\n");
+
+	    for (i = 0; i < cforms; i++)
+	    {
+		if (ans[i] == 'y')
+		    snprintf(justify, sizeof(justify), // build justify string
+			    "%s:%s:%s", forms[i].phone, forms[i].career, cuser.userid);
+
+		prints("%2d. %-12s - %c %s\n", i+1, forms[i].userid, ans[i],
+			ans[i] == 'n' ? rejects[i] : 
+			ans[i] == 'y' ? justify : "");
+	    }
+	    if (ch != 'q')
+		pressanykey();
+	} 
+	else 
+	{
+	    // real functionality
+	    for (i = 0; i < cforms; i++)
+	    {
+		if (ans[i] == 'y')
+		{
+		    // build justify string
+		    snprintf(justify, sizeof(justify), 
+			    "%s:%s:%s", forms[i].phone, forms[i].career, cuser.userid);
+
+		    regform_accept(forms[i].userid, justify);
+		    // log form to FN_REGISTER_LOG
+		    append_regform(&forms[i], FN_REGISTER_LOG,
+			    "Approved", cuser.userid, NULL);
+		}
+		else if (ans[i] == 'n')
+		{
+		    regform_reject(forms[i].userid, rejects[i]);
+		    // log form to FN_REGISTER_LOG
+		    append_regform(&forms[i], FN_REGISTER_LOG,
+			    "Rejected", cuser.userid, rejects[i]);
+		}
+		else if (ans[i] == 's')
+		{
+		    // append form back to fn_register
+		    append_regform(&forms[i], fn_register,
+			    NULL, NULL, NULL);
+		}
+	    }
+	} // !dryrun
+
+    } // while (ch != 'q')
+
+    // cleaning left regforms
+    if (!dryrun)
+    {
+	pump_regform(regfile, fp);
+	fclose(fp);
+        unlink(fname);
+    } else {
+	// directly close file should be OK.
+	fclose(fp);
+    }
+
+    return 0;
+}
+
+#endif // EXP_ADMIN_REGFORM
 
 int
 m_register(void)
@@ -1419,9 +2111,38 @@ m_register(void)
 	}
     }
     fclose(fn);
-    getdata(b_lines - 1, 0, "開始審核嗎(Yes/No)？[N] ", ans, sizeof(ans), LCECHO);
-    if (ans[0] == 'y')
-	scan_register_form(fn_register, 0, 0);
+    getdata(b_lines - 1, 0, 
+#ifdef EXP_ADMIN_REGFORM
+	    "開始審核嗎(Auto自動/Yes手動/No不審/Exp新界面)？[N] ", 
+#else
+	    "開始審核嗎(Auto自動/Yes手動/No不審)？[N] ", 
+#endif
+	    ans, sizeof(ans), LCECHO);
+    if (ans[0] == 'a')
+	scan_register_form(fn_register, 1, NULL);
+    else if (ans[0] == 'y')
+	scan_register_form(fn_register, 0, NULL);
+
+#ifdef EXP_ADMIN_REGFORM
+    else if (ans[0] == 'e')
+    {
+#ifdef EXP_ADMIN_REGFORM_DRYRUN
+	int dryrun = 0;
+	if (getans("你要進行純測試(T)還是真的執行審核(y)？") == 'y')
+	{
+	    vmsg("進入實際執行模式，所有審核動作都是真的。");
+	    dryrun = 0;
+	} else {
+	    vmsg("測試模式。");
+	    dryrun = 1;
+	}
+	handle_register_form(fn_register, dryrun);
+#else
+	// run directly.
+	handle_register_form(fn_register, 0);
+#endif
+    }
+#endif
 
     return 0;
 }
@@ -1448,7 +2169,7 @@ give_id_money(const char *user_id, int money, const char *mail_title)
 	prints("id:%s money:%d 不對吧!!", user_id, money);
 	pressanykey();
     } else {
-	snprintf(tt, sizeof(tt), "%s : %d 新山城幣", mail_title, money);
+	snprintf(tt, sizeof(tt), "%s : %d " MONEYNAME " 幣", mail_title, money);
 	mail_id(user_id, tt, "etc/givemoney.why", "[山城銀行]");
     }
 }
@@ -1516,7 +2237,7 @@ give_money(void)
             fprintf(fp2,"給 %s : %d\n", id, money);
             count++;
 	}
-        sprintf(buf, "(%d人:%dP幣)", count, count*money);
+        sprintf(buf, "(%d人:%d"MONEYNAME"幣)", count, count*money);
         strcat(reason, buf);
     } else {
 	if (!(fp = fopen("etc/givemoney.txt", "r+"))) {
@@ -1537,7 +2258,7 @@ give_money(void)
             count++;
 	}
 	fclose(fp);
-        sprintf(buf, "(%d人:%dP幣)", count, total_money);
+        sprintf(buf, "(%d人:%d"MONEYNAME"幣)", count, total_money);
         strcat(reason, buf);
     
     }
@@ -1545,7 +2266,7 @@ give_money(void)
     fclose(fp2);
 
     sprintf(buf, "%s 紅包機: %s", cuser.userid, reason);
-    post_file("Security", buf, "etc/givemoney.log", "[紅包機報告]");
+    post_file(GLOBAL_SECURITY, buf, "etc/givemoney.log", "[紅包機報告]");
     pressanykey();
     return FULLUPDATE;
 }

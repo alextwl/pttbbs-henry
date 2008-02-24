@@ -1,22 +1,10 @@
-/* $Id: writemoney.c 2919 2005-07-08 00:52:38Z wens $ */
+/* $Id: writemoney.c 3673 2007-12-12 01:42:23Z kcwu $ */
 /* 把 SHM 中的 money 全部寫回 .PASSWDS */
 #define _UTIL_C_
 #include "bbs.h"
 
 time4_t now;
 extern SHM_t   *SHM;
-
-int invalid(char *userid) {
-    int i;
-    
-    if(!isalpha(userid[0]))
-	return 1;
-    
-    for(i = 1; i < IDLEN && userid[i]; i++)
-	if(!isalpha(userid[i]) && !isdigit(userid[i]))
-	    return 1;
-    return 0;
-}
 
 int main()
 {

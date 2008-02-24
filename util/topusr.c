@@ -1,4 +1,4 @@
-/* $Id: topusr.c 2887 2005-07-04 06:52:14Z victor $ */
+/* $Id: topusr.c 3673 2007-12-12 01:42:23Z kcwu $ */
 /* 使用者 上站記錄/文章篇數 排行榜 */
 #define _UTIL_C_
 #include "bbs.h"
@@ -91,22 +91,6 @@ int
 }
 #endif				/* HAVE_TIN */
 
-int
-bad_user_id(const char *userid)
-{
-    register char ch;
-    if (strlen(userid) < 2)
-	return 1;
-    if (not_alpha(*userid))
-	return 1;
-    while((ch = *(++userid)))
-    {
-	if (not_alnum(ch))
-	    return 1;
-    }
-    return 0;
-}
-
 int main(int argc, char **argv)
 {
     int i, j;
@@ -137,7 +121,7 @@ int main(int argc, char **argv)
         aman.userid[IDLEN]=0;
         aman.nickname[22]=0;
 	if((aman.userlevel & PERM_NOTOP) || !aman.userid[0] || 
-	   bad_user_id(aman.userid) || 
+	   !is_validuserid(aman.userid) || 
 	   strchr(aman.userid, '.'))
 	{
 	    continue;

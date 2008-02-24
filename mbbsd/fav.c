@@ -1,4 +1,4 @@
-/* $Id: fav.c 3541 2007-06-10 16:13:55Z kcwu $ */
+/* $Id: fav.c 3891 2008-01-31 05:26:04Z piaip $ */
 #include "bbs.h"
 
 /**
@@ -183,17 +183,18 @@ inline static int get_line_num(fav_t *fp) {
 /**
  * 設定某個 flag。
  * @bit: 目前所有 flags 有: FAVH_FAV, FAVH_TAG, FAVH_UNREAD, FAVH_ADM_TAG
- * @param bool: FALSE: unset, TRUE: set, EXCH: opposite
+ * @param cmd: FALSE: unset, TRUE: set, EXCH: opposite
  */
-void set_attr(fav_type_t *ft, int bit, char bool){
+void set_attr(fav_type_t *ft, int bit, char cmd){
     if (ft == NULL)
 	return;
-    if (bool == EXCH)
+    if (cmd == EXCH)
 	ft->attr ^= bit;
-    else if (bool == TRUE)
+    else if (cmd == TRUE)
 	ft->attr |= bit;
     else
 	ft->attr &= ~bit;
+    dirty = 1;
 }
 
 inline int is_set_attr(fav_type_t *ft, char bit){
@@ -510,6 +511,7 @@ static int read_favrec(FILE *frp, fav_t *fp)
 
 /**
  * 從記錄檔中 load 出我的最愛。
+ * TODO create default fav, and add SYSOP/PttNewHand (see reginit_fav)
  */
 int fav_load(void)
 {
@@ -542,6 +544,7 @@ int fav_load(void)
 #endif
 	{
 	    fp = (fav_t *)fav_malloc(sizeof(fav_t));
+	    fav_number = 0;
 	    fav_stack_push_fav(fp);
 	}
 	return 0;
@@ -1205,6 +1208,36 @@ void subscribe_newfav(void)
     updatenewfav(0);
 }
 
+// create defaults for new user
+void reginit_fav(void)
+{
+    int bid = 0;
+
+    fav_load(); // for creating root
+
+#ifdef GLOBAL_NEWBIE
+    bid = getbnum(GLOBAL_NEWBIE);
+    if (bid > 0) fav_add_board(bid);
+#endif
+
+#ifdef GLOBAL_TEST
+    bid = getbnum(GLOBAL_TEST);
+    if (bid > 0) fav_add_board(bid);
+#endif
+
+#ifdef GLOBAL_ASKBOARD
+    bid = getbnum(GLOBAL_ASKBOARD);
+    if (bid > 0) fav_add_board(bid);
+#endif
+
+#ifdef GLOBAL_SYSOP
+    bid = getbnum(GLOBAL_SYSOP);
+    if (bid > 0) fav_add_board(bid);
+#endif
+
+    fav_save();
+}
+
 #if 1 // DEPRECATED
 typedef struct {
     char            fid;
@@ -1283,3 +1316,5 @@ static void fav4_read_favrec(FILE *frp, fav_t *fp)
     }
 }
 #endif
+
+// vim:ts=8:sw=4

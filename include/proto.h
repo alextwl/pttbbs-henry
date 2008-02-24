@@ -1,4 +1,4 @@
-/* $Id: proto.h 3542 2007-06-12 14:59:46Z kcwu $ */
+/* $Id: proto.h 3931 2008-02-20 14:32:47Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -25,7 +25,6 @@ char *setstate(char *state);
 int m_loginmsg(void);
 int m_mod_board(char *bname);
 int m_newbrd(int whatclass, int recover);
-int scan_register_form(const char *regfile, int automode, int neednum);
 int m_user(void);
 int search_user_bypwd(void);
 int search_user_bybakpwd(void);
@@ -40,10 +39,9 @@ int make_symbolic_link_interactively(int gid);
 void merge_dir(const char *dir1, const char *dir2, int isoutter);
 
 /* announce */
-int a_menu(const char *maintitle, const char *path, int lastlevel, char *trans_buffer);
+int a_menu(const char *maintitle, const char *path, int lastlevel, int lastbid, char *trans_buffer);
 void a_copyitem(const char* fpath, const char* title, const char* owner, int mode);
 int Announce(void);
-void gem(char* maintitle, item_t* path, int update);
 #ifdef BLOG
 void BlogMain(int);
 #endif
@@ -60,14 +58,14 @@ int inc_badsale(const char *, int num);
 //void set_assess(int uid, unsigned char num, int type);
 
 /* bbs */
-void delete_allpost(char *userid);
+void delete_allpost(const char *userid);
 int invalid_brdname(const char *brd);
-void chomp(char *src);
 int del_range(int ent, const fileheader_t *fhdr, const char *direct);
 int cmpfowner(fileheader_t *fhdr);
 int b_note_edit_bname(int bid);
 int Read(void);
 int CheckPostPerm(void);
+int CheckPostRestriction(int);
 void anticrosspost(void);
 int Select(void);
 void do_reply_title(int row, const char *title);
@@ -87,7 +85,9 @@ int check_cooldown(boardheader_t *bp);
 
 /* board */
 #define setutmpbid(bid) currutmp->brc_id=bid;
+int enter_board(const char *boardname);
 int HasBoardPerm(boardheader_t *bptr);
+int b_config();
 int New(void);
 int Favorite(void);
 int Class(void);
@@ -100,11 +100,12 @@ void sigfree(int);
 /* brc */
 int brc_initialize(void);
 void brc_finalize(void);
-
-int brc_unread(int bid, const char *fname);
-int brc_unread_time(int bid, time4_t ftime);
 int brc_initial_board(const char *boardname);
-void brc_addlist(const char* fname);
+
+// v3 api: add 'modified' tag
+int brc_unread(int bid, const char *fname, time4_t modified);
+int brc_unread_time(int bid, time4_t ftime,time4_t modified);
+void brc_addlist(const char* fname, time4_t modified);
 
 void brc_update(void);
 
@@ -129,6 +130,7 @@ void touch_boards(void);
 void addbrd_touchcache(void);
 void setapath(char *buf, const char *boardname);
 void setutmpmode(unsigned int mode);
+unsigned int  getutmpmode(void);
 void setadir(char *buf, const char *path);
 int apply_boards(int (*func)(boardheader_t *));
 int haspostperm(const char *bname);
@@ -154,7 +156,7 @@ int setumoney(int uid, int money);
 userinfo_t *search_ulist_pid(int pid);
 userinfo_t *search_ulist_userid(const char *userid);
 void hbflreload(int bid);
-int hbflcheck(int bid, int uid);
+int is_hidden_board_friend(int bid, int uid);
 void *attach_shm(int shmkey, int shmsize);
 void attach_SHM(void);
 int is_BM_cache(int);
@@ -186,6 +188,7 @@ int p_from(void);
 int ordersong(void);
 int p_exmail(void);
 void mail_redenvelop(const char* from, const char* to, int money, char mode);
+void resolve_over18(void);
 
 /* card */
 int g_card_jack(void);
@@ -219,11 +222,20 @@ int dice_main(void);
 
 /* edit */
 int vedit(char *fpath, int saveheader, int *islocal);
+int vedit2(char *fpath, int saveheader, int *islocal, int flags);
 void write_header(FILE *fp, char *mytitle);
 void addsignature(FILE *fp, int ifuseanony);
 void auto_backup(void);
 void restore_backup(void);
 char *ask_tmpbuf(int y);
+void edit_outs(const char *text);
+void edit_outs_n(const char *text, int n);
+
+/* emaildb */
+#ifdef USE_EMAILDB
+int emaildb_check_email(char * email, int email_len);
+int emaildb_update_email(char * userid, int userid_len, char * email, int email_len);
+#endif
 
 /* fav */
 void fav_set_old_folder(fav_t *fp);
@@ -269,6 +281,7 @@ fav_t *get_fav_folder(fav_type_t *ft);
 fav_t *get_fav_root(void);
 int updatenewfav(int mode);
 void subscribe_newfav(void);
+void reginit_fav(void);
 
 /* file */
 int file_count_line(const char *file);
@@ -281,6 +294,7 @@ void friend_load(int);
 int t_override(void);
 int t_import_old_pal(void);
 int t_reject(void);
+int t_fix_aloha();
 void friend_add(const char *uident, int type, const char *des);
 void friend_delete(const char *uident, int type);
 void friend_delete_all(const char *uident, int type);
@@ -319,26 +333,28 @@ void set_converting_type(int which);
 /* io */
 int getdata(int line, int col, const char *prompt, char *buf, int len, int echo);
 int igetch(void);
-int wait_input(float f, int flDoRefresh);
+int wait_input(float f, int bIgnoreBuf);
+int peek_input(float f, int c);
+void drop_input(void);
 int getdata_str(int line, int col, const char *prompt, char *buf, int len, int echo, const char *defaultstr);
 int getdata_buf(int line, int col, const char *prompt, char *buf, int len, int echo);
 void add_io(int fd, int timeout);
 void oflush(void);
-int strip_ansi(char *buf, const char *str, int mode);
-void strip_nonebig5(unsigned char *str, int maxlen);
 int oldgetdata(int line, int col, const char *prompt, char *buf, int len, int echo);
 void output(const char *s, int len);
 int num_in_buf(void);
+int input_isfull();
 int ochar(int c);
 
 /* kaede */
-int Rename(const char* src, const char* dst);
-int Copy(const char *src, const char *dst);
-int CopyN(const char *src, const char *dst, int n);
-int AppendTail(const char *src, const char *dst, int off);
-int Link(const char* src, const char* dst);
 char *Ptt_prints(char *str, size_t size, int mode);
-char *my_ctime(const time4_t *t, char *ans, int len);
+void prints(const char *fmt, ...) GCC_CHECK_FORMAT(1,2);
+void mouts(int y, int x, const char *str);
+void outmsg(const char *msg);
+void outmsglr(const char *msg, int llen, const char *rmsg, int rlen);
+void outs_n(const char *str, int n);
+void outslr(const char *left, int leftlen, const char *right, int rightlen);
+void out_lines(const char *str, int line);
 
 /* lovepaper */
 int x_love(void);
@@ -383,7 +399,6 @@ void talk_request(int sig);
 int reply_connection_request(const userinfo_t *uip);
 int establish_talk_connection(const userinfo_t *uip);
 void my_talk(userinfo_t * uin, int fri_stat, char defact);
-ssize_t tty_read(unsigned char *buf, size_t max);
 int query_file_money(const fileheader_t *pfh);
 
 /* menu */
@@ -406,8 +421,11 @@ void m_sob_brd(char *bname,char *fromdir);
 
 /* old more */
 int more(char *fpath, int promptend);
-/* piaip's new pager */
+/* piaip's new pager, pmore.c */
 int pmore(char *fpath, int promptend);
+/* piaip's new telnet, telnet.c */
+void telnet_init(void);
+ssize_t tty_read(unsigned char *buf, size_t max);
 
 /* name */
 typedef int (*gnc_comp_func)(int, const char*, int);
@@ -417,6 +435,7 @@ typedef char* (*gnc_getname_func)(int);
 extern void NameList_init(struct NameList *self);
 extern void NameList_delete(struct NameList *self);
 extern void NameList_clear(struct NameList *self);
+extern void NameList_resizefor(struct NameList *self, int size);
 extern void NameList_add(struct NameList *self, const char *name);
 extern void namecomplete2(struct NameList *namelist, const char *prompt, char *data);
 
@@ -552,36 +571,49 @@ int reversi_personal(void);
 int reversi_watch(void);
 ChessInfo* reversi_replay(FILE* fp);
 
-/* screen */
-void mouts(int y, int x, const char *str);
-void move(int y, int x);
-void outs(const char *str);
-void outs_n(const char *str, int n);
-void outslr(const char *left, int leftlen, const char *right, int rightlen);
-void clrtoeol(void);
-void clear(void);
-void refresh(void);
-void clrtobot(void);
-void outmsg(const char *msg);
-void outmsglr(const char *msg, int llen, const char *rmsg, int rlen);
-void prints(const char *fmt, ...) GCC_CHECK_FORMAT(1,2);
-void region_scroll_up(int top, int bottom);
+/* screen/pfterm (ncurses-like) */
+void initscr	(void);
+int  resizeterm	(int rows, int cols);
+void getyx	(int *py, int *px);
+void move	(int y, int x);
+void clear	(void);
+void clrtoeol	(void);
+void clrtobot	(void);
+void clrtoln	(int ln);
+void newwin	(int nlines, int ncols, int y, int x);
+void refresh	(void);
+void doupdate	(void);
+int  typeahead  (int fd);
+void redrawwin	(void);
+void scroll	(void);
+void rscroll	(void);
+int  instr	(char *str);
+int  innstr	(char *str, int n);
+void scr_dump	(screen_backup_t *buf);
+void scr_restore(const screen_backup_t *buf);
+// non-curses
 void outc(unsigned char ch);
-void redoscr(void);
-void redoln(void);
-void clrtoline(int line);
+void outs(const char *s);
+void outns(const char *str, int n);
+void outstr(const char *str); // prepare and print a complete non-ANSI string.
+int  inansistr(char *str, int n);
+void move_ansi(int y, int x);
+void getyx_ansi(int *py, int *px);
+void region_scroll_up(int top, int bottom);
+// deprecated
 void standout(void);
 void standend(void);
-void edit_outs(const char *text);
-void edit_outs_n(const char *text, int n);
-void outch(unsigned char c);
-void rscroll(void);
-void scroll(void);
-void getyx(int *y, int *x);
-void initscr(void);
-void out_lines(const char *str, int line);
-void screen_backup(screen_backup_t *buf);
-void screen_restore(const screen_backup_t *buf);
+#define HAVE_GRAYOUT
+void grayout(int start, int end, int level);
+
+/* AIDS */
+typedef uint64_t aidu_t;
+aidu_t fn2aidu(char *fn);
+char *aidu2aidc(char *buf, aidu_t aidu);
+char *aidu2fn(char *buf, aidu_t aidu);
+aidu_t aidc2aidu(char *aidc);
+int search_aidu(char *bfile, aidu_t aidu);
+/* end of AIDS */
 
 /* stuff */
 #define isprint2(ch) ((ch & 0x80) || isprint(ch))
@@ -589,7 +621,6 @@ void screen_restore(const screen_backup_t *buf);
 #define not_alnum(ch) (ch < '0' || (ch > '9' && ch < 'A') || (ch > 'Z' && ch < 'a') || ch > 'z')
 #define pressanykey() vmsg(NULL)
 int log_user(const char *fmt, ...) GCC_CHECK_FORMAT(1,2);
-unsigned int ipstr2int(const char *ip);
 time4_t gettime(int line, time4_t dt, const char* head);
 void setcalfile(char *buf, char *userid);
 void stand_title(const char *title);
@@ -597,43 +628,31 @@ char getans(const char *fmt,...) GCC_CHECK_FORMAT(1,2);
 int getkey(const char *fmt,...) GCC_CHECK_FORMAT(1,2);
 int vmsgf(const char *fmt,...) GCC_CHECK_FORMAT(1,2);
 int vmsg(const char *msg);
-void trim(char *buf);
 int show_file(const char *filename, int y, int lines, int mode);
 void bell(void);
 void setbpath(char *buf, const char *boardname);
-int dashf(const char *fname);
 void sethomepath(char *buf, const char *userid);
 void sethomedir(char *buf, const char *userid);
-char *Cdate(const time4_t *clock);
 void sethomefile(char *buf, const char *userid, const char *fname);
-int log_file(const char *fn, int flag, const char *fmt,...);
-void str_lower(char *t, const char *s);
 int cursor_key(int row, int column);
 int search_num(int ch, int max);
 void setuserfile(char *buf, const char *fname);
 int is_BM(const char *list);
-time4_t dasht(const char *fname);
-int dashd(const char *fname);
-int invalid_pname(const char *str);
 void setbdir(char *buf, const char *boardname);
 void setbfile(char *buf, const char *boardname, const char *fname);
 void setbnfile(char *buf, const char *boardname, const char *fname, int n);
-int dashl(const char *fname);
+void setaidfile(char *buf, const char *bn, aidu_t aidu);
 char *subject(char *title);
+int is_validuserid(const char *id);
 void setdirpath(char *buf, const char *direct, const char *fname);
 int str_checksum(const char *str);
 void show_help(const char * const helptext[]);
 void show_helpfile(const char * helpfile);
-int copy_file(const char *src, const char *dst);
 int belong(const char *filelist, const char *key);
-char *Cdatedate(const time4_t *clock);
 void sethomeman(char *buf, const char *userid);
-off_t dashs(const char *fname);
 void cursor_clear(int row, int column);
 void cursor_show(int row, int column);
 void printdash(const char *mesg, int msglen);
-char *Cdatelite(const time4_t *clock);
-int is_validuserid(const char *ident);
 int userid_is_BM(const char *userid, const char *list);
 int is_uBM(const char *list, const char *id);
 inline int *intbsearch(int key, const int *base0, int nmemb);
@@ -646,24 +665,10 @@ int qsort_intcompar(const void *a, const void *b);
     void *MALLOC(int size);
     void FREE(void *ptr);
 #endif
-#ifdef OUTTACACHE
-int tobind(const char *iface_ip, int port);
-int toconnect(const char *host, int port);
-int toread(int fd, void *buf, int len);
-int towrite(int fd, const void *buf, int len);
-#endif
 #ifdef PLAY_ANGEL
 void pressanykey_or_callangel(void);
 #endif
-#ifdef TIMET64
-    struct tm *localtime4(const time4_t *);
-    time4_t time4(time4_t *);
-    char *ctime4(const time4_t *);
-#else
-    #define localtime4(a) localtime(a)
-    #define time4(a)      time(a)
-    #define ctime4(a)     ctime(a)
-#endif
+void syncnow(void);
 
 /* syspost */
 int post_msg(const char* bname, const char* title, const char *msg, const char* author);
@@ -703,6 +708,7 @@ int isvisible_uid(int tuid);
 int friend_stat(const userinfo_t *me, const userinfo_t * ui);
 int call_in(const userinfo_t *uentp, int fri_stat);
 int make_connection_to_somebody(userinfo_t *uin, int timeout);
+int query_online(const char *userid);
 #ifdef PLAY_ANGEL
 int t_changeangel(void);
 int t_angelmsg(void);
@@ -732,9 +738,10 @@ void sortsong(void);
 int topsong(void);
 
 /* user */
-int kill_user(int num, char *userid);
+int kill_user(int num, const char *userid);
 int u_editcalendar(void);
 void user_display(const userec_t *u, int real);
+int isvalidemail(const char *email);
 void uinfo_query(userec_t *u, int real, int unum);
 int showsignature(char *fname, int *j, SigInfo *psi);
 int u_cancelbadpost();
@@ -798,13 +805,24 @@ int note(void);
 int Goodbye(void);
 
 /* toolkit */
-unsigned StringHash(const char *s);
+unsigned DBCS_StringHash(const char *s);
+
+/* BBS-LUA */
+int bbslua(const char *fpath);
+int bbslua_isHeader(const char *ps, const char *pe);
+
+
+/* recycle */
+// public
+int RcyAddFile(const fileheader_t *fhdr, int bid, const char *fpath);
+int RcyAddDir (const fileheader_t *fhdr, int bid, const char *direct);
+int RcyRecycleBin(void);
 
 /* passwd */
 int passwd_init(void);
 int passwd_update(int num, userec_t *buf);
 int passwd_query(int num, userec_t *buf);
-int passwd_apply(int (*fptr)(int, userec_t *));
+int passwd_apply(void *data, int (*fptr)(void *, int, userec_t *));
 void passwd_lock(void);
 void passwd_unlock(void);
 int passwd_update_money(int num);
@@ -815,7 +833,6 @@ int freecuser(void);
 /* calendar */
 int calendar(void);
 int ParseDate(const char *date, int *year, int *month, int *day);
-int getHoroscope(int m, int d);
 
 /* util */
 void touchbtotal(int bid);

@@ -1,4 +1,4 @@
-/* $Id: chess.c 3525 2007-06-01 13:47:00Z scw $ */
+/* $Id: chess.c 3717 2007-12-21 10:36:17Z piaip $ */
 #include "bbs.h"
 #include "chess.h"
 #include <setjmp.h>
@@ -887,10 +887,9 @@ ChessWatchRequest(int sig)
     int sock = establish_talk_connection(&SHM->uinfo[currutmp->destuip]);
     ChessBroadcastListNode* node;
 
-    if (sock < 0)
+    if (sock < 0 || !CurrentPlayingGameInfo)
 	return;
     
-    assert(CurrentPlayingGameInfo);
     node = ChessBroadcastListInsert(&CurrentPlayingGameInfo->broadcast_list);
     node->sock = sock;
 
@@ -1300,9 +1299,9 @@ ChessReplayGame(const char* fname)
     fclose(fp);
 
     if (info) {
-	screen_backup(&oldscreen);
+	scr_dump(&oldscreen);
 	ChessPlay(info);
-	screen_restore(&oldscreen);
+	scr_restore(&oldscreen);
 
 	DeleteChessInfo(info);
     }

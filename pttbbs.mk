@@ -1,7 +1,9 @@
-# $Id: pttbbs.mk 2734 2005-05-24 05:40:35Z piaip $
+# $Id: pttbbs.mk 3559 2007-09-19 17:21:55Z kcwu $
 # 定義基本初值
 BBSHOME?=	$(HOME)
 BBSHOME?=	/home/bbs
+
+SRCROOT?=	.
 
 OS!=		uname
 OS_MAJOR_VER!=	uname -r|cut -d . -f 1
@@ -10,7 +12,7 @@ OSTYPE?=	$(OS)
 
 CC=		gcc
 CCACHE!=	which ccache|sed -e 's/^.*\///'
-PTT_CFLAGS=	-Wall -pipe -DBBSHOME='"$(BBSHOME)"' -I../include
+PTT_CFLAGS=	-Wall -pipe -DBBSHOME='"$(BBSHOME)"' -I$(SRCROOT)/include
 PTT_LDFLAGS=	-L/usr/local/lib
 PTT_LIBS=	-lhz
 

@@ -1,24 +1,9 @@
-/* $Id: record.c 3475 2007-01-18 09:13:53Z ptt $ */
+/* $Id: record.c 3884 2008-01-30 06:45:47Z piaip $ */
 
 #include "bbs.h"
 
 #undef  HAVE_MMAP
 #define BUFSIZE 512
-
-static void
-PttLock(int fd, int start, int size, int mode)
-{
-    static struct flock lock_it;
-    int             ret;
-
-    lock_it.l_whence = SEEK_CUR;/* from current point */
-    lock_it.l_start = start;	/* -"- */
-    lock_it.l_len = size;	/* length of data */
-    lock_it.l_type = mode;	/* set exclusive/write lock */
-    lock_it.l_pid = 0;		/* pid not actually interesting */
-    while ((ret = fcntl(fd, F_SETLKW, &lock_it)) < 0 && errno == EINTR)
-      sleep(1);
-}
 
 #define safewrite       write
 
@@ -192,7 +177,7 @@ substitute_ref_record(const char *direct, fileheader_t * fhdr, int ent)
     /* rocker.011018: 串接模式用reference增進效率 */
     if (!(fhdr->filemode & FILE_BOTTOM) &&  (fhdr->multi.refer.flag) &&
 	    (num = fhdr->multi.refer.ref)){
-	setdirpath(fname, direct, ".DIR");
+	setdirpath(fname, direct, FN_DIR);
 	get_record(fname, &hdr, sizeof(hdr), num);
 	if (strcmp(hdr.filename, fhdr->filename)) {
 	    if((num = getindex_m(fname, fhdr, num, 1))>0) {
@@ -593,9 +578,9 @@ append_record_forward(char *fpath, fileheader_t * record, int size, const char *
 	int             n;
 
 	for (n = strlen(fpath) - 1; fpath[n] != '/' && n > 0; n--);
-	strncpy(buf, fpath, n + 1);
 	if (n + sizeof(".forward") > sizeof(buf))
 	    return -1;
+	memcpy(buf, fpath, n+1);
 	strcpy(buf + n + 1, ".forward");
 	if ((fp = fopen(buf, "r"))) {
 
@@ -641,3 +626,41 @@ append_record_forward(char *fpath, fileheader_t * record, int size, const char *
 
     return 0;
 }
+
+#ifndef _BBS_UTIL_C_
+void 
+setaidfile(char *buf, const char *bn, aidu_t aidu)
+{
+    // try to load by AID
+    int bid = 0;
+    int n = 0, fd = 0;
+    char bfpath[PATHLEN] = "";
+    boardheader_t  *bh = NULL;
+    fileheader_t fh;
+
+    buf[0] = 0;
+    bid = getbnum(bn);
+
+    if (bid <= 0) return;
+    assert(0<=bid-1 && bid-1<MAX_BOARD);
+    bh = getbcache(bid);
+    if (!HasBoardPerm(bh)) return;
+
+    setbfile(bfpath, bh->brdname, FN_DIR);
+    n = search_aidu(bfpath, aidu);
+
+    if (n < 0) return;
+    fd = open(bfpath, O_RDONLY);
+    if (fd < 0) return;
+
+    lseek(fd, n*sizeof(fileheader_t), SEEK_SET);
+    memset(&fh, 0, sizeof(fh));
+    if (read(fd, &fh, sizeof(fh)) > 0)
+    {
+	setbfile(buf, bh->brdname, fh.filename);
+	if (!dashf(buf))
+	    buf[0] = 0;
+    }
+    close(fd);
+}
+#endif

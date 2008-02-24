@@ -1,4 +1,4 @@
-/* $Id: cache.c 3545 2007-06-18 17:14:32Z kcwu $ */
+/* $Id: cache.c 3933 2008-02-21 04:28:13Z piaip $ */
 #include "bbs.h"
 
 #ifdef _BBS_UTIL_C_
@@ -362,10 +362,30 @@ search_ulistn(int uid, int unum)
 	if (j == 0) {
 	    for (; i > 0 && uid == SHM->uinfo[ulist[i - 1]].uid; --i)
 		;/* 指到第一筆 */
+	    // piaip Tue Jan  8 09:28:03 CST 2008
+	    // many people bugged about that their utmp have invalid
+	    // entry on record.
+	    // we found them caused by crash process (DEBUGSLEEPING) which
+	    // may occupy utmp entries even after process was killed.
+	    // because the memory is invalid, it is not safe for those process
+	    // to wipe their utmp entry. it should be done by some external
+	    // daemon.
+	    // however, let's make a little workaround here...
+	    for (; unum > 0 && i >= 0 && ulist[i] >= 0 &&
+		    SHM->uinfo[ulist[i]].uid == uid; unum--, i++)
+	    {
+		if (SHM->uinfo[ulist[i]].mode == DEBUGSLEEPING)
+		    unum ++;
+	    }
+	    if (unum == 0 && i > 0 && ulist[i-1] >= 0 &&
+		    SHM->uinfo[ulist[i-1]].uid == uid)
+		return &SHM->uinfo[ulist[i-1]];
+	    /*
 	    if ( i + unum - 1 >= 0 &&
 		 (ulist[i + unum - 1] >= 0 &&
 		  uid == SHM->uinfo[ulist[i + unum - 1]].uid ) )
 		return &SHM->uinfo[ulist[i + unum - 1]];
+		*/
 	    break;		/* 超過範圍 */
 	}
 	if (end == start) {
@@ -500,6 +520,14 @@ setutmpmode(unsigned int mode)
 	log_user("setutmpmode to %s(%d)\n", modestring(currutmp, 0), mode);
     }
 }
+
+unsigned int 
+getutmpmode(void)
+{
+    if (currutmp)
+	return currutmp->mode;
+    return currstat;
+}
 #endif
 
 /*
@@ -596,7 +624,7 @@ reload_bcache(void)
 	if( SHM->bcache[i].brdname[0] ){
 	    char    fn[128];
 	    int n;
-	    sprintf(fn, "boards/%c/%s/.DIR.bottom", 
+	    sprintf(fn, "boards/%c/%s/" FN_DIR ".bottom", 
 		    SHM->bcache[i].brdname[0],
 		    SHM->bcache[i].brdname);
 	    n = get_num_records(fn, sizeof(fileheader_t));
@@ -689,7 +717,7 @@ setbottomtotal(int bid)
 
     assert(0<=bid-1 && bid-1<MAX_BOARD);
     if(!bh->brdname[0]) return;
-    setbfile(fname, bh->brdname, ".DIR.bottom");
+    setbfile(fname, bh->brdname, FN_DIR ".bottom");
     n = get_num_records(fname, sizeof(fileheader_t));
     if(n>5)
       {
@@ -711,7 +739,7 @@ setbtotal(int bid)
     int             num, fd;
 
     assert(0<=bid-1 && bid-1<MAX_BOARD);
-    setbfile(genbuf, bh->brdname, ".DIR");
+    setbfile(genbuf, bh->brdname, FN_DIR);
     if ((fd = open(genbuf, O_RDWR)) < 0)
 	return;			/* .DIR掛了 */
     fstat(fd, &st);
@@ -788,7 +816,7 @@ haspostperm(const char *bname)
     if (bcache[i - 1].brdattr & BRD_HIDE)
 	return 1;
     else if (bcache[i - 1].brdattr & BRD_RESTRICTEDPOST &&
-	    hbflcheck(i, usernum))
+	    !is_hidden_board_friend(i, usernum))
 	return 0;
 
     i = bcache[i - 1].level;
@@ -840,6 +868,54 @@ int is_BM_cache(int bid) /* bid starts from 1 */
 /*-------------------------------------------------------*/
 /* PTT  cache                                            */
 /*-------------------------------------------------------*/
+int 
+filter_aggressive(const char*s)
+{
+    if (
+	/*
+	strstr(s, "此處放較不適當的爭議性字句") != NULL ||
+	*/
+	0
+	)
+	return 1;
+    return 0;
+}
+
+int 
+filter_dirtywords(const char*s)
+{
+    if (
+	strstr(s, "幹你娘") != NULL ||
+	0)
+	return 1;
+    return 0;
+}
+
+#define AGGRESSIVE_FN ".aggressive"
+static char drop_aggressive = 0;
+
+void 
+load_aggressive_state()
+{
+    if (dashf(AGGRESSIVE_FN))
+	drop_aggressive = 1;
+    else
+	drop_aggressive = 0;
+}
+
+void 
+set_aggressive_state(int s)
+{
+    FILE *fp = NULL;
+    if (s)
+    {
+	fp = fopen(AGGRESSIVE_FN, "wb");
+	fclose(fp);
+    } else {
+	remove(AGGRESSIVE_FN);
+    }
+}
+
 /* cache for 動態看板 */
 void
 reload_pttcache(void)
@@ -850,40 +926,98 @@ reload_pttcache(void)
 	fileheader_t    item, subitem;
 	char            pbuf[256], buf[256], *chr;
 	FILE           *fp, *fp1, *fp2;
-	int             id;
+	int             id, aggid, rawid;
 
 	SHM->Pbusystate = 1;
 	SHM->last_film = 0;
 	bzero(SHM->notes, sizeof(SHM->notes));
-	setapath(pbuf, "Note");
+	setapath(pbuf, GLOBAL_NOTE);
 	setadir(buf, pbuf);
-	id = 0;
+
+	load_aggressive_state();
+	id = aggid = rawid = 0; // effective count, aggressive count, total (raw) count
+
 	if ((fp = fopen(buf, "r"))) {
+	    // .DIR loop
 	    while (fread(&item, sizeof(item), 1, fp)) {
-		if (item.title[3] == '<' && item.title[8] == '>') {
-		    snprintf(buf, sizeof(buf), "%s/%s/.DIR",
-			     pbuf, item.filename);
-		    if (!(fp1 = fopen(buf, "r")))
+
+		int chkagg = 0; // should we check aggressive?
+
+		if (item.title[3] != '<' || item.title[8] != '>')
+		    continue;
+
+#ifdef GLOBAL_NOTE_AGGCHKDIR
+		// TODO aggressive: only count '<點歌>' section
+		if (strcmp(item.title+3, GLOBAL_NOTE_AGGCHKDIR) == 0)
+		    chkagg = 1;
+#endif
+
+		snprintf(buf, sizeof(buf), "%s/%s/" FN_DIR,
+			pbuf, item.filename);
+
+		if (!(fp1 = fopen(buf, "r")))
+		    continue;
+
+		// file loop
+		while (fread(&subitem, sizeof(subitem), 1, fp1)) {
+
+		    snprintf(buf, sizeof(buf),
+			    "%s/%s/%s", pbuf, item.filename,
+			    subitem.filename);
+
+		    if (!(fp2 = fopen(buf, "r")))
 			continue;
-		    while (fread(&subitem, sizeof(subitem), 1, fp1)) {
-			snprintf(buf, sizeof(buf),
-				 "%s/%s/%s", pbuf, item.filename,
-				 subitem.filename);
-			if (!(fp2 = fopen(buf, "r")))
-			    continue;
-			fread(SHM->notes[id], sizeof(char), sizeof(SHM->notes[0]), fp2);
-			SHM->notes[id][sizeof(SHM->notes[0]) - 1] = 0;
-			id++;
-			fclose(fp2);
-			if (id >= MAX_MOVIE)
-			    break;
+
+		    fread(SHM->notes[id], sizeof(char), sizeof(SHM->notes[0]), fp2);
+		    SHM->notes[id][sizeof(SHM->notes[0]) - 1] = 0;
+		    rawid ++;
+
+		    // filtering
+		    if (filter_dirtywords(SHM->notes[id]))
+		    {
+			memset(SHM->notes[id], 0, sizeof(SHM->notes[0]));
+			rawid --;
 		    }
-		    fclose(fp1);
+		    else if (chkagg && filter_aggressive(SHM->notes[id]))
+		    {
+			aggid++;
+			// handle aggressive notes by last detemined state
+			if (drop_aggressive)
+			    memset(SHM->notes[id], 0, sizeof(SHM->notes[0]));
+			else
+			    id++;
+#ifdef _BBS_UTIL_C_
+			// Debug purpose
+			// printf("found aggressive: %s\n", buf);
+#endif
+		    } 
+		    else 
+		    {
+			id++;
+		    }
+
+		    fclose(fp2);
 		    if (id >= MAX_MOVIE)
 			break;
-		}
-	    }
+
+		} // end of file loop
+		fclose(fp1);
+
+		if (id >= MAX_MOVIE)
+		    break;
+	    } // end of .DIR loop
 	    fclose(fp);
+
+	    // decide next aggressive state
+	    if (rawid && aggid*3 >= rawid) // if aggressive exceed 1/3
+		set_aggressive_state(1);
+	    else
+		set_aggressive_state(0);
+
+#ifdef _BBS_UTIL_C_
+	    printf("id(%d)/agg(%d)/raw(%d)\n",
+		    id, aggid, rawid);
+#endif
 	}
 	SHM->last_film = id - 1;
 
@@ -967,11 +1101,10 @@ reload_fcache(void)
 		}
 		ip = strtok_r(NULL, " \t", &strtok_pos);
 		if (ip == NULL) {
-		    strncpy(SHM->home_desc[SHM->home_num], "雲深不知處",
-			    sizeof(SHM->home_desc[SHM->home_num]));
+		    strcpy(SHM->home_desc[SHM->home_num], "雲深不知處");
 		}
 		else {
-		    strncpy(SHM->home_desc[SHM->home_num], ip,
+		    strlcpy(SHM->home_desc[SHM->home_num], ip,
 			    sizeof(SHM->home_desc[SHM->home_num]));
 		    chomp(SHM->home_desc[SHM->home_num]);
 		}
@@ -1034,9 +1167,9 @@ hbflreload(int bid)
     memcpy(SHM->hbfl[bid-1], hbfl, sizeof(hbfl));
 }
 
-/* 是否"不"通過板友測試. 如果在板友名單中的話傳回 0, 否則為 1 */
+/* 是否通過板友測試. 如果在板友名單中的話傳回 1, 否則為 0 */
 int
-hbflcheck(int bid, int uid)
+is_hidden_board_friend(int bid, int uid)
 {
     int             i;
 
@@ -1045,9 +1178,9 @@ hbflcheck(int bid, int uid)
 	hbflreload(bid);
     for (i = 1; SHM->hbfl[bid-1][i] != 0 && i <= MAX_FRIEND; ++i) {
 	if (SHM->hbfl[bid-1][i] == uid)
-	    return 0;
+	    return 1;
     }
-    return 1;
+    return 0;
 }
 
 #ifdef USE_COOLDOWN
