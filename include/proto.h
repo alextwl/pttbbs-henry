@@ -1,4 +1,4 @@
-/* $Id: proto.h 3948 2008-02-25 16:35:38Z piaip $ */
+/* $Id: proto.h 3951 2008-02-26 04:00:08Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -183,6 +183,7 @@ int x_file(void);
 int give_money(void);
 int p_sysinfo(void);
 int do_give_money(char *id, int uid, int money);
+int give_money_ui(const char *userid);
 int p_give(void);
 int p_cloak(void);
 int p_from(void);
