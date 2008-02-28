@@ -1,4 +1,4 @@
-/* $Id: proto.h 3931 2008-02-20 14:32:47Z piaip $ */
+/* $Id: proto.h 3951 2008-02-26 04:00:08Z piaip $ */
 #ifndef INCLUDE_PROTO_H
 #define INCLUDE_PROTO_H
 
@@ -134,6 +134,7 @@ unsigned int  getutmpmode(void);
 void setadir(char *buf, const char *path);
 int apply_boards(int (*func)(boardheader_t *));
 int haspostperm(const char *bname);
+const char * postperm_msg(const char *bname);
 void setbtotal(int bid);
 void setbottomtotal(int bid);
 unsigned int safe_sleep(unsigned int seconds);
@@ -182,6 +183,7 @@ int x_file(void);
 int give_money(void);
 int p_sysinfo(void);
 int do_give_money(char *id, int uid, int money);
+int give_money_ui(const char *userid);
 int p_give(void);
 int p_cloak(void);
 int p_from(void);

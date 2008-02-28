@@ -1,4 +1,4 @@
-/* $Id: admin.c 3943 2008-02-23 16:30:53Z piaip $ */
+/* $Id: admin.c 3947 2008-02-24 16:08:21Z piaip $ */
 #include "bbs.h"
 
 /* 進站水球宣傳 */
@@ -94,11 +94,13 @@ search_key_user(const char *passwdfile, int mode)
 {
     userec_t        user;
     int             ch;
-    int             coun = 0;
+    int             unum = 0;
     FILE            *fp1 = fopen(passwdfile, "r");
     char            friendfile[128]="", key[22], *keymatch;
     int		    keytype = 0;
+    char	    isCurrentPwd = 0;
 
+    isCurrentPwd = (strcmp(passwdfile, FN_PASSWD) == 0) ? 1 : 0;
     assert(fp1);
     clear();
     if (!mode)
@@ -120,15 +122,15 @@ search_key_user(const char *passwdfile, int mode)
 	fclose(fp1);
 	return 0;
     }
-    while ((fread(&user, sizeof(user), 1, fp1)) > 0 && coun < MAX_USERS) {
+    while ((fread(&user, sizeof(user), 1, fp1)) > 0 && unum++ < MAX_USERS) {
 
 	// skip empty records
 	if (!user.userid[0])
 	    continue;
 
-	if (!(++coun & 0xFF)) {
+	if (!(unum & 0xFF)) {
 	    move(1, 0);
-	    prints("第 [%d] 筆資料\n", coun);
+	    prints("第 [%d] 筆資料\n", unum);
 	    refresh();
 	}
 
@@ -169,14 +171,14 @@ search_key_user(const char *passwdfile, int mode)
 
         if(keymatch) {
 	    move(1, 0);
-	    prints("第 [%d] 筆資料\n", coun);
+	    prints("第 [%d] 筆資料\n", unum);
 	    refresh();
 
 	    user_display(&user, 1);
 	    // user_display does not have linefeed in tail.
-	    //
-	    if (HasUserPerm(PERM_ACCOUNTS))
-		uinfo_query(&user, 1, coun);
+
+	    if (isCurrentPwd && HasUserPerm(PERM_ACCOUNTS))
+		uinfo_query(&user, 1, unum);
 	    else
 		outs("\n");
 
@@ -1213,7 +1215,7 @@ scan_register_form(const char *regfile, int automode, const char *target_uid)
 	"詳填「(畢業)學校及『系』『級』」或「服務單位(含所屬縣市及職稱)」",
 	"填寫完整的住址資料 (含縣市名稱, 台北市請含行政區域）",
 	"詳填連絡電話 (含區域碼, 中間不用加 '-', '(', ')'等符號",
-	"確實填寫註冊申請表",
+	"精確並完整填寫註冊申請表",
 	"用中文填寫申請單",
 	"說明其他原因 (稍候有額外欄位可供輸入)",
 	NULL
@@ -1465,7 +1467,7 @@ static const char *reasonstr[REJECT_REASONS] = {
     "詳填(畢業)學校『系』『級』或服務單位(含所屬縣市及職稱)",
     "填寫完整的住址資料 (含縣市名稱, 台北市請含行政區域)",
     "詳填連絡電話 (含區碼, 中間不加 '-', '(', ')' 等符號)",
-    "確實填寫註冊申請表",
+    "精確並完整填寫註冊申請表",
     "用中文填寫申請單",
 };
 
@@ -1639,6 +1641,7 @@ typedef struct {
     // [5] email: x (50) (deprecated)
     // [6] mobile: (deprecated)
     // [7] ----
+    //     lasthost: 16
     char userid[IDLEN+1];
 
     char exist;
