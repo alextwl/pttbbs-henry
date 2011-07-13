@@ -81,9 +81,9 @@
 #define ERR_BOARD_UPDATE        ".BOARD 更新有誤"
 #define ERR_PASSWD_OPEN ".PASSWDS 開啟錯誤"
 
-#define ERR_BID         "你搞錯了啦！沒有這個板喔！"
-#define ERR_UID         "這裡沒有這個人啦！"
-#define ERR_PASSWD      "密碼不對喔！你有沒有冒用人家的名字啊？"
+#define ERR_BID         "沒找到這個板唷，請換個名字試試看！"
+#define ERR_UID         "目前沒有這個帳號唷，要用new登入搶先註冊嗎XD?"
+#define ERR_PASSWD      "密碼打錯了唷！請再試一次"
 #define ERR_FILENAME    "檔名不合法！"
 
 #define STR_AUTHOR1     "作者:"
