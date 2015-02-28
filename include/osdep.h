@@ -15,14 +15,17 @@
     #define HAVE_SETPROCTITLE
 
 #elif defined(__linux__)
+    #define _GNU_SOURCE
 
     #include <sys/ioctl.h>
     #include <sys/file.h>      /* for flock() */
     #include <strings.h>       /* for strcasecmp() */
+    #include <hz.h>
 
-    #define NEED_STRCASESTR
+    /* #define NEED_STRCASESTR */
     #define NEED_STRLCPY
     #define NEED_STRLCAT
+    #define INT_MAX	2147483647
 
 #elif defined(Solaris)
 

@@ -18,10 +18,12 @@ static void do_aloha(const char *hello);
 static void getremotename(const struct sockaddr_in * from, char *rhost, char *rname);
 
 #ifdef CONVERT
+    #if !defined(__linux__)
 void big2gb_init(void*);
 void gb2big_init(void*);
 void big2uni_init(void*);
 void uni2big_init(void*);
+    #endif
 #endif
 
 //////////////////////////////////////////////////////////////////

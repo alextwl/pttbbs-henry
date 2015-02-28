@@ -3,12 +3,14 @@
 
 #ifdef CONVERT
 
+#if !defined(__linux__)
 extern unsigned char *gb2big(unsigned char *, int *, int);
 extern unsigned char *big2gb(unsigned char *, int *, int);
 extern unsigned char *utf8_uni(unsigned char *, int *, int);
 extern unsigned char *uni_utf8(unsigned char *, int *, int);
 extern unsigned char *uni2big(unsigned char *, int *, int);
 extern unsigned char *big2uni(unsigned char *, int *, int);
+#endif
 
 static ssize_t 
 gb_input(void *buf, ssize_t icount)

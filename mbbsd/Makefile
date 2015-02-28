@@ -103,7 +103,7 @@ all: $(PROG)
 
 $(PROG): $(OBJS)
 	sh $(SRCROOT)/util/newvers.sh
-	$(DIETCC) $(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS) $(EXT_LIBS) vers.c
+	$(DIETCC) $(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS) $(EXT_LIBS) vers.c $(PTT_LIBS)
 
 $(SRCROOT)/include/var.h:	var.c
 	perl $(SRCROOT)/util/parsevar.pl < var.c > $(SRCROOT)/include/var.h
