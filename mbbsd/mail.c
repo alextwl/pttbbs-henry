@@ -1982,7 +1982,7 @@ doforward(const char *direct, const fileheader_t * fh, int mode)
     if (mode == 'Z') {
 	snprintf(fname, sizeof(fname),
 		 TAR_PATH " cfz /tmp/home.%s.tgz home/%c/%s; "
-		 MUTT_PATH " -a /tmp/home.%s.tgz -s 'home.%s.tgz' '%s' </dev/null;"
+		 MUTT_PATH " -a /tmp/home.%s.tgz -s 'home.%s.tgz' -- '%s' </dev/null;"
 		 "rm /tmp/home.%s.tgz",
 		 cuser.userid, cuser.userid[0], cuser.userid,
 		 cuser.userid, cuser.userid, address, cuser.userid);
